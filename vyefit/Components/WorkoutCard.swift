@@ -27,12 +27,6 @@ struct WorkoutCard: View {
             Text("\(workout.exercises.count) exercises")
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.textSecondary)
-
-            Spacer(minLength: 0)
-
-            Text(SampleData.relativeDateString(workout.lastPerformed))
-                .font(.system(size: 10))
-                .foregroundStyle(Theme.stone)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
