@@ -8,12 +8,27 @@
 import SwiftUI
 
 struct RemindersView: View {
+    private enum HydrationInterval: Int, CaseIterable, Identifiable {
+        case one = 1
+        case two = 2
+        case three = 3
+        case four = 4
+
+        var id: Int { rawValue }
+
+        var label: String {
+            "\(rawValue)h"
+        }
+    }
+
     @AppStorage("workoutReminders") private var workoutReminders = true
     @AppStorage("hydrationReminders") private var hydrationReminders = false
     @AppStorage("mindfulnessReminders") private var mindfulnessReminders = false
+    @AppStorage("hydrationIntervalHours") private var hydrationIntervalHours = HydrationInterval.two.rawValue
 
     @State private var workoutTime = Date()
     @State private var hydrationTime = Date()
+    @State private var mindfulnessTime = Date()
 
     var body: some View {
         ScrollView {
@@ -35,8 +50,26 @@ struct RemindersView: View {
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
                             .tint(Theme.sage)
+											reminderTimeRow(title: "First reminder", date: $hydrationTime, enabled: hydrationReminders)
 
-                        reminderTimeRow(title: "First reminder", date: $hydrationTime, enabled: hydrationReminders)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Check-in interval")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.textSecondary)
+
+                            Picker("Check-in interval", selection: $hydrationIntervalHours) {
+                                ForEach(HydrationInterval.allCases) { interval in
+                                    Text(interval.label)
+                                        .tag(interval.rawValue)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .tint(Theme.sage)
+                        }
+                        .opacity(hydrationReminders ? 1 : 0.45)
+                        .disabled(!hydrationReminders)
+
+                        
                     }
                 }
 
@@ -50,6 +83,8 @@ struct RemindersView: View {
                         Text("Prompts you to log short mindfulness breaks.")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Theme.textSecondary)
+
+                        reminderTimeRow(title: "Preferred time", date: $mindfulnessTime, enabled: mindfulnessReminders)
                     }
                 }
             }
