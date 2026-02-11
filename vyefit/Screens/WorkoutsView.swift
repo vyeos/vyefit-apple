@@ -11,6 +11,7 @@ struct WorkoutsView: View {
     @Environment(WorkoutStore.self) private var workoutStore
     @State private var showCreateSheet = false
     @State private var selectedTemplate: MockWorkout?
+    @State private var editingWorkout: UserWorkout?
 
     var body: some View {
         NavigationStack {
@@ -28,10 +29,15 @@ struct WorkoutsView: View {
                             ForEach(workoutStore.workouts) { workout in
                                 UserWorkoutCard(
                                     workout: workout,
+                                    onEdit: {
+                                        editingWorkout = workout
+                                    },
                                     onDelete: {
-																			withAnimation(.easeInOut(duration: 0.25)) {
-																				workoutStore.remove(id: workout.id)
-																			}
+							        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+							        	withAnimation(.easeInOut(duration: 0.25)) {
+							        		workoutStore.remove(id: workout.id)
+							        	}
+							        }
                                     }
                                 )
                             }
@@ -87,6 +93,9 @@ struct WorkoutsView: View {
             .sheet(item: $selectedTemplate) { template in
                 CreateWorkoutView(template: template)
             }
+            .sheet(item: $editingWorkout) { workout in
+                CreateWorkoutView(editing: workout)
+            }
         }
     }
 }
@@ -95,6 +104,7 @@ struct WorkoutsView: View {
 
 struct UserWorkoutCard: View {
     let workout: UserWorkout
+    var onEdit: () -> Void
     var onDelete: () -> Void
 
     var body: some View {
@@ -114,6 +124,11 @@ struct UserWorkoutCard: View {
                 Spacer()
 
                 Menu {
+                    Button {
+                        onEdit()
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
                     Button(role: .destructive) {
                         onDelete()
                     } label: {

@@ -26,8 +26,10 @@ struct CreateWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var sortMode: ExerciseSortMode = .custom
     @State private var selectedIcon: String
+    private let editingId: UUID?
 
     init(template: MockWorkout? = nil) {
+        editingId = nil
         if let t = template {
             _workoutName = State(initialValue: t.name)
             _selectedIcon = State(initialValue: t.icon)
@@ -40,6 +42,13 @@ struct CreateWorkoutView: View {
             _selectedIcon = State(initialValue: "figure.strengthtraining.traditional")
             _selectedExercises = State(initialValue: [])
         }
+    }
+
+    init(editing workout: UserWorkout) {
+        editingId = workout.id
+        _workoutName = State(initialValue: workout.name)
+        _selectedIcon = State(initialValue: workout.icon)
+        _selectedExercises = State(initialValue: workout.exercises)
     }
 
     private let iconOptions = [
@@ -81,7 +90,7 @@ struct CreateWorkoutView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("New Workout")
+            .navigationTitle(editingId != nil ? "Edit Workout" : "New Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.cream, for: .navigationBar)
             .toolbar {
@@ -311,13 +320,17 @@ struct CreateWorkoutView: View {
 
     private func saveWorkout() {
         let workout = UserWorkout(
-            id: UUID(),
+            id: editingId ?? UUID(),
             name: workoutName.trimmingCharacters(in: .whitespaces),
             exercises: sortMode == .custom ? selectedExercises : displayedExercises,
             icon: selectedIcon,
             createdAt: Date()
         )
-        store.add(workout)
+        if editingId != nil {
+            store.update(workout)
+        } else {
+            store.add(workout)
+        }
         dismiss()
     }
 }

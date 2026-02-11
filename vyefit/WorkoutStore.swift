@@ -26,4 +26,9 @@ class WorkoutStore {
     func remove(id: UUID) {
         workouts.removeAll { $0.id == id }
     }
+
+    func update(_ workout: UserWorkout) {
+        guard let index = workouts.firstIndex(where: { $0.id == workout.id }) else { return }
+        workouts[index] = workout
+    }
 }
