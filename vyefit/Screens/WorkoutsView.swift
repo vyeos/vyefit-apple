@@ -46,14 +46,14 @@ struct WorkoutsView: View {
                         Divider()
                             .background(Theme.sand)
                             .padding(.vertical, 4)
-
-                        Text("TEMPLATES")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Theme.textSecondary)
-                            .tracking(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, 4)
                     }
+
+                    Text("TEMPLATES")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .tracking(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 4)
 
                     // Sample/template workouts — 2x2 grid
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
