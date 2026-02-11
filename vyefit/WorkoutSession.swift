@@ -40,6 +40,7 @@ class WorkoutSession {
     var currentHeartRate: Int = 75
     var activeCalories: Int = 0
     var currentExerciseIndex: Int = 0
+    var hasShownWatchPrompt: Bool = false
     
     // Rest Timer
     var isResting: Bool = false

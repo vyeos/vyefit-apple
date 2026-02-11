@@ -61,13 +61,6 @@ struct ActiveWorkoutView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.terracotta)
                 }
-                
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
-                }
             }
             .alert("End Workout?", isPresented: $showEndConfirmation) {
                 Button("End Workout", role: .destructive) {
@@ -85,9 +78,11 @@ struct ActiveWorkoutView: View {
                 Text("Do you want to track this \(session.workout.workoutType.rawValue) workout on your Apple Watch?")
             }
             .onAppear {
-                // Delay prompt slightly
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    showAppleWatchPrompt = true
+                if !session.hasShownWatchPrompt {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showAppleWatchPrompt = true
+                        session.hasShownWatchPrompt = true
+                    }
                 }
             }
         }
@@ -124,6 +119,14 @@ struct LogView: View {
             .padding()
         }
         .background(Theme.background)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+            }
+        }
     }
 }
 
@@ -192,6 +195,7 @@ struct StartNextSetBanner: View {
 struct ExerciseLogCard: View {
     var session: WorkoutSession
     let exerciseIndex: Int
+    @State private var weightUnit = "kg"
     
     var activeExercise: ActiveExercise {
         session.activeExercises[exerciseIndex]
@@ -205,6 +209,13 @@ struct ExerciseLogCard: View {
                 Text(activeExercise.exercise.name)
                     .font(.headline)
                 Spacer()
+                
+                Picker("Unit", selection: $weightUnit) {
+                    Text("kg").tag("kg")
+                    Text("lbs").tag("lbs")
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 80)
             }
             
             Divider()
@@ -215,12 +226,14 @@ struct ExerciseLogCard: View {
                     .frame(width: 30)
                 Text("Previous")
                     .frame(maxWidth: .infinity)
-                Text("kg")
+                Text(weightUnit)
                     .frame(width: 60)
                 Text("Reps")
                     .frame(width: 60)
                 Text("✓")
                     .frame(width: 40)
+                Spacer()
+                    .frame(width: 30)
             }
             .font(.caption)
             .foregroundStyle(Theme.textSecondary)
@@ -328,13 +341,15 @@ struct SetRow: View {
                     .foregroundStyle(set.isCompleted ? Theme.sage : Theme.stone.opacity(0.3))
             }
             .frame(width: 40)
-        }
-        .contextMenu {
+            
             Button(role: .destructive) {
                 onDelete()
             } label: {
-                Label("Delete Set", systemImage: "trash")
+                Image(systemName: "trash")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.stone.opacity(0.5))
             }
+            .frame(width: 30)
         }
     }
 }
