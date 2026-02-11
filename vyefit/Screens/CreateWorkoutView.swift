@@ -217,6 +217,7 @@ struct CreateWorkoutView: View {
                 List {
                     ForEach(selectedExercises) { exercise in
                         exerciseRow(exercise)
+                            .listRowSeparator(.hidden, edges: exercise.id == selectedExercises.last?.id ? .bottom : [])
                     }
                     .onMove { from, to in
                         selectedExercises.move(fromOffsets: from, toOffset: to)
@@ -232,7 +233,7 @@ struct CreateWorkoutView: View {
                 .scrollDisabled(true)
                 .scrollContentBackground(.hidden)
                 .environment(\.editMode, .constant(.active))
-                .frame(height: CGFloat(selectedExercises.count) * 52)
+                .frame(height: CGFloat(selectedExercises.count) * 50)
                 .background(Theme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             } else {
