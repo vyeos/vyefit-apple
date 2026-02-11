@@ -25,12 +25,14 @@ struct RemindersView: View {
     @AppStorage("hydrationReminders") private var hydrationReminders = false
     @AppStorage("mindfulnessReminders") private var mindfulnessReminders = false
     @AppStorage("hydrationIntervalHours") private var hydrationIntervalHours = HydrationInterval.two.rawValue
+    @AppStorage("accentColor") private var accentColor = "Terracotta"
 
     @State private var workoutTime = Date()
     @State private var hydrationTime = Date()
     @State private var mindfulnessTime = Date()
 
     var body: some View {
+        let accent = Theme.accent(for: accentColor)
         ScrollView {
             VStack(spacing: 20) {
                 SettingsCard("Workout") {
@@ -38,7 +40,7 @@ struct RemindersView: View {
                         Toggle("Workout reminders", isOn: $workoutReminders)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(Theme.terracotta)
+                            .tint(accent)
 
                         reminderTimeRow(title: "Preferred time", date: $workoutTime, enabled: workoutReminders)
                     }
@@ -49,7 +51,7 @@ struct RemindersView: View {
                         Toggle("Hydration check-ins", isOn: $hydrationReminders)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(Theme.sage)
+                            .tint(accent)
 											reminderTimeRow(title: "First reminder", date: $hydrationTime, enabled: hydrationReminders)
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -64,7 +66,7 @@ struct RemindersView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
-                            .tint(Theme.sage)
+                            .tint(accent)
                         }
                         .opacity(hydrationReminders ? 1 : 0.45)
                         .disabled(!hydrationReminders)
@@ -78,7 +80,7 @@ struct RemindersView: View {
                         Toggle("Mindful minutes prompt", isOn: $mindfulnessReminders)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(Theme.sage)
+                            .tint(accent)
 
                         Text("Prompts you to log short mindfulness breaks.")
                             .font(.system(size: 12, weight: .medium))
@@ -105,7 +107,7 @@ struct RemindersView: View {
 
             DatePicker("", selection: date, displayedComponents: .hourAndMinute)
                 .labelsHidden()
-                .tint(Theme.terracotta)
+                .tint(Theme.accent(for: accentColor))
         }
         .opacity(enabled ? 1 : 0.45)
         .disabled(!enabled)

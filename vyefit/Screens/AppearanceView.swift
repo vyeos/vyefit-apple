@@ -38,6 +38,7 @@ struct AppearanceView: View {
     @AppStorage("appTheme") private var appTheme = AppTheme.system.rawValue
     @AppStorage("accentColor") private var accentColor = AccentOption.terracotta.rawValue
     var body: some View {
+        let accent = Theme.accent(for: accentColor)
         ScrollView {
             VStack(spacing: 20) {
                 SettingsCard("Theme") {
@@ -49,7 +50,7 @@ struct AppearanceView: View {
                             }
                         }
                         .pickerStyle(.segmented)
-                        .tint(Theme.terracotta)
+                        .tint(accent)
                     }
                 }
 
@@ -69,7 +70,7 @@ struct AppearanceView: View {
                                     .overlay(
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(Theme.cream)
+                                            .foregroundStyle(Theme.textPrimary)
                                             .opacity(accentColor == option.rawValue ? 1 : 0)
                                     )
                             }

@@ -52,7 +52,7 @@ struct HomeView: View {
                     .tag(4)
             }
             .environment(workoutStore)
-            .tint(tintColor)
+            .tint(Theme.accent(for: accentColor))
             .toolbarBackground(Theme.background, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
             
@@ -71,17 +71,6 @@ struct HomeView: View {
             }
         }
         .preferredColorScheme(preferredScheme)
-    }
-
-    private var tintColor: Color {
-        switch accentColor {
-        case "Sage":
-            return Theme.sage
-        case "Stone":
-            return Theme.stone
-        default:
-            return Theme.terracotta
-        }
     }
 
     private var preferredScheme: ColorScheme? {
