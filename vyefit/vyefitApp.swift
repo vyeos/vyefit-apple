@@ -16,6 +16,7 @@ struct vyefitApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .background(Theme.background.ignoresSafeArea())
         }
     }
 }

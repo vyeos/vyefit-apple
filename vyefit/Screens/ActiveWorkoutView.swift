@@ -34,6 +34,8 @@ struct ActiveWorkoutView: View {
                     }
             }
             .tint(Theme.terracotta)
+            .toolbarBackground(Theme.background, for: .bottomBar)
+            .toolbarBackground(.visible, for: .bottomBar)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {

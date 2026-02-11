@@ -51,6 +51,8 @@ struct HomeView: View {
             }
             .environment(workoutStore)
             .tint(Theme.terracotta)
+            .toolbarBackground(Theme.background, for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
             
             if let session = workoutStore.activeSession, !workoutStore.showActiveWorkout {
                 MiniWorkoutPlayer(session: session) {
