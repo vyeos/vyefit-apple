@@ -378,6 +378,23 @@ struct StatsView: View {
                 color: .blue
             )
             
+            Button {
+                withAnimation {
+                    session.togglePause()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: session.state == .active ? "pause.fill" : "play.fill")
+                    Text(session.state == .active ? "Pause Workout" : "Resume Workout")
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(session.state == .active ? Theme.terracotta : Theme.sage)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            
             Spacer()
         }
         .padding()

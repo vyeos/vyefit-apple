@@ -30,7 +30,13 @@ struct MiniWorkoutPlayer: View {
                         .lineLimit(1)
                     
                     Group {
-                        if session.isResting {
+                        if session.state == .paused {
+                            HStack(spacing: 4) {
+                                Image(systemName: "pause.fill")
+                                Text("Paused")
+                            }
+                            .foregroundStyle(Theme.terracotta)
+                        } else if session.isResting {
                             HStack(spacing: 4) {
                                 Image(systemName: "timer")
                                 Text("Resting: \(formatDuration(session.restSecondsRemaining))")

@@ -252,6 +252,13 @@ struct CreateWorkoutView: View {
                     .foregroundStyle(Theme.stone)
             }
             
+            // Visual handle for custom sort mode
+            if sortMode == .custom {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.stone.opacity(0.5))
+            }
+            
             // Delete button for non-custom modes (custom mode uses swipe-to-delete)
             if sortMode != .custom {
                 Button {
