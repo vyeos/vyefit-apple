@@ -20,6 +20,10 @@ struct UserWorkout: Identifiable {
 class WorkoutStore {
     var workouts: [UserWorkout] = []
     var customExercises: [CatalogExercise] = []
+    
+    // Active Session State
+    var activeSession: WorkoutSession?
+    var showActiveWorkout: Bool = false
 
     /// All exercises: catalog + user-created customs
     var allExercises: [CatalogExercise] {
@@ -43,5 +47,16 @@ class WorkoutStore {
         guard !customExercises.contains(exercise),
               !ExerciseCatalog.all.contains(exercise) else { return }
         customExercises.append(exercise)
+    }
+    
+    func startSession(for workout: UserWorkout) {
+        activeSession = WorkoutSession(workout: workout)
+        showActiveWorkout = true
+    }
+    
+    func endActiveSession() {
+        activeSession?.endWorkout()
+        activeSession = nil
+        showActiveWorkout = false
     }
 }

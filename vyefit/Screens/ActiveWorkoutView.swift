@@ -9,15 +9,15 @@ import SwiftUI
 import UIKit
 
 struct ActiveWorkoutView: View {
-    let workout: UserWorkout
+    @Bindable var session: WorkoutSession
     @Environment(\.dismiss) private var dismiss
-    @State private var session: WorkoutSession
     @State private var showEndConfirmation = false
     @State private var showAppleWatchPrompt = false
+    var onEnd: () -> Void
     
-    init(workout: UserWorkout) {
-        self.workout = workout
-        self._session = State(initialValue: WorkoutSession(workout: workout))
+    init(session: WorkoutSession, onEnd: @escaping () -> Void) {
+        self.session = session
+        self.onEnd = onEnd
     }
     
     var body: some View {
@@ -71,18 +71,18 @@ struct ActiveWorkoutView: View {
             }
             .alert("End Workout?", isPresented: $showEndConfirmation) {
                 Button("End Workout", role: .destructive) {
-                    session.endWorkout()
+                    onEnd()
                     dismiss()
                 }
                 Button("Cancel", role: .cancel) { }
             }
             .alert("Start on Apple Watch?", isPresented: $showAppleWatchPrompt) {
-                Button("Start \(workout.workoutType.rawValue)") {
+                Button("Start \(session.workout.workoutType.rawValue)") {
                     // Logic to start HKWorkoutSession would go here
                 }
                 Button("Skip", role: .cancel) { }
             } message: {
-                Text("Do you want to track this \(workout.workoutType.rawValue) workout on your Apple Watch?")
+                Text("Do you want to track this \(session.workout.workoutType.rawValue) workout on your Apple Watch?")
             }
             .onAppear {
                 // Delay prompt slightly
@@ -428,5 +428,8 @@ struct StatsCard: View {
 }
 
 #Preview {
-    ActiveWorkoutView(workout: UserWorkout(id: UUID(), name: "Test Workout", workoutType: .traditionalStrengthTraining, exercises: [], icon: "dumbbell.fill", createdAt: Date()))
+    ActiveWorkoutView(
+        session: WorkoutSession(workout: UserWorkout(id: UUID(), name: "Test Workout", workoutType: .traditionalStrengthTraining, exercises: [], icon: "dumbbell.fill", createdAt: Date())),
+        onEnd: {}
+    )
 }

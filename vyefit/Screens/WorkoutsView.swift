@@ -12,7 +12,7 @@ struct WorkoutsView: View {
     @State private var showCreateSheet = false
     @State private var selectedTemplate: MockWorkout?
     @State private var editingWorkout: UserWorkout?
-    @State private var activeWorkout: UserWorkout?
+    @State private var showActiveWorkoutAlert = false
 
     var body: some View {
         NavigationStack {
@@ -41,7 +41,11 @@ struct WorkoutsView: View {
 							        }
                                     },
                                     onStart: {
-                                        activeWorkout = workout
+                                        if workoutStore.activeSession != nil {
+                                            showActiveWorkoutAlert = true
+                                        } else {
+                                            workoutStore.startSession(for: workout)
+                                        }
                                     }
                                 )
                             }
@@ -100,8 +104,10 @@ struct WorkoutsView: View {
             .sheet(item: $editingWorkout) { workout in
                 CreateWorkoutView(editing: workout)
             }
-            .fullScreenCover(item: $activeWorkout) { workout in
-                ActiveWorkoutView(workout: workout)
+            .alert("Workout in Progress", isPresented: $showActiveWorkoutAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Please finish your current workout before starting a new one.")
             }
         }
     }
