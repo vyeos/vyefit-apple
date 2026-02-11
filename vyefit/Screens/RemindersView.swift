@@ -41,10 +41,16 @@ struct RemindersView: View {
                 }
 
                 SettingsCard("Mindfulness") {
-                    Toggle("Mindful minutes prompt", isOn: $mindfulnessReminders)
-                        .font(.system(size: 15, design: .serif))
-                        .foregroundStyle(Theme.textPrimary)
-                        .tint(Theme.sage)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("Mindful minutes prompt", isOn: $mindfulnessReminders)
+                            .font(.system(size: 15, design: .serif))
+                            .foregroundStyle(Theme.textPrimary)
+                            .tint(Theme.sage)
+
+                        Text("Prompts you to log short mindfulness breaks.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
             }
             .padding(.vertical)

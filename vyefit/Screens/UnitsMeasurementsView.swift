@@ -37,10 +37,16 @@ struct UnitsMeasurementsView: View {
                 }
 
                 SettingsCard("Display") {
-                    Toggle("Auto-match pace to distance unit", isOn: $paceAutoMatch)
-                        .font(.system(size: 15, design: .serif))
-                        .foregroundStyle(Theme.textPrimary)
-                        .tint(Theme.sage)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("Auto-match pace to distance unit", isOn: $paceAutoMatch)
+                            .font(.system(size: 15, design: .serif))
+                            .foregroundStyle(Theme.textPrimary)
+                            .tint(Theme.sage)
+
+                        Text("Shows pace as min/km with kilometers, and min/mi with miles.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
             }
             .padding(.vertical)
