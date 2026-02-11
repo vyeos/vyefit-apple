@@ -51,10 +51,10 @@ struct MiniWorkoutPlayer: View {
                     .font(.system(size: 14, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Theme.textPrimary)
                 
-                // Play/Pause indicator (optional, or just End)
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(Theme.terracotta)
-                    .font(.system(size: 14))
+                // Expand indicator
+                Image(systemName: "chevron.up")
+                    .foregroundStyle(Theme.textSecondary)
+                    .font(.system(size: 14, weight: .semibold))
             }
             .padding(10)
             .background(Theme.cream)

@@ -27,7 +27,7 @@ struct CreateWorkoutView: View {
     @State private var sortMode: ExerciseSortMode = .custom
     @State private var selectedIcon: String
     @State private var selectedWorkoutType: WorkoutType = .traditionalStrengthTraining
-    @State private var draggingExercise: CatalogExercise?
+    @State private var editMode: EditMode = .inactive
     private let editingId: UUID?
 
     init(template: MockWorkout? = nil) {
@@ -83,18 +83,125 @@ struct CreateWorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                        nameSection
-                        workoutTypeSection
-                        iconSection
-                        exercisesSection
-                    }
-                    .padding(20)
+            List {
+                Section {
+                    TextField("Workout Name", text: $workoutName)
+                        .font(.system(size: 16, design: .serif))
+                } header: {
+                    Text("Workout Name")
                 }
+                .listRowBackground(Theme.cream)
+
+                Section {
+                    NavigationLink {
+                        WorkoutTypePickerView(selectedType: $selectedWorkoutType)
+                    } label: {
+                        HStack {
+                            Image(systemName: selectedWorkoutType.icon)
+                                .foregroundStyle(Theme.terracotta)
+                            Text(selectedWorkoutType.rawValue)
+                                .foregroundStyle(Theme.textPrimary)
+                        }
+                    }
+                } header: {
+                    Text("Workout Type")
+                }
+                .listRowBackground(Theme.cream)
+
+                Section {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(iconOptions, id: \.self) { icon in
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.2)) { selectedIcon = icon }
+                                } label: {
+                                    Image(systemName: icon)
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(selectedIcon == icon ? .white : Theme.textSecondary)
+                                        .frame(width: 44, height: 44)
+                                        .background(selectedIcon == icon ? Theme.terracotta : Theme.cream)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Theme.terracotta.opacity(selectedIcon == icon ? 0 : 0.1), lineWidth: 1)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } header: {
+                    Text("Icon")
+                }
+                .listRowBackground(Theme.cream)
+
+                Section {
+                    if selectedExercises.isEmpty {
+                        Button { showExercisePicker = true } label: {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Add Exercises")
+                            }
+                            .foregroundStyle(Theme.terracotta)
+                        }
+                    } else {
+                        ForEach(displayedExercises) { exercise in
+                            exerciseRow(exercise)
+                        }
+                        .onMove { from, to in
+                            selectedExercises.move(fromOffsets: from, toOffset: to)
+                        }
+                        .onDelete { offsets in
+                            selectedExercises.remove(atOffsets: offsets)
+                        }
+                        
+                        Button { showExercisePicker = true } label: {
+                            HStack {
+                                Image(systemName: "plus")
+                                Text("Add More Exercises")
+                            }
+                            .foregroundStyle(Theme.terracotta)
+                        }
+                    }
+                } header: {
+                    HStack {
+                        Text("Exercises (\(selectedExercises.count))")
+                        Spacer()
+                        if selectedExercises.count > 1 {
+                            Menu {
+                                ForEach(ExerciseSortMode.allCases, id: \.self) { mode in
+                                    Button {
+                                        withAnimation { sortMode = mode }
+                                    } label: {
+                                        HStack {
+                                            Text(mode.rawValue)
+                                            if mode == sortMode {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.up.arrow.down")
+                                        .font(.system(size: 10))
+                                    Text(sortMode.rawValue)
+                                        .font(.system(size: 12, weight: .medium, design: .serif))
+                                }
+                                .foregroundStyle(Theme.terracotta)
+                            }
+                        }
+                    }
+                }
+                .listRowBackground(Theme.cream)
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
+            .environment(\.editMode, $editMode)
+            .onChange(of: sortMode) {
+                editMode = sortMode == .custom ? .active : .inactive
             }
             .navigationTitle(editingId != nil ? "Edit Workout" : "New Workout")
             .navigationBarTitleDisplayMode(.inline)
@@ -117,180 +224,8 @@ struct CreateWorkoutView: View {
         }
     }
 
-    // MARK: - Sections
-
-    private var nameSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("Workout Name")
-            TextField("e.g. Push Day", text: $workoutName)
-                .font(.system(size: 16, design: .serif))
-                .padding(14)
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
-    }
-
-    private var workoutTypeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("Workout Type")
-            NavigationLink {
-                WorkoutTypePickerView(selectedType: $selectedWorkoutType)
-            } label: {
-                HStack {
-                    Image(systemName: selectedWorkoutType.icon)
-                        .foregroundStyle(Theme.terracotta)
-                    Text(selectedWorkoutType.rawValue)
-                        .foregroundStyle(Theme.textPrimary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.stone)
-                }
-                .padding(14)
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
-        }
-    }
-
-    private var iconSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("Icon")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(iconOptions, id: \.self) { icon in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) { selectedIcon = icon }
-                        } label: {
-                            Image(systemName: icon)
-                                .font(.system(size: 18))
-                                .foregroundStyle(selectedIcon == icon ? .white : Theme.textSecondary)
-                                .frame(width: 44, height: 44)
-                                .background(selectedIcon == icon ? Theme.terracotta : Theme.cream)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var exercisesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                sectionHeader("Exercises (\(selectedExercises.count))")
-                Spacer()
-                if selectedExercises.count > 1 {
-                    Menu {
-                        ForEach(ExerciseSortMode.allCases, id: \.self) { mode in
-                            Button {
-                                withAnimation { sortMode = mode }
-                            } label: {
-                                HStack {
-                                    Text(mode.rawValue)
-                                    if mode == sortMode {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.system(size: 10))
-                            Text(sortMode.rawValue)
-                                .font(.system(size: 12, weight: .medium, design: .serif))
-                        }
-                        .foregroundStyle(Theme.terracotta)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Theme.terracotta.opacity(0.1))
-                        .clipShape(Capsule())
-                    }
-                }
-            }
-
-            if selectedExercises.isEmpty {
-                addExercisesPlaceholder
-            } else {
-                exerciseList
-                addMoreButton
-            }
-        }
-    }
-
-    private var addExercisesPlaceholder: some View {
-        Button { showExercisePicker = true } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 20))
-                Text("Add Exercises")
-                    .font(.system(size: 14, weight: .medium, design: .serif))
-            }
-            .foregroundStyle(Theme.terracotta)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 28)
-            .background(Theme.cream)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(Theme.terracotta.opacity(0.3),
-                                  style: StrokeStyle(lineWidth: 1, dash: [6]))
-            )
-        }
-    }
-
-    private var exerciseList: some View {
-        Group {
-            if sortMode == .custom {
-                List {
-                    ForEach(selectedExercises) { exercise in
-                        exerciseRow(exercise)
-                            .listRowSeparator(.hidden, edges: exercise.id == selectedExercises.last?.id ? .bottom : [])
-                    }
-                    .onMove { from, to in
-                        selectedExercises.move(fromOffsets: from, toOffset: to)
-                    }
-                    .onDelete { offsets in
-                        selectedExercises.remove(atOffsets: offsets)
-                    }
-                    .listRowBackground(Theme.cream)
-                    .listRowSeparatorTint(Theme.sand)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                }
-                .listStyle(.plain)
-                .scrollDisabled(true)
-                .scrollContentBackground(.hidden)
-                .environment(\.editMode, .constant(.active))
-                .frame(height: CGFloat(selectedExercises.count) * 48)
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(displayedExercises.enumerated()), id: \.element.id) { index, exercise in
-                        exerciseRow(exercise)
-
-                        if index < displayedExercises.count - 1 {
-                            Divider()
-                                .padding(.leading, 54)
-                        }
-                    }
-                }
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-        }
-    }
-
     private func exerciseRow(_ exercise: CatalogExercise) -> some View {
         HStack(spacing: 12) {
-            if sortMode == .custom {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.stone)
-                    .frame(width: 20)
-            }
-
             Image(systemName: exercise.icon)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.sage)
@@ -302,6 +237,8 @@ struct CreateWorkoutView: View {
                 Text(exercise.name)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(nil) // Allow multiple lines
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(exercise.muscleGroup)
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.textSecondary)
@@ -314,7 +251,8 @@ struct CreateWorkoutView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(Theme.stone)
             }
-
+            
+            // Delete button for non-custom modes (custom mode uses swipe-to-delete)
             if sortMode != .custom {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -325,29 +263,11 @@ struct CreateWorkoutView: View {
                         .font(.system(size: 16))
                         .foregroundStyle(Theme.stone.opacity(0.6))
                 }
+                .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, sortMode == .custom ? 2 : 10)
-        .padding(.horizontal, sortMode == .custom ? 0 : 14)
+        .padding(.vertical, 4)
     }
-
-    private var addMoreButton: some View {
-        Button { showExercisePicker = true } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .medium))
-                Text("Add More")
-                    .font(.system(size: 13, weight: .medium, design: .serif))
-            }
-            .foregroundStyle(Theme.terracotta)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Theme.cream)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-    }
-
-    // MARK: - Helpers
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
