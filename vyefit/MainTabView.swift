@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var selectedTab = 0
+    @State private var workoutStore = WorkoutStore()
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -47,6 +48,7 @@ struct HomeView: View {
                 }
                 .tag(4)
         }
+        .environment(workoutStore)
         .tint(Theme.terracotta)
         .preferredColorScheme(.light)
     }
