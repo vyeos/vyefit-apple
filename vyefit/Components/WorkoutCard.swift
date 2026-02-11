@@ -11,56 +11,37 @@ struct WorkoutCard: View {
     let workout: MockWorkout
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(workout.name)
-                    .font(.system(size: 18, weight: .semibold, design: .serif))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                Text(SampleData.relativeDateString(workout.lastPerformed))
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.textSecondary)
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: workout.icon)
+                .font(.system(size: 20))
+                .foregroundStyle(Theme.terracotta)
+                .frame(width: 38, height: 38)
+                .background(Theme.terracotta.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            Divider()
-                .background(Theme.sand)
+            Text(workout.name)
+                .font(.system(size: 15, weight: .semibold, design: .serif))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
 
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(workout.exercises) { exercise in
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Theme.sage.opacity(0.5))
-                            .frame(width: 6, height: 6)
-                        Text(exercise.name)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.textSecondary)
-                        Spacer()
-                        Text("\(exercise.sets.count) sets")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Theme.stone)
-                    }
-                }
-            }
-
-            Button {
-            } label: {
-                Text("Start")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.terracotta)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
+            Text("\(workout.exercises.count) exercises")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textSecondary)
         }
-        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(Theme.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
 #Preview {
-    WorkoutCard(workout: SampleData.workouts[0])
-        .padding()
-        .background(Theme.background)
+    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
+        WorkoutCard(workout: SampleData.workouts[0])
+        WorkoutCard(workout: SampleData.workouts[1])
+        WorkoutCard(workout: SampleData.workouts[2])
+        WorkoutCard(workout: SampleData.workouts[3])
+    }
+    .padding(20)
+    .background(Theme.background)
 }
