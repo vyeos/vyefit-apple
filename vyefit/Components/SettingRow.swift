@@ -30,6 +30,7 @@ struct SettingRow: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 15)
+        .contentShape(Rectangle())
     }
 }
 

@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     @State private var selectedTab = 0
     @State private var workoutStore = WorkoutStore()
+    @AppStorage("appTheme") private var appTheme = "System"
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -68,7 +69,18 @@ struct HomeView: View {
                 }
             }
         }
-        .preferredColorScheme(.light)
+        .preferredColorScheme(preferredScheme)
+    }
+
+    private var preferredScheme: ColorScheme? {
+        switch appTheme {
+        case "Light":
+            return .light
+        case "Dark":
+            return .dark
+        default:
+            return nil
+        }
     }
 }
 
