@@ -104,23 +104,62 @@ struct LogView: View {
     var session: WorkoutSession
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                if session.isResting {
-                    RestTimerBanner(session: session)
-                } else {
-                    StartNextSetBanner()
+        ZStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    if session.state != .paused {
+                        if session.isResting {
+                            RestTimerBanner(session: session)
+                        } else {
+                            StartNextSetBanner()
+                        }
+                    }
+                    
+                    ForEach(Array(session.activeExercises.enumerated()), id: \.element.id) { index, activeExercise in
+                        ExerciseLogCard(session: session, exerciseIndex: index)
+                    }
                 }
-                
-                ForEach(Array(session.activeExercises.enumerated()), id: \.element.id) { index, activeExercise in
-                    ExerciseLogCard(session: session, exerciseIndex: index)
-                }
+                .padding()
             }
-            .padding()
-        }
-        .background(Theme.background)
-        .onTapGesture {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            .background(Theme.background)
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+            
+            if session.state == .paused {
+                // Full screen overlay with touch blocking and blur
+                Color.clear
+                    .background(.ultraThinMaterial)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture { }
+                
+                VStack(spacing: 16) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(Theme.sage)
+                    Text("Workout Paused")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Theme.textPrimary)
+                    
+                    Button {
+                        withAnimation { session.togglePause() }
+                    } label: {
+                        Text("Resume")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 12)
+                            .background(Theme.sage)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(32)
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+            }
         }
     }
 }

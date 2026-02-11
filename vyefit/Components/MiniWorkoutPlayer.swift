@@ -35,7 +35,7 @@ struct MiniWorkoutPlayer: View {
                                 Image(systemName: "pause.fill")
                                 Text("Paused")
                             }
-                            .foregroundStyle(Theme.terracotta)
+                            .foregroundStyle(Theme.sage)
                         } else if session.isResting {
                             HStack(spacing: 4) {
                                 Image(systemName: "timer")
