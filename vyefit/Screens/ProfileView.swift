@@ -34,12 +34,37 @@ struct ProfileView: View {
 
                     // Settings
                     VStack(spacing: 0) {
-                        SettingRow(icon: "scalemass", title: "Units & Measurements")
-                        SettingRow(icon: "heart", title: "Health Integration")
-                        SettingRow(icon: "bell", title: "Reminders")
-                        SettingRow(icon: "paintbrush", title: "Appearance")
-                        SettingRow(icon: "icloud", title: "Backup & Sync")
+                        NavigationLink {
+                            UnitsMeasurementsView()
+                        } label: {
+                            SettingRow(icon: "scalemass", title: "Units & Measurements")
+                        }
+
+                        NavigationLink {
+                            HealthIntegrationView()
+                        } label: {
+                            SettingRow(icon: "heart", title: "Health Integration")
+                        }
+
+                        NavigationLink {
+                            RemindersView()
+                        } label: {
+                            SettingRow(icon: "bell", title: "Reminders")
+                        }
+
+                        NavigationLink {
+                            AppearanceView()
+                        } label: {
+                            SettingRow(icon: "paintbrush", title: "Appearance")
+                        }
+
+                        NavigationLink {
+                            BackupSyncView()
+                        } label: {
+                            SettingRow(icon: "icloud", title: "Backup & Sync")
+                        }
                     }
+                    .buttonStyle(.plain)
                     .background(Theme.cream)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .padding(.horizontal, 20)

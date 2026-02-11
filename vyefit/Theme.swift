@@ -6,15 +6,45 @@
 //
 
 import SwiftUI
+import UIKit
 
 enum Theme {
     static let terracotta = Color(red: 0.80, green: 0.45, blue: 0.35)
     static let sage = Color(red: 0.55, green: 0.65, blue: 0.50)
-    static let sand = Color(red: 0.96, green: 0.93, blue: 0.88)
-    static let cream = Color(red: 0.99, green: 0.97, blue: 0.94)
+    private static let sandLight = UIColor(red: 0.96, green: 0.93, blue: 0.88, alpha: 1)
+    private static let creamLight = UIColor(red: 0.99, green: 0.97, blue: 0.94, alpha: 1)
+    private static let darkBackground = UIColor(red: 0.10, green: 0.09, blue: 0.08, alpha: 1)
+    private static let darkSurface = UIColor(red: 0.17, green: 0.16, blue: 0.15, alpha: 1)
+    private static let lightTextPrimary = UIColor(red: 0.20, green: 0.18, blue: 0.15, alpha: 1)
+    private static let lightTextSecondary = UIColor(red: 0.50, green: 0.47, blue: 0.42, alpha: 1)
+    private static let darkTextPrimary = UIColor(red: 0.95, green: 0.93, blue: 0.90, alpha: 1)
+    private static let darkTextSecondary = UIColor(red: 0.72, green: 0.69, blue: 0.63, alpha: 1)
     static let stone = Color(red: 0.75, green: 0.70, blue: 0.64)
     static let bark = Color(red: 0.30, green: 0.25, blue: 0.22)
-    static let textPrimary = Color(red: 0.20, green: 0.18, blue: 0.15)
-    static let textSecondary = Color(red: 0.50, green: 0.47, blue: 0.42)
-    static let background = Color(red: 0.97, green: 0.95, blue: 0.92)
+
+    static var sand: Color {
+        dynamicColor(light: sandLight, dark: darkSurface)
+    }
+
+    static var cream: Color {
+        dynamicColor(light: creamLight, dark: darkSurface)
+    }
+
+    static var textPrimary: Color {
+        dynamicColor(light: lightTextPrimary, dark: darkTextPrimary)
+    }
+
+    static var textSecondary: Color {
+        dynamicColor(light: lightTextSecondary, dark: darkTextSecondary)
+    }
+
+    static var background: Color {
+        dynamicColor(light: UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1), dark: darkBackground)
+    }
+
+    private static func dynamicColor(light: UIColor, dark: UIColor) -> Color {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark ? dark : light
+        })
+    }
 }

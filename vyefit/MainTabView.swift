@@ -10,6 +10,8 @@ import SwiftUI
 struct HomeView: View {
     @State private var selectedTab = 0
     @State private var workoutStore = WorkoutStore()
+    @AppStorage("appTheme") private var appTheme = "System"
+    @AppStorage("accentColor") private var accentColor = "Terracotta"
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -50,7 +52,7 @@ struct HomeView: View {
                     .tag(4)
             }
             .environment(workoutStore)
-            .tint(Theme.terracotta)
+            .tint(tintColor)
             .toolbarBackground(Theme.background, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
             
@@ -68,7 +70,29 @@ struct HomeView: View {
                 }
             }
         }
-        .preferredColorScheme(.light)
+        .preferredColorScheme(preferredScheme)
+    }
+
+    private var tintColor: Color {
+        switch accentColor {
+        case "Sage":
+            return Theme.sage
+        case "Stone":
+            return Theme.stone
+        default:
+            return Theme.terracotta
+        }
+    }
+
+    private var preferredScheme: ColorScheme? {
+        switch appTheme {
+        case "Light":
+            return .light
+        case "Dark":
+            return .dark
+        default:
+            return nil
+        }
     }
 }
 
