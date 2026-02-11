@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @AppStorage("userName") private var userName = "Rudra Patel"
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -22,9 +24,15 @@ struct ProfileView: View {
                                     .foregroundStyle(Theme.stone)
                             )
 
-                        Text("Rudra Patel")
+                        TextField("Your name", text: $userName)
                             .font(.system(size: 22, weight: .semibold, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .textInputAutocapitalization(.words)
+                            .disableAutocorrection(true)
+                            .tint(Theme.terracotta)
+                            .textFieldStyle(.plain)
+                            .padding(.horizontal, 24)
 
                         Text("Mindful Mover")
                             .font(.system(size: 13, weight: .medium))
