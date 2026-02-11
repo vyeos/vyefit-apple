@@ -12,6 +12,7 @@ struct WorkoutsView: View {
     @State private var showCreateSheet = false
     @State private var selectedTemplate: MockWorkout?
     @State private var editingWorkout: UserWorkout?
+    @State private var activeWorkout: UserWorkout?
 
     var body: some View {
         NavigationStack {
@@ -38,6 +39,9 @@ struct WorkoutsView: View {
 							        		workoutStore.remove(id: workout.id)
 							        	}
 							        }
+                                    },
+                                    onStart: {
+                                        activeWorkout = workout
                                     }
                                 )
                             }
@@ -96,6 +100,9 @@ struct WorkoutsView: View {
             .sheet(item: $editingWorkout) { workout in
                 CreateWorkoutView(editing: workout)
             }
+            .fullScreenCover(item: $activeWorkout) { workout in
+                ActiveWorkoutView(workout: workout)
+            }
         }
     }
 }
@@ -106,6 +113,7 @@ struct UserWorkoutCard: View {
     let workout: UserWorkout
     var onEdit: () -> Void
     var onDelete: () -> Void
+    var onStart: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -163,6 +171,7 @@ struct UserWorkoutCard: View {
             }
 
             Button {
+                onStart()
             } label: {
                 Text("Start")
                     .font(.system(size: 14, weight: .medium))

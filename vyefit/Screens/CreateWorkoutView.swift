@@ -26,6 +26,8 @@ struct CreateWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var sortMode: ExerciseSortMode = .custom
     @State private var selectedIcon: String
+    @State private var selectedWorkoutType: WorkoutType = .traditionalStrengthTraining
+    @State private var draggingExercise: CatalogExercise?
     private let editingId: UUID?
 
     init(template: MockWorkout? = nil) {
@@ -33,6 +35,7 @@ struct CreateWorkoutView: View {
         if let t = template {
             _workoutName = State(initialValue: t.name)
             _selectedIcon = State(initialValue: t.icon)
+            _selectedWorkoutType = State(initialValue: .traditionalStrengthTraining)
             _selectedExercises = State(initialValue: t.exercises.map { mock in
                 ExerciseCatalog.all.first { $0.name == mock.name }
                     ?? CatalogExercise(name: mock.name, muscleGroup: mock.muscleGroup, icon: mock.icon)
@@ -41,6 +44,7 @@ struct CreateWorkoutView: View {
             _workoutName = State(initialValue: "")
             _selectedIcon = State(initialValue: "figure.strengthtraining.traditional")
             _selectedExercises = State(initialValue: [])
+            _selectedWorkoutType = State(initialValue: .traditionalStrengthTraining)
         }
     }
 
@@ -49,6 +53,7 @@ struct CreateWorkoutView: View {
         _workoutName = State(initialValue: workout.name)
         _selectedIcon = State(initialValue: workout.icon)
         _selectedExercises = State(initialValue: workout.exercises)
+        _selectedWorkoutType = State(initialValue: workout.workoutType)
     }
 
     private let iconOptions = [
@@ -84,6 +89,7 @@ struct CreateWorkoutView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         nameSection
+                        workoutTypeSection
                         iconSection
                         exercisesSection
                     }
@@ -121,6 +127,29 @@ struct CreateWorkoutView: View {
                 .padding(14)
                 .background(Theme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    private var workoutTypeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionHeader("Workout Type")
+            NavigationLink {
+                WorkoutTypePickerView(selectedType: $selectedWorkoutType)
+            } label: {
+                HStack {
+                    Image(systemName: selectedWorkoutType.icon)
+                        .foregroundStyle(Theme.terracotta)
+                    Text(selectedWorkoutType.rawValue)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.stone)
+                }
+                .padding(14)
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
         }
     }
 
@@ -233,7 +262,7 @@ struct CreateWorkoutView: View {
                 .scrollDisabled(true)
                 .scrollContentBackground(.hidden)
                 .environment(\.editMode, .constant(.active))
-                .frame(height: CGFloat(selectedExercises.count) * 50)
+                .frame(height: CGFloat(selectedExercises.count) * 48)
                 .background(Theme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             } else {
@@ -255,6 +284,13 @@ struct CreateWorkoutView: View {
 
     private func exerciseRow(_ exercise: CatalogExercise) -> some View {
         HStack(spacing: 12) {
+            if sortMode == .custom {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.stone)
+                    .frame(width: 20)
+            }
+
             Image(systemName: exercise.icon)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.sage)
@@ -323,6 +359,7 @@ struct CreateWorkoutView: View {
         let workout = UserWorkout(
             id: editingId ?? UUID(),
             name: workoutName.trimmingCharacters(in: .whitespaces),
+            workoutType: selectedWorkoutType,
             exercises: sortMode == .custom ? selectedExercises : displayedExercises,
             icon: selectedIcon,
             createdAt: Date()
@@ -437,7 +474,7 @@ struct ExercisePickerView: View {
                 .foregroundStyle(Theme.textSecondary)
 
             Button {
-                customName = searchText
+                customName = searchText.trimmingCharacters(in: .whitespaces)
                 showCustomSheet = true
             } label: {
                 HStack(spacing: 6) {
@@ -625,6 +662,94 @@ struct CustomExerciseSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Workout Type Picker
+
+struct WorkoutTypePickerView: View {
+    @Binding var selectedType: WorkoutType
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    
+    var filteredTypes: [WorkoutType] {
+        if searchText.isEmpty {
+            return WorkoutType.allCases
+        } else {
+            return WorkoutType.allCases.filter {
+                $0.rawValue.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            
+            VStack {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.stone)
+                    TextField("Search workout types", text: $searchText)
+                        .font(.system(size: 15))
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Theme.stone)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding()
+
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(filteredTypes) { type in
+                            Button {
+                                selectedType = type
+                                dismiss()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: type.icon)
+                                        .foregroundStyle(type == selectedType ? Theme.terracotta : Theme.sage)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text(type.rawValue)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(Theme.textPrimary)
+                                    
+                                    Spacer()
+                                    
+                                    if type == selectedType {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(Theme.terracotta)
+                                    }
+                                }
+                                .padding()
+                                .background(Theme.cream)
+                            }
+                            
+                            if type != filteredTypes.last {
+                                Divider()
+                                    .padding(.leading, 50)
+                            }
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .navigationTitle("Workout Type")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Theme.cream, for: .navigationBar)
     }
 }
 

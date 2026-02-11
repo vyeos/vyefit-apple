@@ -10,6 +10,7 @@ import SwiftUI
 struct UserWorkout: Identifiable {
     let id: UUID
     var name: String
+    var workoutType: WorkoutType
     var exercises: [CatalogExercise]
     var icon: String
     let createdAt: Date
