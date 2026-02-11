@@ -340,6 +340,7 @@ struct CreateWorkoutView: View {
 
 struct ExercisePickerView: View {
     @Binding var selectedExercises: [CatalogExercise]
+    @Environment(WorkoutStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var showCustomSheet = false
@@ -347,8 +348,9 @@ struct ExercisePickerView: View {
     @State private var customMuscleGroup = "Chest"
 
     private var filteredExercises: [CatalogExercise] {
-        guard !searchText.isEmpty else { return ExerciseCatalog.all }
-        return ExerciseCatalog.all.filter {
+        let all = store.allExercises
+        guard !searchText.isEmpty else { return all }
+        return all.filter {
             $0.name.localizedCaseInsensitiveContains(searchText)
         }
     }
@@ -395,6 +397,7 @@ struct ExercisePickerView: View {
                     name: $customName,
                     muscleGroup: $customMuscleGroup
                 ) { exercise in
+                    store.addCustomExercise(exercise)
                     selectedExercises.append(exercise)
                 }
             }
@@ -515,7 +518,7 @@ struct ExercisePickerView: View {
 
     private var createCustomButton: some View {
         Button {
-            customName = ""
+            customName = searchText.trimmingCharacters(in: .whitespaces)
             showCustomSheet = true
         } label: {
             HStack(spacing: 8) {
