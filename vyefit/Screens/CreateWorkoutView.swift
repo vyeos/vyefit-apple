@@ -21,11 +21,26 @@ struct CreateWorkoutView: View {
     @Environment(WorkoutStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
-    @State private var workoutName = ""
-    @State private var selectedExercises: [CatalogExercise] = []
+    @State private var workoutName: String
+    @State private var selectedExercises: [CatalogExercise]
     @State private var showExercisePicker = false
     @State private var sortMode: ExerciseSortMode = .custom
-    @State private var selectedIcon = "figure.strengthtraining.traditional"
+    @State private var selectedIcon: String
+
+    init(template: MockWorkout? = nil) {
+        if let t = template {
+            _workoutName = State(initialValue: t.name)
+            _selectedIcon = State(initialValue: t.icon)
+            _selectedExercises = State(initialValue: t.exercises.map { mock in
+                ExerciseCatalog.all.first { $0.name == mock.name }
+                    ?? CatalogExercise(name: mock.name, muscleGroup: mock.muscleGroup, icon: mock.icon)
+            })
+        } else {
+            _workoutName = State(initialValue: "")
+            _selectedIcon = State(initialValue: "figure.strengthtraining.traditional")
+            _selectedExercises = State(initialValue: [])
+        }
+    }
 
     private let iconOptions = [
         "figure.strengthtraining.traditional",

@@ -10,6 +10,7 @@ import SwiftUI
 struct WorkoutsView: View {
     @Environment(WorkoutStore.self) private var workoutStore
     @State private var showCreateSheet = false
+    @State private var selectedTemplate: MockWorkout?
 
     var body: some View {
         NavigationStack {
@@ -28,9 +29,9 @@ struct WorkoutsView: View {
                                 UserWorkoutCard(
                                     workout: workout,
                                     onDelete: {
-                                        withAnimation(.easeInOut(duration: 0.25)) {
-                                            workoutStore.remove(id: workout.id)
-                                        }
+																			withAnimation(.easeInOut(duration: 0.25)) {
+																				workoutStore.remove(id: workout.id)
+																			}
                                     }
                                 )
                             }
@@ -48,9 +49,14 @@ struct WorkoutsView: View {
                             .padding(.leading, 4)
                     }
 
-                    // Sample/template workouts
-                    ForEach(SampleData.workouts) { workout in
-                        WorkoutCard(workout: workout)
+                    // Sample/template workouts — 2x2 grid
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
+                        ForEach(SampleData.workouts) { workout in
+                            Button { selectedTemplate = workout } label: {
+                                WorkoutCard(workout: workout)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
 
                 }
@@ -77,6 +83,9 @@ struct WorkoutsView: View {
                 }
             .sheet(isPresented: $showCreateSheet) {
                 CreateWorkoutView()
+            }
+            .sheet(item: $selectedTemplate) { template in
+                CreateWorkoutView(template: template)
             }
         }
     }
