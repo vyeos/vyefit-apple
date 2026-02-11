@@ -203,57 +203,48 @@ struct CreateWorkoutView: View {
     }
 
     private var exerciseList: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(displayedExercises.enumerated()), id: \.element.id) { index, exercise in
-                exerciseRow(exercise, index: index)
-
-                if index < displayedExercises.count - 1 {
-                    Divider()
-                        .padding(.leading, sortMode == .custom ? 66 : 54)
+        Group {
+            if sortMode == .custom {
+                List {
+                    ForEach(selectedExercises) { exercise in
+                        exerciseRow(exercise)
+                    }
+                    .onMove { from, to in
+                        selectedExercises.move(fromOffsets: from, toOffset: to)
+                    }
+                    .onDelete { offsets in
+                        selectedExercises.remove(atOffsets: offsets)
+                    }
+                    .listRowBackground(Theme.cream)
+                    .listRowSeparatorTint(Theme.sand)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
                 }
+                .listStyle(.plain)
+                .scrollDisabled(true)
+                .scrollContentBackground(.hidden)
+                .environment(\.editMode, .constant(.active))
+                .frame(height: CGFloat(selectedExercises.count) * 52)
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(displayedExercises.enumerated()), id: \.element.id) { index, exercise in
+                        exerciseRow(exercise)
+
+                        if index < displayedExercises.count - 1 {
+                            Divider()
+                                .padding(.leading, 54)
+                        }
+                    }
+                }
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
         }
-        .background(Theme.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    private func exerciseRow(_ exercise: CatalogExercise, index: Int) -> some View {
+    private func exerciseRow(_ exercise: CatalogExercise) -> some View {
         HStack(spacing: 12) {
-            if sortMode == .custom {
-                VStack(spacing: 2) {
-                    Button {
-                        guard index > 0 else { return }
-                        let currentIndex = selectedExercises.firstIndex(of: exercise)!
-                        let targetExercise = displayedExercises[index - 1]
-                        let targetIndex = selectedExercises.firstIndex(of: targetExercise)!
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedExercises.swapAt(currentIndex, targetIndex)
-                        }
-                    } label: {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(index > 0 ? Theme.stone : Theme.stone.opacity(0.3))
-                    }
-                    .disabled(index == 0)
-
-                    Button {
-                        guard index < displayedExercises.count - 1 else { return }
-                        let currentIndex = selectedExercises.firstIndex(of: exercise)!
-                        let targetExercise = displayedExercises[index + 1]
-                        let targetIndex = selectedExercises.firstIndex(of: targetExercise)!
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedExercises.swapAt(currentIndex, targetIndex)
-                        }
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(index < displayedExercises.count - 1 ? Theme.stone : Theme.stone.opacity(0.3))
-                    }
-                    .disabled(index >= displayedExercises.count - 1)
-                }
-                .frame(width: 20)
-            }
-
             Image(systemName: exercise.icon)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.sage)
@@ -278,18 +269,20 @@ struct CreateWorkoutView: View {
                     .foregroundStyle(Theme.stone)
             }
 
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    selectedExercises.removeAll { $0.id == exercise.id }
+            if sortMode != .custom {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedExercises.removeAll { $0.id == exercise.id }
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Theme.stone.opacity(0.6))
                 }
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Theme.stone.opacity(0.6))
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 14)
+        .padding(.vertical, sortMode == .custom ? 2 : 10)
+        .padding(.horizontal, sortMode == .custom ? 0 : 14)
     }
 
     private var addMoreButton: some View {
