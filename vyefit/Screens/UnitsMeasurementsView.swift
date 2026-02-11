@@ -25,10 +25,8 @@ struct UnitsMeasurementsView: View {
     @AppStorage("distanceUnit") private var distanceUnit = DistanceUnit.kilometers.rawValue
     @AppStorage("weightUnit") private var weightUnit = WeightUnit.kilograms.rawValue
     @AppStorage("paceAutoMatch") private var paceAutoMatch = true
-    @AppStorage("accentColor") private var accentColor = "Terracotta"
 
     var body: some View {
-        let accent = Theme.accent(for: accentColor)
         ScrollView {
             VStack(spacing: 20) {
                 SettingsCard("Units") {
@@ -43,7 +41,7 @@ struct UnitsMeasurementsView: View {
                         Toggle("Auto-match pace to distance unit", isOn: $paceAutoMatch)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.sage)
 
                         Text("Shows pace as min/km with kilometers, and min/mi with miles.")
                             .font(.system(size: 12, weight: .medium))
@@ -63,7 +61,6 @@ struct UnitsMeasurementsView: View {
         selection: Binding<String>,
         options: [T]
     ) -> some View where T.RawValue == String {
-        let accent = Theme.accent(for: accentColor)
         return VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.system(size: 13, weight: .medium))
@@ -76,7 +73,7 @@ struct UnitsMeasurementsView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .tint(accent)
+            .tint(Theme.terracotta)
         }
     }
 }

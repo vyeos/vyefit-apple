@@ -9,11 +9,6 @@ import SwiftUI
 
 struct ProfileView: View {
     @AppStorage("userName") private var userName = "Rudra Patel"
-    @AppStorage("accentColor") private var accentColor = "Terracotta"
-
-    private var accent: Color {
-        Theme.accent(for: accentColor)
-    }
 
     var body: some View {
         NavigationStack {
@@ -26,7 +21,7 @@ struct ProfileView: View {
                             .overlay(
                                 Image(systemName: "person.fill")
                                     .font(.system(size: 30))
-                                    .foregroundStyle(accent)
+                                    .foregroundStyle(Theme.stone)
                             )
 
                         TextField("Your name", text: $userName)
@@ -35,13 +30,13 @@ struct ProfileView: View {
                             .multilineTextAlignment(.center)
                             .textInputAutocapitalization(.words)
                             .disableAutocorrection(true)
-                            .tint(accent)
+                            .tint(Theme.terracotta)
                             .textFieldStyle(.plain)
                             .padding(.horizontal, 24)
 
                         Text("Mindful Mover")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(accent)
+                            .foregroundStyle(Theme.sage)
                     }
                     .padding(.top)
 
@@ -78,7 +73,7 @@ struct ProfileView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .tint(accent)
+                    .tint(Theme.terracotta)
                     .background(Theme.cream)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .padding(.horizontal, 20)

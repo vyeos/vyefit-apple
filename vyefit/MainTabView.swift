@@ -11,7 +11,6 @@ struct HomeView: View {
     @State private var selectedTab = 0
     @State private var workoutStore = WorkoutStore()
     @AppStorage("appTheme") private var appTheme = "System"
-    @AppStorage("accentColor") private var accentColor = "Terracotta"
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -52,7 +51,7 @@ struct HomeView: View {
                     .tag(4)
             }
             .environment(workoutStore)
-            .tint(Theme.accent(for: accentColor))
+            .tint(Theme.terracotta)
             .toolbarBackground(Theme.background, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
             

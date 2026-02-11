@@ -25,14 +25,12 @@ struct RemindersView: View {
     @AppStorage("hydrationReminders") private var hydrationReminders = false
     @AppStorage("mindfulnessReminders") private var mindfulnessReminders = false
     @AppStorage("hydrationIntervalHours") private var hydrationIntervalHours = HydrationInterval.two.rawValue
-    @AppStorage("accentColor") private var accentColor = "Terracotta"
 
     @State private var workoutTime = Date()
     @State private var hydrationTime = Date()
     @State private var mindfulnessTime = Date()
 
     var body: some View {
-        let accent = Theme.accent(for: accentColor)
         ScrollView {
             VStack(spacing: 20) {
                 SettingsCard("Workout") {
@@ -40,9 +38,9 @@ struct RemindersView: View {
                         Toggle("Workout reminders", isOn: $workoutReminders)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.terracotta)
 
-                        reminderTimeRow(title: "Preferred time", date: $workoutTime, enabled: workoutReminders)
+                        reminderTimeRow(title: "Preferred time", date: $workoutTime, enabled: workoutReminders, tint: Theme.terracotta)
                     }
                 }
 
@@ -51,8 +49,7 @@ struct RemindersView: View {
                         Toggle("Hydration check-ins", isOn: $hydrationReminders)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
-											reminderTimeRow(title: "First reminder", date: $hydrationTime, enabled: hydrationReminders)
+                            .tint(Theme.sage)
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Check-in interval")
@@ -66,12 +63,12 @@ struct RemindersView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
-                            .tint(accent)
+                            .tint(Theme.sage)
                         }
                         .opacity(hydrationReminders ? 1 : 0.45)
                         .disabled(!hydrationReminders)
 
-                        
+                        reminderTimeRow(title: "First reminder", date: $hydrationTime, enabled: hydrationReminders, tint: Theme.sage)
                     }
                 }
 
@@ -80,13 +77,13 @@ struct RemindersView: View {
                         Toggle("Mindful minutes prompt", isOn: $mindfulnessReminders)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.stone)
 
                         Text("Prompts you to log short mindfulness breaks.")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Theme.textSecondary)
 
-                        reminderTimeRow(title: "Preferred time", date: $mindfulnessTime, enabled: mindfulnessReminders)
+                        reminderTimeRow(title: "Preferred time", date: $mindfulnessTime, enabled: mindfulnessReminders, tint: Theme.stone)
                     }
                 }
             }
@@ -97,7 +94,7 @@ struct RemindersView: View {
         .navigationBarTitleDisplayMode(.large)
     }
 
-    private func reminderTimeRow(title: String, date: Binding<Date>, enabled: Bool) -> some View {
+    private func reminderTimeRow(title: String, date: Binding<Date>, enabled: Bool, tint: Color) -> some View {
         HStack {
             Text(title)
                 .font(.system(size: 13, weight: .medium))
@@ -107,7 +104,7 @@ struct RemindersView: View {
 
             DatePicker("", selection: date, displayedComponents: .hourAndMinute)
                 .labelsHidden()
-                .tint(Theme.accent(for: accentColor))
+                .tint(tint)
         }
         .opacity(enabled ? 1 : 0.45)
         .disabled(!enabled)

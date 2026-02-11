@@ -14,10 +14,8 @@ struct HealthIntegrationView: View {
     @AppStorage("healthMindfulMinutes") private var healthMindfulMinutes = false
     @AppStorage("connectStrava") private var connectStrava = false
     @AppStorage("connectGarmin") private var connectGarmin = false
-    @AppStorage("accentColor") private var accentColor = "Terracotta"
 
     var body: some View {
-        let accent = Theme.accent(for: accentColor)
         ScrollView {
             VStack(spacing: 20) {
                 SettingsCard("Apple Health") {
@@ -25,22 +23,22 @@ struct HealthIntegrationView: View {
                         Toggle("Read workouts", isOn: $healthReadWorkouts)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.sage)
 
                         Toggle("Write workouts", isOn: $healthWriteWorkouts)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.sage)
 
                         Toggle("Read heart rate & vitals", isOn: $healthReadVitals)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.sage)
 
                         Toggle("Share mindful minutes", isOn: $healthMindfulMinutes)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.sage)
                     }
                 }
 
@@ -49,12 +47,12 @@ struct HealthIntegrationView: View {
                         Toggle("Strava", isOn: $connectStrava)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.terracotta)
 
                         Toggle("Garmin", isOn: $connectGarmin)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.terracotta)
                     }
                 }
             }

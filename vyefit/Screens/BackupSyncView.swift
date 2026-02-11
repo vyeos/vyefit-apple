@@ -11,12 +11,10 @@ struct BackupSyncView: View {
     @AppStorage("syncEnabled") private var syncEnabled = true
     @AppStorage("wifiOnlyBackup") private var wifiOnlyBackup = true
     @AppStorage("autoBackup") private var autoBackup = true
-    @AppStorage("accentColor") private var accentColor = "Terracotta"
 
     @State private var lastBackupDate: Date? = nil
 
     var body: some View {
-        let accent = Theme.accent(for: accentColor)
         ScrollView {
             VStack(spacing: 20) {
                 SettingsCard("Sync") {
@@ -24,12 +22,12 @@ struct BackupSyncView: View {
                         Toggle("iCloud Sync", isOn: $syncEnabled)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.sage)
 
                         Toggle("Wi-Fi only", isOn: $wifiOnlyBackup)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.sage)
                             .disabled(!syncEnabled)
                             .opacity(syncEnabled ? 1 : 0.45)
                     }
@@ -40,7 +38,7 @@ struct BackupSyncView: View {
                         Toggle("Auto backup", isOn: $autoBackup)
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
-                            .tint(accent)
+                            .tint(Theme.terracotta)
 
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -63,7 +61,7 @@ struct BackupSyncView: View {
                             .foregroundStyle(Theme.cream)
                             .padding(.vertical, 8)
                             .padding(.horizontal, 14)
-                            .background(accent)
+                            .background(Theme.terracotta)
                             .clipShape(Capsule())
                             .buttonStyle(.plain)
                         }

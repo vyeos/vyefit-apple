@@ -10,17 +10,12 @@ import SwiftUI
 struct SettingRow: View {
     let icon: String
     let title: String
-    @AppStorage("accentColor") private var accentColor = "Terracotta"
-
-    private var accent: Color {
-        Theme.accent(for: accentColor)
-    }
 
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 15))
-                .foregroundStyle(accent)
+                .foregroundStyle(Theme.terracotta)
                 .frame(width: 24)
 
             Text(title)
@@ -31,7 +26,7 @@ struct SettingRow: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(accent.opacity(0.6))
+                .foregroundStyle(Theme.stone)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 15)

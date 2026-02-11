@@ -42,17 +42,6 @@ enum Theme {
         dynamicColor(light: UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1), dark: darkBackground)
     }
 
-    static func accent(for name: String) -> Color {
-        switch name {
-        case "Sage":
-            return sage
-        case "Stone":
-            return stone
-        default:
-            return terracotta
-        }
-    }
-
     private static func dynamicColor(light: UIColor, dark: UIColor) -> Color {
         Color(uiColor: UIColor { traits in
             traits.userInterfaceStyle == .dark ? dark : light
