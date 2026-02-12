@@ -99,44 +99,65 @@ struct HeartRateZone: Identifiable, Codable {
 
 // MARK: - Intervals
 
-enum IntervalStepType: String, Codable {
+enum IntervalStepType: String, Codable, CaseIterable {
     case work = "Work"
     case rest = "Rest"
 }
 
 enum IntervalDurationType: String, Codable, CaseIterable {
-    case distance = "Distance"
     case time = "Time"
+    case distance = "Distance"
+    case calories = "Calories"
+}
+
+enum IntervalPhase: String {
+    case warmup = "Warmup"
+    case work = "Work"
+    case rest = "Rest"
+    case cooldown = "Cooldown"
+    case completed = "Completed"
 }
 
 struct IntervalStep: Identifiable, Codable {
     var id = UUID()
     var type: IntervalStepType
     var durationType: IntervalDurationType
-    var value: Double // seconds or km
+    var value: Double // seconds, km, or kcal depending on durationType
 }
 
 struct IntervalWorkout: Identifiable, Codable {
     var id = UUID()
     var name: String
     var warmupEnabled: Bool
-    var warmupDuration: Double // seconds (time based usually)
+    var warmupDuration: Double // seconds
     var cooldownEnabled: Bool
     var cooldownDuration: Double // seconds
-    var repeats: Int
-    var workStep: IntervalStep
-    var restStep: IntervalStep
+    var steps: [IntervalStep]
     
-    static let defaultInterval = IntervalWorkout(
-        name: "Standard Intervals",
-        warmupEnabled: false,
-        warmupDuration: 300,
-        cooldownEnabled: false,
-        cooldownDuration: 300,
-        repeats: 5,
-        workStep: IntervalStep(type: .work, durationType: .time, value: 60), // 1 min
-        restStep: IntervalStep(type: .rest, durationType: .time, value: 60)   // 1 min
-    )
+    /// Convenience to generate a repeated work+rest pattern
+    static func generateLoop(workStep: IntervalStep, restStep: IntervalStep, repeats: Int) -> [IntervalStep] {
+        var result: [IntervalStep] = []
+        for _ in 0..<repeats {
+            var w = workStep; w.id = UUID()
+            var r = restStep; r.id = UUID()
+            result.append(w)
+            result.append(r)
+        }
+        return result
+    }
+    
+    static let defaultInterval: IntervalWorkout = {
+        let work = IntervalStep(type: .work, durationType: .time, value: 60)
+        let rest = IntervalStep(type: .rest, durationType: .time, value: 60)
+        return IntervalWorkout(
+            name: "Standard Intervals",
+            warmupEnabled: false,
+            warmupDuration: 300,
+            cooldownEnabled: false,
+            cooldownDuration: 300,
+            steps: generateLoop(workStep: work, restStep: rest, repeats: 5)
+        )
+    }()
 }
 
 // Helper for Hex Color

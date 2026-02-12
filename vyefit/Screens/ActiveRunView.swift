@@ -63,6 +63,11 @@ struct ActiveRunView: View {
     @ViewBuilder
     private var primaryMetricView: some View {
         VStack(spacing: 12) {
+            // Interval phase indicator
+            if session.isIntervalRun {
+                intervalPhaseIndicator
+            }
+            
             Text(primaryMetricLabel)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
@@ -89,6 +94,58 @@ struct ActiveRunView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
+    }
+    
+    @ViewBuilder
+    private var intervalPhaseIndicator: some View {
+        VStack(spacing: 8) {
+            // Phase banner
+            HStack(spacing: 8) {
+                Image(systemName: phaseIcon)
+                    .font(.system(size: 14, weight: .bold))
+                Text(session.currentPhaseName)
+                    .font(.system(size: 16, weight: .bold))
+                    .tracking(2)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .background(session.currentPhaseColor)
+            .clipShape(Capsule())
+            
+            // Step progress
+            if let progress = session.stepProgressText {
+                Text(progress)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            
+            // Step remaining
+            if let remaining = session.stepRemainingText {
+                Text(remaining)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .foregroundStyle(session.currentPhaseColor)
+                    .monospacedDigit()
+            }
+            
+            // Next step preview
+            if let next = session.nextStepPreview {
+                Text(next)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary.opacity(0.7))
+            }
+        }
+        .padding(.bottom, 8)
+    }
+    
+    private var phaseIcon: String {
+        switch session.currentPhase {
+        case .warmup: return "flame"
+        case .work: return "bolt.fill"
+        case .rest: return "wind"
+        case .cooldown: return "snowflake"
+        case .completed: return "checkmark.circle.fill"
+        }
     }
     
     private var primaryMetricLabel: String {

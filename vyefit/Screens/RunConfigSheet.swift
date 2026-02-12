@@ -356,44 +356,223 @@ struct IntervalBuilderView: View {
     @Binding var workout: IntervalWorkout
     let unit: String
     
+    // Quick loop state
+    @State private var loopRepeats: Int = 5
+    @State private var loopWork = IntervalStep(type: .work, durationType: .time, value: 60)
+    @State private var loopRest = IntervalStep(type: .rest, durationType: .time, value: 60)
+    @State private var showQuickLoop = false
+    
     var body: some View {
         VStack(spacing: 24) {
             // Warmup
             ToggleSection(title: "Warmup", isOn: $workout.warmupEnabled) {
-                HStack {
-                    Text("Duration")
-                    Spacer()
-                    Text(formatTime(workout.warmupDuration))
-                }
+                DurationStepper(label: "Duration", seconds: $workout.warmupDuration)
             }
             
-            // Loop Section
+            // Steps Section
             VStack(spacing: 16) {
                 HStack {
-                    Text("Interval Loop")
+                    Text("Interval Steps")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Theme.textPrimary)
                     Spacer()
-                    Stepper("\(workout.repeats)x", value: $workout.repeats, in: 1...20)
-                        .font(.system(size: 16, weight: .medium))
+                    Text("\(workout.steps.count) steps")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 
-                VStack(spacing: 12) {
-                    IntervalStepRow(step: $workout.workStep, label: "Work", color: Theme.terracotta, unit: unit)
-                    IntervalStepRow(step: $workout.restStep, label: "Rest", color: Theme.sage, unit: unit)
+                if workout.steps.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "plus.circle.dashed")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                        Text("No steps yet")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(Array(workout.steps.enumerated()), id: \.element.id) { index, step in
+                            IntervalStepRow(
+                                step: Binding(
+                                    get: { workout.steps[index] },
+                                    set: { workout.steps[index] = $0 }
+                                ),
+                                label: "\(step.type.rawValue) \(index + 1)",
+                                color: step.type == .work ? Theme.terracotta : Theme.sage,
+                                unit: unit,
+                                onDelete: { workout.steps.remove(at: index) }
+                            )
+                        }
+                    }
+                    .padding(12)
+                    .background(Theme.cream)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .padding(16)
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                
+                // Add Step Buttons
+                HStack(spacing: 12) {
+                    Button {
+                        withAnimation {
+                            workout.steps.append(IntervalStep(type: .work, durationType: .time, value: 60))
+                        }
+                    } label: {
+                        Label("Add Work", systemImage: "plus")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Theme.terracotta)
+                            .clipShape(Capsule())
+                    }
+                    
+                    Button {
+                        withAnimation {
+                            workout.steps.append(IntervalStep(type: .rest, durationType: .time, value: 60))
+                        }
+                    } label: {
+                        Label("Add Rest", systemImage: "plus")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Theme.sage)
+                            .clipShape(Capsule())
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Quick Loop
+                VStack(spacing: 12) {
+                    Button {
+                        withAnimation { showQuickLoop.toggle() }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.2.squarepath")
+                            Text("Quick Loop")
+                                .font(.system(size: 14, weight: .medium))
+                            Spacer()
+                            Image(systemName: showQuickLoop ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 12))
+                        }
+                        .foregroundStyle(Theme.terracotta)
+                    }
+                    
+                    if showQuickLoop {
+                        VStack(spacing: 12) {
+                            Stepper("Repeats: \(loopRepeats)x", value: $loopRepeats, in: 1...30)
+                                .font(.system(size: 14, weight: .medium))
+                            
+                            IntervalStepRow(step: $loopWork, label: "Work", color: Theme.terracotta, unit: unit, onDelete: nil)
+                            IntervalStepRow(step: $loopRest, label: "Rest", color: Theme.sage, unit: unit, onDelete: nil)
+                            
+                            Button {
+                                withAnimation {
+                                    workout.steps = IntervalWorkout.generateLoop(
+                                        workStep: loopWork,
+                                        restStep: loopRest,
+                                        repeats: loopRepeats
+                                    )
+                                    showQuickLoop = false
+                                }
+                            } label: {
+                                Text("Generate \(loopRepeats * 2) Steps")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Theme.terracotta)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(12)
+                        .background(Theme.cream)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
             }
             
             // Cooldown
             ToggleSection(title: "Cooldown", isOn: $workout.cooldownEnabled) {
-                HStack {
-                    Text("Duration")
-                    Spacer()
-                    Text(formatTime(workout.cooldownDuration))
+                DurationStepper(label: "Duration", seconds: $workout.cooldownDuration)
+            }
+            
+            // Summary
+            if !workout.steps.isEmpty {
+                VStack(spacing: 6) {
+                    Text("WORKOUT SUMMARY")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .tracking(1)
+                    
+                    let workCount = workout.steps.filter { $0.type == .work }.count
+                    let restCount = workout.steps.filter { $0.type == .rest }.count
+                    
+                    Text("\(workCount) work · \(restCount) rest intervals")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Theme.textPrimary)
+                    
+                    if let est = estimatedDuration {
+                        Text("≈ \(est)")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+    
+    private var estimatedDuration: String? {
+        var totalSec: Double = 0
+        if workout.warmupEnabled { totalSec += workout.warmupDuration }
+        if workout.cooldownEnabled { totalSec += workout.cooldownDuration }
+        for step in workout.steps {
+            if step.durationType == .time {
+                totalSec += step.value
+            }
+        }
+        guard totalSec > 0 else { return nil }
+        let m = Int(totalSec) / 60
+        let s = Int(totalSec) % 60
+        if m >= 60 {
+            return String(format: "%dh %dm", m / 60, m % 60)
+        }
+        return String(format: "%d:%02d", m, s)
+    }
+}
+
+struct DurationStepper: View {
+    let label: String
+    @Binding var seconds: Double
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Theme.textPrimary)
+            Spacer()
+            Button {
+                seconds = max(seconds - 30, 30)
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            Text(formatTime(seconds))
+                .font(.system(size: 15, weight: .medium, design: .monospaced))
+                .frame(width: 50)
+            Button {
+                seconds = min(seconds + 30, 3600)
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(Theme.terracotta)
             }
         }
     }
@@ -410,17 +589,17 @@ struct IntervalStepRow: View {
     let label: String
     let color: Color
     let unit: String
+    var onDelete: (() -> Void)?
     
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             Capsule()
                 .fill(color)
-                .frame(width: 4, height: 24)
+                .frame(width: 4, height: 28)
             
             Text(label)
-                .font(.system(size: 15, weight: .medium))
-            
-            Spacer()
+                .font(.system(size: 14, weight: .medium))
+                .frame(width: 60, alignment: .leading)
             
             Menu {
                 Picker("Type", selection: $step.durationType) {
@@ -430,27 +609,89 @@ struct IntervalStepRow: View {
                 }
             } label: {
                 Text(step.durationType.rawValue)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Theme.terracotta)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Theme.terracotta.opacity(0.1))
+                    .clipShape(Capsule())
             }
             
-            // Value Input Placeholder (Would be a picker/textfield)
-            Text(formatValue(step))
-                .font(.system(size: 15, weight: .medium, design: .monospaced))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Theme.background)
-                .cornerRadius(6)
+            Spacer()
+            
+            // Value stepper
+            HStack(spacing: 4) {
+                Button {
+                    decrementValue()
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 24, height: 24)
+                }
+                
+                Text(formatValue(step))
+                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .frame(minWidth: 45)
+                
+                Button {
+                    incrementValue()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.terracotta)
+                        .frame(width: 24, height: 24)
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(Theme.background)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            
+            if let onDelete {
+                Button {
+                    withAnimation { onDelete() }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                }
+            }
+        }
+    }
+    
+    private func incrementValue() {
+        switch step.durationType {
+        case .time:
+            step.value = min(step.value + 15, 3600) // +15 sec, max 1h
+        case .distance:
+            step.value = min(step.value + 0.1, 50) // +0.1 km
+        case .calories:
+            step.value = min(step.value + 10, 2000) // +10 kcal
+        }
+    }
+    
+    private func decrementValue() {
+        switch step.durationType {
+        case .time:
+            step.value = max(step.value - 15, 15) // min 15 sec
+        case .distance:
+            step.value = max(step.value - 0.1, 0.1)
+        case .calories:
+            step.value = max(step.value - 10, 10)
         }
     }
     
     func formatValue(_ step: IntervalStep) -> String {
-        if step.durationType == .time {
+        switch step.durationType {
+        case .time:
             let m = Int(step.value) / 60
             let s = Int(step.value) % 60
             return String(format: "%d:%02d", m, s)
-        } else {
-            return String(format: "%.2f %@", step.value, unit)
+        case .distance:
+            return String(format: "%.1f %@", step.value, unit)
+        case .calories:
+            return "\(Int(step.value)) kcal"
         }
     }
 }
