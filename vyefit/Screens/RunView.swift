@@ -142,7 +142,7 @@ struct RunView: View {
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 RunTypeCard(type: .heartRate, action: { selectedRunType = .heartRate })
-                RunTypeCard(type: .intervals, action: { selectedRunType = .intervals })
+                // RunTypeCard(type: .intervals, action: { selectedRunType = .intervals })
             }
             .padding(.horizontal, 20)
         }

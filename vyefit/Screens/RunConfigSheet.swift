@@ -45,9 +45,9 @@ struct RunConfigSheet: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 24) {
-                            if type == .intervals {
+                            /*if type == .intervals {
                                 IntervalBuilderView(workout: $intervalWorkout, unit: unitString)
-                            } else if type == .heartRate {
+                            } else*/ if type == .heartRate {
                                 HeartRateZonePicker(selectedZone: $selectedZone)
                             } else {
                                 targetSelectionView
@@ -153,7 +153,8 @@ struct RunConfigSheet: View {
         case .heartRate:
             config = RunConfiguration(type: .heartRate, targetZone: selectedZone?.id)
         case .intervals:
-            config = RunConfiguration(type: .intervals, intervalWorkout: intervalWorkout)
+            // config = RunConfiguration(type: .intervals, intervalWorkout: intervalWorkout)
+            config = RunConfiguration(type: .quickStart) // Fallback
         }
         
         runStore.startSession(configuration: config)
