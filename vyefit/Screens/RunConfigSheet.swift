@@ -153,16 +153,45 @@ struct RunConfigSheet: View {
                 }
             }
             
-            // Horizontal Scroll of Targets
+            // Default Targets - Horizontal Scroll
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(store.targets(for: type)) { target in
+                    ForEach(store.defaultTargets(for: type)) { target in
                         TargetCard(target: target, isSelected: selectedTarget?.id == target.id, unit: unitString)
                             .onTapGesture {
                                 withAnimation { selectedTarget = target }
                             }
                     }
                 }
+            }
+            
+            // Custom Targets - 2 Column Grid
+            let customTargets = store.customTargets(for: type)
+            if !customTargets.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Your Custom Targets")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(Array(stride(from: 0, to: customTargets.count, by: 2)), id: \.self) { index in
+                            HStack(spacing: 12) {
+                                TargetCard(target: customTargets[index], isSelected: selectedTarget?.id == customTargets[index].id, unit: unitString)
+                                    .onTapGesture {
+                                        withAnimation { selectedTarget = customTargets[index] }
+                                    }
+                                
+                                if index + 1 < customTargets.count {
+                                    TargetCard(target: customTargets[index + 1], isSelected: selectedTarget?.id == customTargets[index + 1].id, unit: unitString)
+                                        .onTapGesture {
+                                            withAnimation { selectedTarget = customTargets[index + 1] }
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 8)
             }
             
             if let selected = selectedTarget {
@@ -193,6 +222,24 @@ struct TargetCard: View {
     let isSelected: Bool
     let unit: String
     
+    private var isMarathonTarget: Bool {
+        target.type == .distance && (target.name == "Half Marathon" || target.name == "Marathon")
+    }
+    
+    private var displayValue: String {
+        guard isMarathonTarget else {
+            return target.description(unit: unit)
+        }
+        
+        // For marathon targets, show rounded values
+        let isMiles = unit == "mi"
+        if target.name == "Half Marathon" {
+            return isMiles ? "13.1 mi" : "21 km"
+        } else { // Marathon
+            return isMiles ? "26.2 mi" : "42 km"
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(target.name)
@@ -201,7 +248,7 @@ struct TargetCard: View {
                 .lineLimit(1)
             
             if target.type != .pace { // Pace usually has name = value description
-                 Text(target.description(unit: unit))
+                Text(displayValue)
                     .font(.system(size: 12))
                     .foregroundStyle(isSelected ? .white.opacity(0.8) : Theme.textSecondary)
             }
@@ -472,7 +519,7 @@ struct NewTargetSheet: View {
                             .pickerStyle(.wheel)
                             Text("sec")
                             
-                            Text("/\(unit)")
+                            Text("\(unit)")
                                 .font(.system(size: 14))
                                 .foregroundStyle(.secondary)
                         }

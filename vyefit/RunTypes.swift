@@ -67,7 +67,7 @@ struct RunTarget: Identifiable, Codable, Equatable {
         case .pace:
             let m = Int(value ?? 0)
             let s = Int(secondaryValue ?? 0)
-            return String(format: "%d:%02d /%@", m, s, unit)
+            return String(format: "%d:%02d %@", m, s, unit)
         default:
             return name
         }

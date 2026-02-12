@@ -46,18 +46,22 @@ class RunTargetStore {
         // Load from storage if implemented, else use defaults + empty saved
     }
     
-    func targets(for type: RunGoalType) -> [RunTarget] {
-        let defaults: [RunTarget]
+    func defaultTargets(for type: RunGoalType) -> [RunTarget] {
         switch type {
-        case .distance: defaults = defaultDistanceTargets
-        case .time: defaults = defaultTimeTargets
-        case .calories: defaults = defaultCaloriesTargets
-        case .pace: defaults = defaultPaceTargets
-        default: defaults = []
+        case .distance: return defaultDistanceTargets
+        case .time: return defaultTimeTargets
+        case .calories: return defaultCaloriesTargets
+        case .pace: return defaultPaceTargets
+        default: return []
         }
-        
-        let saved = savedTargets.filter { $0.type == type }
-        return defaults + saved
+    }
+    
+    func customTargets(for type: RunGoalType) -> [RunTarget] {
+        return savedTargets.filter { $0.type == type }
+    }
+    
+    func targets(for type: RunGoalType) -> [RunTarget] {
+        return defaultTargets(for: type) + customTargets(for: type)
     }
     
     func addTarget(_ target: RunTarget) {
