@@ -129,9 +129,9 @@ struct IntervalWorkout: Identifiable, Codable {
     var id = UUID()
     var name: String
     var warmupEnabled: Bool
-    var warmupDuration: Double // seconds
+    var warmupStep: IntervalStep
     var cooldownEnabled: Bool
-    var cooldownDuration: Double // seconds
+    var cooldownStep: IntervalStep
     var steps: [IntervalStep]
     
     /// Convenience to generate a repeated work+rest pattern
@@ -149,12 +149,14 @@ struct IntervalWorkout: Identifiable, Codable {
     static let defaultInterval: IntervalWorkout = {
         let work = IntervalStep(type: .work, durationType: .time, value: 60)
         let rest = IntervalStep(type: .rest, durationType: .time, value: 60)
+        let warmup = IntervalStep(type: .work, durationType: .time, value: 300)
+        let cooldown = IntervalStep(type: .work, durationType: .time, value: 300)
         return IntervalWorkout(
             name: "Standard Intervals",
             warmupEnabled: false,
-            warmupDuration: 300,
+            warmupStep: warmup,
             cooldownEnabled: false,
-            cooldownDuration: 300,
+            cooldownStep: cooldown,
             steps: generateLoop(workStep: work, restStep: rest, repeats: 5)
         )
     }()

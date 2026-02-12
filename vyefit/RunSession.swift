@@ -60,8 +60,8 @@ class RunSession {
             flatSteps = iw.steps
             intervalWarmupEnabled = iw.warmupEnabled
             intervalCooldownEnabled = iw.cooldownEnabled
-            intervalWarmupDuration = iw.warmupDuration
-            intervalCooldownDuration = iw.cooldownDuration
+            intervalWarmupDuration = iw.warmupStep.value
+            intervalCooldownDuration = iw.cooldownStep.value
             
             if iw.warmupEnabled {
                 currentPhase = .warmup
