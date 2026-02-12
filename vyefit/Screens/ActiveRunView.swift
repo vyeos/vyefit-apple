@@ -75,8 +75,24 @@ struct ActiveRunView: View {
             
             Text(primaryMetricValue)
                 .font(.system(size: 72, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(session.primaryMetric == .heartRate && session.currentZone != nil ? session.currentZone!.color : Theme.textPrimary)
                 .monospacedDigit()
+            
+            if session.primaryMetric == .heartRate, let zone = session.currentZone {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(zone.color)
+                        .frame(width: 12, height: 12)
+                    Text("Zone \(zone.id) • \(zone.name)")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.textPrimary)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Theme.cream)
+                .clipShape(Capsule())
+                .padding(.top, 4)
+            }
             
             if let remaining = session.targetRemaining {
                 Text(remaining)

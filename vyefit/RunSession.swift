@@ -47,6 +47,12 @@ class RunSession {
         configuration.type
     }
     
+    var currentZone: HeartRateZone? {
+        HeartRateZone.defaults.first { zone in
+            currentHeartRate >= zone.minBPM && currentHeartRate <= zone.maxBPM
+        }
+    }
+    
     var isIntervalRun: Bool {
         configuration.type == .intervals
     }
