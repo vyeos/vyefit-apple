@@ -10,6 +10,7 @@ import SwiftUI
 struct RunConfigSheet: View {
     let type: RunGoalType
     @Environment(\.dismiss) private var dismiss
+    @Environment(RunStore.self) private var runStore
     
     // State
     private let store = RunTargetStore.shared
@@ -63,8 +64,7 @@ struct RunConfigSheet: View {
                 VStack {
                     Divider()
                     Button {
-                        // Start Logic Here
-                        // e.g. workoutStore.startSession(config: ...)
+                        startRun()
                         dismiss()
                     } label: {
                         Text("Start Run")
@@ -95,6 +95,30 @@ struct RunConfigSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+    
+    private func startRun() {
+        var config: RunConfiguration
+        
+        switch type {
+        case .quickStart:
+            config = RunConfiguration(type: .quickStart)
+        case .distance:
+            config = RunConfiguration(type: .distance, targetValue: selectedTarget?.value)
+        case .time:
+            config = RunConfiguration(type: .time, targetValue: selectedTarget?.value)
+        case .pace:
+            let paceValue = (selectedTarget?.value ?? 0) * 60 + (selectedTarget?.secondaryValue ?? 0)
+            config = RunConfiguration(type: .pace, targetValue: selectedTarget?.value, targetPace: paceValue)
+        case .calories:
+            config = RunConfiguration(type: .calories, targetValue: selectedTarget?.value)
+        case .heartRate:
+            config = RunConfiguration(type: .heartRate, targetZone: selectedZone?.id)
+        case .intervals:
+            config = RunConfiguration(type: .intervals, intervalWorkout: intervalWorkout)
+        }
+        
+        runStore.startSession(configuration: config)
     }
     
     private var headerView: some View {
