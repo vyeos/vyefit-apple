@@ -61,21 +61,35 @@ struct RunConfigSheet: View {
                 }
                 
                 // Footer / Start Button
-                VStack {
+                VStack(spacing: 12) {
                     Divider()
+                    
+                    if runStore.activeSession != nil {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 14))
+                            Text("A run is already in progress")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundStyle(Theme.terracotta)
+                        .padding(.horizontal, 20)
+                    }
+                    
                     Button {
                         startRun()
                         dismiss()
                     } label: {
-                        Text("Start Run")
+                        Text(runStore.activeSession != nil ? "Run in Progress" : "Start Run")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Theme.terracotta)
+                            .background(runStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
                             .clipShape(Capsule())
                     }
-                    .padding(20)
+                    .disabled(runStore.activeSession != nil)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
                 .background(Theme.background)
             }
