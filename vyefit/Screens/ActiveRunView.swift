@@ -174,24 +174,25 @@ struct ActiveRunView: View {
     }
     
     private var controlButtons: some View {
-        HStack(spacing: 20) {
+        VStack(spacing: 16) {
             Button {
                 withAnimation {
                     session.togglePause()
                 }
             } label: {
-                VStack(spacing: 8) {
+                HStack(spacing: 8) {
                     Image(systemName: session.state == .active ? "pause.fill" : "play.fill")
-                        .font(.system(size: 32))
-                    Text(session.state == .active ? "Pause" : "Resume")
-                        .font(.system(size: 14, weight: .medium))
+                    Text(session.state == .active ? "Pause Run" : "Resume Run")
                 }
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 80, height: 80)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
                 .background(session.state == .active ? Theme.terracotta : Theme.sage)
-                .clipShape(Circle())
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
         }
+        .padding(.horizontal, 20)
         .padding(.bottom, 20)
     }
     

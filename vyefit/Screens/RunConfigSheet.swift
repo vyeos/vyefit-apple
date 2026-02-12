@@ -11,6 +11,7 @@ struct RunConfigSheet: View {
     let type: RunGoalType
     @Environment(\.dismiss) private var dismiss
     @Environment(RunStore.self) private var runStore
+    @Environment(WorkoutStore.self) private var workoutStore
     
     // State
     private let store = RunTargetStore.shared
@@ -64,12 +65,17 @@ struct RunConfigSheet: View {
                 VStack(spacing: 12) {
                     Divider()
                     
-                    if runStore.activeSession != nil {
+                    if runStore.activeSession != nil || workoutStore.activeSession != nil {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 14))
-                            Text("A run is already in progress")
-                                .font(.system(size: 14, weight: .medium))
+                            if runStore.activeSession != nil {
+                                Text("A run is already in progress")
+                                    .font(.system(size: 14, weight: .medium))
+                            } else {
+                                Text("A workout is already in progress")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
                         }
                         .foregroundStyle(Theme.terracotta)
                         .padding(.horizontal, 20)
@@ -79,15 +85,15 @@ struct RunConfigSheet: View {
                         startRun()
                         dismiss()
                     } label: {
-                        Text(runStore.activeSession != nil ? "Run in Progress" : "Start Run")
+                        Text(runStore.activeSession != nil || workoutStore.activeSession != nil ? "Session in Progress" : "Start Run")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(runStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
+                            .background(runStore.activeSession != nil || workoutStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
                             .clipShape(Capsule())
                     }
-                    .disabled(runStore.activeSession != nil)
+                    .disabled(runStore.activeSession != nil || workoutStore.activeSession != nil)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                 }

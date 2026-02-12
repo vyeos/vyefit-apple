@@ -8,7 +8,14 @@
 import SwiftUI
 
 struct RunView: View {
+    @Environment(RunStore.self) private var runStore
+    @Environment(WorkoutStore.self) private var workoutStore
     @State private var selectedRunType: RunGoalType?
+    @State private var showActiveSessionAlert = false
+    
+    private var hasActiveSession: Bool {
+        runStore.activeSession != nil || workoutStore.activeSession != nil
+    }
     
     // Stats Calculation
     var longestRun: MockRunSession? {
@@ -56,6 +63,15 @@ struct RunView: View {
             .sheet(item: $selectedRunType) { type in
                 RunConfigSheet(type: type)
             }
+            .alert("Session in Progress", isPresented: $showActiveSessionAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                if runStore.activeSession != nil {
+                    Text("Please finish your current run before starting a new one.")
+                } else {
+                    Text("Please finish your current workout before starting a new run.")
+                }
+            }
         }
     }
     
@@ -73,24 +89,28 @@ struct RunView: View {
             
             // Quick Start Card
             Button {
-                selectedRunType = .quickStart
+                if hasActiveSession {
+                    showActiveSessionAlert = true
+                } else {
+                    selectedRunType = .quickStart
+                }
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Quick Run")
+                        Text(hasActiveSession ? "Session in Progress" : "Quick Run")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(.white)
-                        Text("Just run, open ended")
+                        Text(hasActiveSession ? "Finish current session first" : "Just run, open ended")
                             .font(.system(size: 13))
                             .foregroundStyle(.white.opacity(0.8))
                     }
                     Spacer()
-                    Image(systemName: "figure.run")
+                    Image(systemName: hasActiveSession ? "lock.fill" : "figure.run")
                         .font(.system(size: 24))
                         .foregroundStyle(.white)
                 }
                 .padding(20)
-                .background(Theme.terracotta)
+                .background(hasActiveSession ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
             }
             .padding(.horizontal, 20)
