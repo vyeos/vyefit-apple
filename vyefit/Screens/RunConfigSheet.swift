@@ -38,66 +38,26 @@ struct RunConfigSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Header
                 headerView
                 
-                ScrollView {
-                    VStack(spacing: 24) {
-                        if type == .intervals {
-                            IntervalBuilderView(workout: $intervalWorkout, unit: unitString)
-                        } else if type == .heartRate {
-                            HeartRateZonePicker(selectedZone: $selectedZone)
-                        } else if type != .quickStart {
-                            // Standard Targets (Distance, Time, Pace, Calories)
-                            targetSelectionView
-                        } else {
-                            // Quick Start
-                            Text("Ready to run? Just hit start.")
-                                .font(.system(size: 16))
-                                .foregroundStyle(Theme.textSecondary)
-                                .padding(.top, 40)
-                        }
-                    }
-                    .padding(20)
-                }
-                
-                // Footer / Start Button
-                VStack(spacing: 12) {
-                    Divider()
-                    
-                    if runStore.activeSession != nil || workoutStore.activeSession != nil {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 14))
-                            if runStore.activeSession != nil {
-                                Text("A run is already in progress")
-                                    .font(.system(size: 14, weight: .medium))
+                if type == .quickStart {
+                    quickStartView
+                } else {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            if type == .intervals {
+                                IntervalBuilderView(workout: $intervalWorkout, unit: unitString)
+                            } else if type == .heartRate {
+                                HeartRateZonePicker(selectedZone: $selectedZone)
                             } else {
-                                Text("A workout is already in progress")
-                                    .font(.system(size: 14, weight: .medium))
+                                targetSelectionView
                             }
                         }
-                        .foregroundStyle(Theme.terracotta)
-                        .padding(.horizontal, 20)
+                        .padding(20)
                     }
-                    
-                    Button {
-                        startRun()
-                        dismiss()
-                    } label: {
-                        Text(runStore.activeSession != nil || workoutStore.activeSession != nil ? "Session in Progress" : "Start Run")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(runStore.activeSession != nil || workoutStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
-                            .clipShape(Capsule())
-                    }
-                    .disabled(runStore.activeSession != nil || workoutStore.activeSession != nil)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
                 }
-                .background(Theme.background)
+                
+                startButtonFooter
             }
             .background(Theme.background)
             .navigationBarTitleDisplayMode(.inline)
@@ -114,7 +74,65 @@ struct RunConfigSheet: View {
                 }
             }
         }
-        .presentationDetents([.large])
+        .presentationDetents(type == .quickStart ? [.medium] : [.large])
+    }
+    
+    private var quickStartView: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "figure.run.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(Theme.terracotta)
+            
+            VStack(spacing: 8) {
+                Text("Ready to run?")
+                    .font(.system(size: 22, weight: .semibold, design: .serif))
+                    .foregroundStyle(Theme.textPrimary)
+                Text("Just hit start and go")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
+    
+    private var startButtonFooter: some View {
+        VStack(spacing: 12) {
+            Divider()
+            
+            if runStore.activeSession != nil || workoutStore.activeSession != nil {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 14))
+                    if runStore.activeSession != nil {
+                        Text("A run is already in progress")
+                            .font(.system(size: 14, weight: .medium))
+                    } else {
+                        Text("A workout is already in progress")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                }
+                .foregroundStyle(Theme.terracotta)
+                .padding(.horizontal, 20)
+            }
+            
+            Button {
+                startRun()
+                dismiss()
+            } label: {
+                Text(runStore.activeSession != nil || workoutStore.activeSession != nil ? "Session in Progress" : "Start Run")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(runStore.activeSession != nil || workoutStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
+                    .clipShape(Capsule())
+            }
+            .disabled(runStore.activeSession != nil || workoutStore.activeSession != nil)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        }
+        .background(Theme.background)
     }
     
     private func startRun() {

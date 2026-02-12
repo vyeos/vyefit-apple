@@ -25,9 +25,9 @@ class RunTargetStore {
     
     let defaultTimeTargets: [RunTarget] = [
         RunTarget(type: .time, name: "Quick Jog", value: 900), // 15 min
-        RunTarget(type: .time, name: "30 Minutes", value: 1800),
-        RunTarget(type: .time, name: "45 Minutes", value: 2700),
-        RunTarget(type: .time, name: "1 Hour", value: 3600)
+        RunTarget(type: .time, name: "Morning Run", value: 1800),
+        RunTarget(type: .time, name: "Lunch Break", value: 2700),
+        RunTarget(type: .time, name: "Long Run", value: 3600)
     ]
     
     let defaultCaloriesTargets: [RunTarget] = [
