@@ -85,7 +85,7 @@ Vyefit is an iOS + Apple Watch fitness app focused on structured strength traini
 🏋️ Advanced Strength Training
 	•	Supersets & circuits
 	•	Warm-up and drop sets
-	• Warm-up weights and reps suggestion
+	•   Warm-up weights and reps suggestion
 	•	Automatic PR detection
 	•	Estimated 1RM calculation
 	•	Muscle group analytics
