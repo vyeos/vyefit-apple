@@ -590,6 +590,7 @@ struct IntervalStepRow: View {
     let color: Color
     let unit: String
     var onDelete: (() -> Void)?
+    @State private var showValuePicker = false
     
     var body: some View {
         HStack(spacing: 8) {
@@ -602,51 +603,46 @@ struct IntervalStepRow: View {
                 .frame(width: 60, alignment: .leading)
             
             Menu {
-                Picker("Type", selection: $step.durationType) {
-                    ForEach(IntervalDurationType.allCases, id: \.self) { type in
-                        Text(type.rawValue).tag(type)
+                ForEach(IntervalDurationType.allCases, id: \.self) { type in
+                    Button {
+                        step.durationType = type
+                    } label: {
+                        Label(type.rawValue, systemImage: iconForType(type))
                     }
                 }
             } label: {
-                Text(step.durationType.rawValue)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Theme.terracotta)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Theme.terracotta.opacity(0.1))
-                    .clipShape(Capsule())
+                HStack(spacing: 6) {
+                    Image(systemName: iconForType(step.durationType))
+                        .font(.system(size: 11))
+                    Text(step.durationType.rawValue)
+                        .font(.system(size: 12, weight: .medium))
+                        .lineLimit(1)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .foregroundStyle(Theme.terracotta)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(minWidth: 95)
+                .background(Theme.terracotta.opacity(0.1))
+                .clipShape(Capsule())
             }
             
             Spacer()
             
-            // Value stepper
-            HStack(spacing: 4) {
-                Button {
-                    decrementValue()
-                } label: {
-                    Image(systemName: "minus")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 24, height: 24)
-                }
-                
+            Button {
+                showValuePicker = true
+            } label: {
                 Text(formatValue(step))
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
-                    .frame(minWidth: 45)
-                
-                Button {
-                    incrementValue()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.terracotta)
-                        .frame(width: 24, height: 24)
-                }
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Theme.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(Theme.background)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
             
             if let onDelete {
                 Button {
@@ -658,40 +654,194 @@ struct IntervalStepRow: View {
                 }
             }
         }
-    }
-    
-    private func incrementValue() {
-        switch step.durationType {
-        case .time:
-            step.value = min(step.value + 15, 3600) // +15 sec, max 1h
-        case .distance:
-            step.value = min(step.value + 0.1, 50) // +0.1 km
-        case .calories:
-            step.value = min(step.value + 10, 2000) // +10 kcal
+        .animation(.easeInOut(duration: 0.2), value: step.durationType)
+        .sheet(isPresented: $showValuePicker) {
+            IntervalValuePicker(step: $step, unit: unit)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
     }
     
-    private func decrementValue() {
-        switch step.durationType {
-        case .time:
-            step.value = max(step.value - 15, 15) // min 15 sec
-        case .distance:
-            step.value = max(step.value - 0.1, 0.1)
-        case .calories:
-            step.value = max(step.value - 10, 10)
+    private func iconForType(_ type: IntervalDurationType) -> String {
+        switch type {
+        case .time: return "clock"
+        case .distance: return "location.fill"
+        case .calories: return "flame"
         }
     }
     
     func formatValue(_ step: IntervalStep) -> String {
         switch step.durationType {
         case .time:
-            let m = Int(step.value) / 60
-            let s = Int(step.value) % 60
+            let totalSec = Int(step.value)
+            let h = totalSec / 3600
+            let m = (totalSec % 3600) / 60
+            let s = totalSec % 60
+            if h > 0 {
+                return String(format: "%d:%02d:%02d", h, m, s)
+            }
             return String(format: "%d:%02d", m, s)
         case .distance:
-            return String(format: "%.1f %@", step.value, unit)
+            let km = Int(step.value)
+            let m = Int((step.value - Double(km)) * 1000)
+            if km > 0 {
+                return String(format: "%d.%03d %@", km, m, unit)
+            }
+            return String(format: "%dm", m)
         case .calories:
             return "\(Int(step.value)) kcal"
+        }
+    }
+}
+
+struct IntervalValuePicker: View {
+    @Binding var step: IntervalStep
+    let unit: String
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var hours: Int = 0
+    @State private var minutes: Int = 1
+    @State private var seconds: Int = 0
+    
+    @State private var kilometers: Int = 0
+    @State private var meters: Int = 0
+    
+    @State private var calories: Int = 100
+    
+    init(step: Binding<IntervalStep>, unit: String) {
+        self._step = step
+        self.unit = unit
+        
+        let val = step.wrappedValue.value
+        switch step.wrappedValue.durationType {
+        case .time:
+            _hours = State(initialValue: Int(val) / 3600)
+            _minutes = State(initialValue: (Int(val) % 3600) / 60)
+            _seconds = State(initialValue: Int(val) % 60)
+        case .distance:
+            _kilometers = State(initialValue: Int(val))
+            _meters = State(initialValue: Int((val - Double(Int(val))) * 1000))
+        case .calories:
+            _calories = State(initialValue: Int(val))
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                pickerView
+                
+                Spacer()
+            }
+            .padding(.top)
+            .background(Theme.background)
+            .navigationTitle("Set \(step.durationType.rawValue)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        saveValue()
+                        dismiss()
+                    }
+                    .foregroundStyle(Theme.terracotta)
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var pickerView: some View {
+        switch step.durationType {
+        case .time:
+            HStack(spacing: 4) {
+                Picker("Hours", selection: $hours) {
+                    ForEach(0..<24) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.wheel)
+                
+                Text("h")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 24)
+                
+                Picker("Minutes", selection: $minutes) {
+                    ForEach(0..<60) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.wheel)
+                
+                Text("m")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 24)
+                
+                Picker("Seconds", selection: $seconds) {
+                    ForEach(0..<60) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.wheel)
+                
+                Text("s")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 24)
+            }
+            .frame(height: 180)
+            .padding(.horizontal, 20)
+            
+        case .distance:
+            HStack(spacing: 4) {
+                Picker("Kilometers", selection: $kilometers) {
+                    ForEach(0..<100) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.wheel)
+                
+                Text(unit == "km" ? "km" : "mi")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 32)
+                
+                Picker("Meters", selection: $meters) {
+                    ForEach(stride(from: 0, through: 950, by: 50).map { $0 }, id: \.self) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.wheel)
+                
+                Text("m")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 24)
+            }
+            .frame(height: 180)
+            .padding(.horizontal, 20)
+            
+        case .calories:
+            HStack(spacing: 4) {
+                Picker("Calories", selection: $calories) {
+                    ForEach(0..<2000) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.wheel)
+                
+                Text("kcal")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 48)
+            }
+            .frame(height: 180)
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private func saveValue() {
+        switch step.durationType {
+        case .time:
+            step.value = Double(hours * 3600 + minutes * 60 + seconds)
+        case .distance:
+            step.value = Double(kilometers) + Double(meters) / 1000.0
+        case .calories:
+            step.value = Double(calories)
         }
     }
 }
