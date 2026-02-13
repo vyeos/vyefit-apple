@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @AppStorage("userName") private var userName = "Rudra Patel"
+    @AppStorage("appTheme") private var appTheme = "System"
 
     var body: some View {
         NavigationStack {
@@ -61,12 +62,6 @@ struct ProfileView: View {
                         }
 
                         NavigationLink {
-                            AppearanceView()
-                        } label: {
-                            SettingRow(icon: "paintbrush", title: "Appearance")
-                        }
-
-                        NavigationLink {
                             BackupSyncView()
                         } label: {
                             SettingRow(icon: "icloud", title: "Backup & Sync")
@@ -74,6 +69,25 @@ struct ProfileView: View {
                     }
                     .buttonStyle(.plain)
                     .tint(Theme.terracotta)
+                    .background(Theme.cream)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .padding(.horizontal, 20)
+
+                    // Appearance
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Appearance", systemImage: "paintbrush")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Theme.textPrimary)
+                        
+                        Picker("Theme", selection: $appTheme) {
+                            Text("System").tag("System")
+                            Text("Light").tag("Light")
+                            Text("Dark").tag("Dark")
+                        }
+                        .pickerStyle(.segmented)
+                        .tint(Theme.terracotta)
+                    }
+                    .padding(20)
                     .background(Theme.cream)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .padding(.horizontal, 20)

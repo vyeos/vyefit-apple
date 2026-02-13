@@ -44,6 +44,7 @@ struct MockRunSession: Identifiable {
     let avgPace: Double // min/km
     let heartRateAvg: Int
     let heartRateMax: Int
+    let type: RunGoalType
 }
 
 struct MockWeekday: Identifiable {
@@ -165,10 +166,13 @@ enum SampleData {
     // MARK: Run Sessions
 
     static let runSessions: [MockRunSession] = [
-        MockRunSession(date: Date(), distance: 5.2, duration: 1560, calories: 420, avgPace: 5.0, heartRateAvg: 155, heartRateMax: 178),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -2, to: Date())!, distance: 3.1, duration: 1020, calories: 260, avgPace: 5.5, heartRateAvg: 148, heartRateMax: 170),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!, distance: 10.0, duration: 3300, calories: 780, avgPace: 5.5, heartRateAvg: 152, heartRateMax: 175),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -7, to: Date())!, distance: 7.5, duration: 2400, calories: 610, avgPace: 5.33, heartRateAvg: 150, heartRateMax: 172),
+        MockRunSession(date: Date(), distance: 5.2, duration: 1560, calories: 420, avgPace: 5.0, heartRateAvg: 155, heartRateMax: 178, type: .distance),
+        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -2, to: Date())!, distance: 3.1, duration: 1020, calories: 260, avgPace: 5.5, heartRateAvg: 148, heartRateMax: 170, type: .quickStart),
+        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!, distance: 10.0, duration: 3300, calories: 780, avgPace: 5.5, heartRateAvg: 152, heartRateMax: 175, type: .time),
+        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -7, to: Date())!, distance: 7.5, duration: 2400, calories: 610, avgPace: 5.33, heartRateAvg: 150, heartRateMax: 172, type: .intervals),
+        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -12, to: Date())!, distance: 5.0, duration: 1500, calories: 400, avgPace: 5.0, heartRateAvg: 145, heartRateMax: 165, type: .quickStart),
+        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -15, to: Date())!, distance: 21.1, duration: 7200, calories: 1500, avgPace: 5.7, heartRateAvg: 160, heartRateMax: 180, type: .distance), // Half marathon
+        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -20, to: Date())!, distance: 4.0, duration: 1200, calories: 300, avgPace: 5.0, heartRateAvg: 150, heartRateMax: 170, type: .quickStart),
     ]
 
     // MARK: Weekly Schedule

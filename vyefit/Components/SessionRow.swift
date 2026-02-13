@@ -11,35 +11,66 @@ struct SessionRow: View {
     let run: MockRunSession
 
     var body: some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Theme.sage)
-                .frame(width: 4, height: 40)
+        HStack(spacing: 16) {
+            // Icon Background
+            ZStack {
+                Circle()
+                    .fill(Theme.sage.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: run.type.icon)
+                    .font(.system(size: 20))
+                    .foregroundStyle(Theme.sage)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(run.distance, specifier: "%.1f") km Run")
-                    .font(.system(size: 15, weight: .medium, design: .serif))
+                Text(run.type.rawValue)
+                    .font(.system(size: 16, weight: .semibold, design: .serif))
                     .foregroundStyle(Theme.textPrimary)
-                Text(run.date, style: .date)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textSecondary)
+                
+                HStack(spacing: 6) {
+                    Text(String(format: "%.2f km", run.distance))
+                        .fontWeight(.medium)
+                        .foregroundStyle(Theme.textPrimary)
+                    
+                    Text("•")
+                        .foregroundStyle(Theme.stone)
+                    
+                    Text(run.date, format: .dateTime.weekday(.wide))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .font(.system(size: 13))
             }
 
             Spacer()
 
-            Text(SampleData.formatDuration(run.duration))
-                .font(.system(size: 14, weight: .medium, design: .monospaced))
-                .foregroundStyle(Theme.stone)
+            VStack(alignment: .trailing, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.terracotta)
+                    Text("\(run.heartRateAvg) bpm")
+                        .foregroundStyle(Theme.terracotta)
+                }
+                .font(.system(size: 12, weight: .medium))
+                
+                Text(SampleData.formatDuration(run.duration))
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.stone)
+            }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(16)
         .background(Theme.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal, 20)
     }
 }
 
 #Preview {
-    SessionRow(run: SampleData.runSessions[0])
-        .background(Theme.background)
+    VStack {
+        SessionRow(run: SampleData.runSessions[0])
+        SessionRow(run: SampleData.runSessions[1])
+    }
+    .padding()
+    .background(Theme.background)
 }

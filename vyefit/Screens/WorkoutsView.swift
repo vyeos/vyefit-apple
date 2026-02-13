@@ -9,10 +9,11 @@ import SwiftUI
 
 struct WorkoutsView: View {
     @Environment(WorkoutStore.self) private var workoutStore
+    @Environment(RunStore.self) private var runStore
     @State private var showCreateSheet = false
     @State private var selectedTemplate: MockWorkout?
     @State private var editingWorkout: UserWorkout?
-    @State private var showActiveWorkoutAlert = false
+    @State private var showActiveSessionAlert = false
 
     var body: some View {
         NavigationStack {
@@ -41,8 +42,8 @@ struct WorkoutsView: View {
 							        }
                                     },
                                     onStart: {
-                                        if workoutStore.activeSession != nil {
-                                            showActiveWorkoutAlert = true
+                                        if workoutStore.activeSession != nil || runStore.activeSession != nil {
+                                            showActiveSessionAlert = true
                                         } else {
                                             workoutStore.startSession(for: workout)
                                         }
@@ -104,10 +105,14 @@ struct WorkoutsView: View {
             .sheet(item: $editingWorkout) { workout in
                 CreateWorkoutView(editing: workout)
             }
-            .alert("Workout in Progress", isPresented: $showActiveWorkoutAlert) {
+            .alert("Session in Progress", isPresented: $showActiveSessionAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
-                Text("Please finish your current workout before starting a new one.")
+                if runStore.activeSession != nil {
+                    Text("Please finish your current run before starting a new workout.")
+                } else {
+                    Text("Please finish your current workout before starting a new one.")
+                }
             }
         }
     }
