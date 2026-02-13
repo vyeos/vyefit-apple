@@ -31,6 +31,8 @@ struct RemindersView: View {
     @AppStorage("workoutReminderMinute") private var workoutReminderMinute = 0
     @AppStorage("hydrationReminderHour") private var hydrationReminderHour = 9
     @AppStorage("hydrationReminderMinute") private var hydrationReminderMinute = 0
+    @AppStorage("hydrationBedtimeHour") private var hydrationBedtimeHour = 22
+    @AppStorage("hydrationBedtimeMinute") private var hydrationBedtimeMinute = 0
     @AppStorage("mindfulnessReminderHour") private var mindfulnessReminderHour = 20
     @AppStorage("mindfulnessReminderMinute") private var mindfulnessReminderMinute = 0
 
@@ -39,6 +41,7 @@ struct RemindersView: View {
     
     @State private var workoutTime: Date
     @State private var hydrationTime: Date
+    @State private var hydrationBedtime: Date
     @State private var mindfulnessTime: Date
     
     init() {
@@ -51,6 +54,10 @@ struct RemindersView: View {
         let hydrationHour = UserDefaults.standard.integer(forKey: "hydrationReminderHour")
         let hydrationMinute = UserDefaults.standard.integer(forKey: "hydrationReminderMinute")
         _hydrationTime = State(initialValue: calendar.date(bySettingHour: hydrationHour, minute: hydrationMinute, second: 0, of: Date()) ?? Date())
+        
+        let bedtimeHour = UserDefaults.standard.integer(forKey: "hydrationBedtimeHour")
+        let bedtimeMinute = UserDefaults.standard.integer(forKey: "hydrationBedtimeMinute")
+        _hydrationBedtime = State(initialValue: calendar.date(bySettingHour: bedtimeHour, minute: bedtimeMinute, second: 0, of: Date()) ?? Date())
         
         let mindfulnessHour = UserDefaults.standard.integer(forKey: "mindfulnessReminderHour")
         let mindfulnessMinute = UserDefaults.standard.integer(forKey: "mindfulnessReminderMinute")
@@ -113,14 +120,35 @@ struct RemindersView: View {
                         .opacity(hydrationReminders ? 1 : 0.45)
                         .disabled(!hydrationReminders)
 
-                        DatePicker("First reminder", selection: $hydrationTime, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .tint(Theme.sage)
-                            .opacity(hydrationReminders ? 1 : 0.45)
-                            .disabled(!hydrationReminders)
-                            .onChange(of: hydrationTime) { _, newTime in
-                                saveAndSchedule(newTime, type: .hydration)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("First reminder")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Theme.textSecondary)
+                                DatePicker("", selection: $hydrationTime, displayedComponents: .hourAndMinute)
+                                    .labelsHidden()
+                                    .tint(Theme.sage)
                             }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Bedtime")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Theme.textSecondary)
+                                DatePicker("", selection: $hydrationBedtime, displayedComponents: .hourAndMinute)
+                                    .labelsHidden()
+                                    .tint(Theme.sage)
+                            }
+                        }
+                        .opacity(hydrationReminders ? 1 : 0.45)
+                        .disabled(!hydrationReminders)
+                        .onChange(of: hydrationTime) { _, newTime in
+                            saveAndSchedule(newTime, type: .hydration)
+                        }
+                        .onChange(of: hydrationBedtime) { _, newTime in
+                            saveBedtime(newTime)
+                        }
                     }
                 }
 
@@ -185,6 +213,7 @@ struct RemindersView: View {
         let calendar = Calendar.current
         workoutTime = calendar.date(bySettingHour: workoutReminderHour, minute: workoutReminderMinute, second: 0, of: Date()) ?? Date()
         hydrationTime = calendar.date(bySettingHour: hydrationReminderHour, minute: hydrationReminderMinute, second: 0, of: Date()) ?? Date()
+        hydrationBedtime = calendar.date(bySettingHour: hydrationBedtimeHour, minute: hydrationBedtimeMinute, second: 0, of: Date()) ?? Date()
         mindfulnessTime = calendar.date(bySettingHour: mindfulnessReminderHour, minute: mindfulnessReminderMinute, second: 0, of: Date()) ?? Date()
     }
     
@@ -234,6 +263,13 @@ struct RemindersView: View {
         }
     }
     
+    private func saveBedtime(_ date: Date) {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        hydrationBedtimeHour = components.hour ?? 22
+        hydrationBedtimeMinute = components.minute ?? 0
+        if hydrationReminders { scheduleHydrationNotifications() }
+    }
+    
     private func scheduleNotification(for type: ReminderType) {
         let center = UNUserNotificationCenter.current()
         
@@ -277,14 +313,38 @@ struct RemindersView: View {
         var hour = hydrationReminderHour
         let minute = hydrationReminderMinute
         
-        for i in 0..<24 {
-            var components = DateComponents()
-            components.hour = hour
-            components.minute = minute
+        var notificationCount = 0
+        
+        for _ in 0..<24 {
+            // Check if this hour falls within bedtime hours
+            // Bedtime period: from bedtime to first reminder time
+            let isBedtime: Bool
+            if hydrationBedtimeHour > hydrationReminderHour {
+                // Bedtime is later in the day than first reminder (e.g., bedtime 22:00, first reminder 09:00)
+                isBedtime = hour >= hydrationBedtimeHour || hour < hydrationReminderHour
+            } else if hydrationBedtimeHour < hydrationReminderHour {
+                // Bedtime is earlier in the day than first reminder (e.g., bedtime 02:00, first reminder 09:00)
+                isBedtime = hour >= hydrationBedtimeHour && hour < hydrationReminderHour
+            } else {
+                // Same hour - check minutes
+                if hydrationBedtimeMinute <= hydrationReminderMinute {
+                    isBedtime = hour == hydrationBedtimeHour && hydrationBedtimeMinute >= hydrationReminderMinute
+                } else {
+                    isBedtime = hour == hydrationBedtimeHour
+                }
+            }
             
-            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-            let request = UNNotificationRequest(identifier: "hydration-reminder-\(i)", content: content, trigger: trigger)
-            center.add(request)
+            // Only schedule if not during bedtime
+            if !isBedtime {
+                var components = DateComponents()
+                components.hour = hour
+                components.minute = minute
+                
+                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+                let request = UNNotificationRequest(identifier: "hydration-reminder-\(notificationCount)", content: content, trigger: trigger)
+                center.add(request)
+                notificationCount += 1
+            }
             
             hour = (hour + interval) % 24
         }
