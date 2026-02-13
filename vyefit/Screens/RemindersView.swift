@@ -78,14 +78,18 @@ struct RemindersView: View {
                                 else { cancelNotifications(for: .workout) }
                             }
 
-                        DatePicker("Preferred time", selection: $workoutTime, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .tint(Theme.terracotta)
-                            .opacity(workoutReminders ? 1 : 0.45)
-                            .disabled(!workoutReminders)
-                            .onChange(of: workoutTime) { _, newTime in
-                                saveAndSchedule(newTime, type: .workout)
-                            }
+                        Text("Nudges you to get moving at your preferred time.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+
+                        if workoutReminders {
+                            DatePicker("Preferred time", selection: $workoutTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .tint(Theme.terracotta)
+                                .onChange(of: workoutTime) { _, newTime in
+                                    saveAndSchedule(newTime, type: .workout)
+                                }
+                        }
                     }
                 }
 
@@ -100,54 +104,56 @@ struct RemindersView: View {
                                 else { cancelNotifications(for: .hydration) }
                             }
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Check-in interval")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(Theme.textSecondary)
+                        Text("Reminds you to drink water throughout the day.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
 
-                            Picker("Check-in interval", selection: $hydrationIntervalHours) {
-                                ForEach(HydrationInterval.allCases) { interval in
-                                    Text(interval.label)
-                                        .tag(interval.rawValue)
+                        if hydrationReminders {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Check-in interval")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Theme.textSecondary)
+
+                                Picker("Check-in interval", selection: $hydrationIntervalHours) {
+                                    ForEach(HydrationInterval.allCases) { interval in
+                                        Text(interval.label)
+                                            .tag(interval.rawValue)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .tint(Theme.sage)
+                                .onChange(of: hydrationIntervalHours) { _, _ in
+                                    scheduleHydrationNotifications()
                                 }
                             }
-                            .pickerStyle(.segmented)
-                            .tint(Theme.sage)
-                            .onChange(of: hydrationIntervalHours) { _, _ in
-                                if hydrationReminders { scheduleHydrationNotifications() }
-                            }
-                        }
-                        .opacity(hydrationReminders ? 1 : 0.45)
-                        .disabled(!hydrationReminders)
 
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("First reminder")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(Theme.textSecondary)
-                                DatePicker("", selection: $hydrationTime, displayedComponents: .hourAndMinute)
-                                    .labelsHidden()
-                                    .tint(Theme.sage)
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("First reminder")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Theme.textSecondary)
+                                    DatePicker("", selection: $hydrationTime, displayedComponents: .hourAndMinute)
+                                        .labelsHidden()
+                                        .tint(Theme.sage)
+                                }
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Bedtime")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Theme.textSecondary)
+                                    DatePicker("", selection: $hydrationBedtime, displayedComponents: .hourAndMinute)
+                                        .labelsHidden()
+                                        .tint(Theme.sage)
+                                }
                             }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Bedtime")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(Theme.textSecondary)
-                                DatePicker("", selection: $hydrationBedtime, displayedComponents: .hourAndMinute)
-                                    .labelsHidden()
-                                    .tint(Theme.sage)
+                            .onChange(of: hydrationTime) { _, newTime in
+                                saveAndSchedule(newTime, type: .hydration)
                             }
-                        }
-                        .opacity(hydrationReminders ? 1 : 0.45)
-                        .disabled(!hydrationReminders)
-                        .onChange(of: hydrationTime) { _, newTime in
-                            saveAndSchedule(newTime, type: .hydration)
-                        }
-                        .onChange(of: hydrationBedtime) { _, newTime in
-                            saveBedtime(newTime)
+                            .onChange(of: hydrationBedtime) { _, newTime in
+                                saveBedtime(newTime)
+                            }
                         }
                     }
                 }
@@ -167,14 +173,14 @@ struct RemindersView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Theme.textSecondary)
 
-                        DatePicker("Preferred time", selection: $mindfulnessTime, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .tint(Theme.stone)
-                            .opacity(mindfulnessReminders ? 1 : 0.45)
-                            .disabled(!mindfulnessReminders)
-                            .onChange(of: mindfulnessTime) { _, newTime in
-                                saveAndSchedule(newTime, type: .mindfulness)
-                            }
+                        if mindfulnessReminders {
+                            DatePicker("Preferred time", selection: $mindfulnessTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .tint(Theme.stone)
+                                .onChange(of: mindfulnessTime) { _, newTime in
+                                    saveAndSchedule(newTime, type: .mindfulness)
+                                }
+                        }
                     }
                 }
             }
