@@ -25,7 +25,7 @@ struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    VStack(spacing: 12) {
+                    HStack(spacing: 16) {
                         Circle()
                             .fill(Theme.sand)
                             .frame(width: 80, height: 80)
@@ -35,20 +35,23 @@ struct ProfileView: View {
                                     .foregroundStyle(Theme.stone)
                             )
 
-                        TextField("Your name", text: $userName)
-                            .font(.system(size: 22, weight: .semibold, design: .serif))
-                            .foregroundStyle(Theme.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .textInputAutocapitalization(.words)
-                            .disableAutocorrection(true)
-                            .tint(Theme.terracotta)
-                            .textFieldStyle(.plain)
-                            .padding(.horizontal, 24)
+                        VStack(alignment: .leading, spacing: 4) {
+                            TextField("Your name", text: $userName)
+                                .font(.system(size: 22, weight: .semibold, design: .serif))
+                                .foregroundStyle(Theme.textPrimary)
+                                .textInputAutocapitalization(.words)
+                                .disableAutocorrection(true)
+                                .tint(Theme.terracotta)
+                                .textFieldStyle(.plain)
 
-                        Text("Mindful Mover")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Theme.sage)
+                            Text("Mindful Mover")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.sage)
+                        }
+                        
+                        Spacer()
                     }
+                    .padding(.horizontal, 20)
                     .padding(.top)
                     
                     // Milestones
