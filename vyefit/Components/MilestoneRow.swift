@@ -43,9 +43,9 @@ struct MilestoneRow: View {
                     
                     // Progress bar with background track
                     ZStack(alignment: .leading) {
-                        // Background track
+                        // Background track - using stone with opacity for visibility in both modes
                         Capsule()
-                            .fill(Theme.sand)
+                            .fill(Theme.stone.opacity(0.35))
                             .frame(width: 60, height: 6)
                         // Progress fill
                         Capsule()

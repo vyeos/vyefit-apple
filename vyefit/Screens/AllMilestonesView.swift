@@ -15,7 +15,12 @@ enum MilestoneFilter: String, CaseIterable {
 
 struct AllMilestonesView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedFilter: MilestoneFilter = .all
+    
+    private var progressBarColor: Color {
+        colorScheme == .dark ? Theme.terracotta : Theme.sage
+    }
     
     private var filteredAchievements: [MockAchievement] {
         switch selectedFilter {
@@ -108,22 +113,19 @@ struct AllMilestonesView: View {
                         .foregroundStyle(Theme.sage)
                 }
                 
-                // Progress bar with background
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Theme.sand)
-                        .frame(height: 8)
-                    
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Theme.sage, Theme.terracotta],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: UIScreen.main.bounds.width * 0.85 * progressStats.percentage, height: 8)
+                    // Progress bar with background
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Theme.sand)
+                            .frame(height: 8)
+                        
+                        Capsule()
+                            .fill(progressBarColor)
+                            .frame(width: geometry.size.width * progressStats.percentage, height: 8)
+                    }
                 }
+                .frame(height: 8)
             }
         }
         .padding(20)
