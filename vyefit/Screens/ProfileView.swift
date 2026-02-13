@@ -63,12 +63,54 @@ struct ProfileView: View {
                     
                     // Milestones
                     VStack(alignment: .leading, spacing: 14) {
-                        Text("Milestones")
-                            .font(.system(size: 16, weight: .semibold, design: .serif))
-                            .foregroundStyle(Theme.textPrimary)
+                        HStack {
+                            Text("Milestones")
+                                .font(.system(size: 16, weight: .semibold, design: .serif))
+                                .foregroundStyle(Theme.textPrimary)
+                            
+                            Spacer()
+                            
+                            NavigationLink {
+                                AllMilestonesView()
+                            } label: {
+                                Text("View All")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(Theme.terracotta)
+                            }
+                        }
 
-                        ForEach(SampleData.achievements.prefix(4)) { a in
+                        // Show in-progress milestones first, then completed, limited to 4
+                        let inProgressMilestones = SampleData.achievements.filter { !$0.isUnlocked }
+                        let completedMilestones = SampleData.achievements.filter { $0.isUnlocked }
+                        let displayMilestones = Array((inProgressMilestones + completedMilestones).prefix(4))
+                        
+                        ForEach(displayMilestones) { a in
                             MilestoneRow(achievement: a)
+                        }
+                        
+                        // Show count of hidden milestones
+                        let remainingCount = SampleData.achievements.count - displayMilestones.count
+                        if remainingCount > 0 {
+                            NavigationLink {
+                                AllMilestonesView()
+                            } label: {
+                                HStack {
+                                    Text("\(remainingCount) more milestones")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Theme.textSecondary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Theme.stone)
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Theme.sand.opacity(0.5))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(20)

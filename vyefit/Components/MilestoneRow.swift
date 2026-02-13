@@ -35,13 +35,23 @@ struct MilestoneRow: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.sage)
             } else {
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Theme.sand)
-                        .frame(width: 50, height: 4)
-                    Capsule()
-                        .fill(Theme.sage)
-                        .frame(width: 50 * achievement.progress, height: 4)
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Progress percentage text
+                    Text("\(Int(achievement.progress * 100))%")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.sage)
+                    
+                    // Progress bar with background track
+                    ZStack(alignment: .leading) {
+                        // Background track
+                        Capsule()
+                            .fill(Theme.sand)
+                            .frame(width: 60, height: 6)
+                        // Progress fill
+                        Capsule()
+                            .fill(Theme.sage)
+                            .frame(width: 60 * achievement.progress, height: 6)
+                    }
                 }
             }
         }

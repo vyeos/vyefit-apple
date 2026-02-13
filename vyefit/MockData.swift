@@ -234,12 +234,23 @@ enum SampleData {
     // MARK: Achievements
 
     static let achievements: [MockAchievement] = [
+        // Completed
         MockAchievement(title: "First Workout", description: "Complete your first workout", icon: "star.fill", isUnlocked: true, progress: 1.0),
         MockAchievement(title: "Iron Week", description: "Work out 7 days in a row", icon: "flame.fill", isUnlocked: true, progress: 1.0),
+        MockAchievement(title: "Early Bird", description: "Complete 5 morning workouts", icon: "sun.max.fill", isUnlocked: true, progress: 1.0),
+        MockAchievement(title: "Runner's High", description: "Run 10 km in a single session", icon: "figure.run", isUnlocked: true, progress: 1.0),
+        // In Progress (high priority to show)
         MockAchievement(title: "Century Club", description: "Complete 100 workouts", icon: "trophy.fill", isUnlocked: false, progress: 0.47),
         MockAchievement(title: "Marathon Ready", description: "Run 42.2 km total", icon: "figure.run", isUnlocked: false, progress: 0.61),
         MockAchievement(title: "Heavy Lifter", description: "Lift 10,000 kg total volume", icon: "scalemass.fill", isUnlocked: false, progress: 0.82),
         MockAchievement(title: "Consistency King", description: "30-day workout streak", icon: "crown.fill", isUnlocked: false, progress: 0.23),
+        // More milestones
+        MockAchievement(title: "Speed Demon", description: "Run 5K under 25 minutes", icon: "stopwatch.fill", isUnlocked: false, progress: 0.35),
+        MockAchievement(title: "Calorie Crusher", description: "Burn 50,000 calories total", icon: "flame.circle.fill", isUnlocked: false, progress: 0.58),
+        MockAchievement(title: "Leg Day Legend", description: "Complete 50 leg workouts", icon: "figure.strengthtraining.functional", isUnlocked: false, progress: 0.44),
+        MockAchievement(title: "Night Owl", description: "Complete 20 evening workouts", icon: "moon.fill", isUnlocked: false, progress: 0.65),
+        MockAchievement(title: "Yoga Master", description: "Complete 30 yoga sessions", icon: "figure.mind.and.body", isUnlocked: false, progress: 0.12),
+        MockAchievement(title: "Hydration Hero", description: "Log water intake for 14 days", icon: "drop.fill", isUnlocked: false, progress: 0.79),
     ]
 
     // MARK: Stat Cards
