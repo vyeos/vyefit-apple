@@ -45,12 +45,12 @@ struct RunView: View {
                 VStack(spacing: 24) {
                     // Header
                     headerSection
-                    
+									
+										// Personal Bests
+										statsSection
+									
                     // Run Types Grid
                     runTypesSection
-                    
-                    // Personal Bests
-                    statsSection
                     
                     // Recent History
                     historySection
