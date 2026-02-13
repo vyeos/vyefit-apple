@@ -12,7 +12,6 @@ struct SessionRow: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Icon Background
             ZStack {
                 Circle()
                     .fill(Theme.sage.opacity(0.15))
@@ -59,18 +58,19 @@ struct SessionRow: View {
                     .foregroundStyle(Theme.stone)
             }
         }
-        .padding(16)
-        .background(Theme.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal, 20)
+        .padding(12)
+        .background(Theme.background)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
 #Preview {
-    VStack {
+    VStack(spacing: 8) {
         SessionRow(run: SampleData.runSessions[0])
+            .padding(.horizontal, 20)
         SessionRow(run: SampleData.runSessions[1])
+            .padding(.horizontal, 20)
     }
-    .padding()
+    .padding(.vertical)
     .background(Theme.background)
 }

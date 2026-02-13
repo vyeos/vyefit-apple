@@ -215,8 +215,11 @@ struct RunView: View {
                     .foregroundStyle(Theme.textSecondary)
                     .padding(.horizontal, 20)
             } else {
-                ForEach(recentRuns) { run in
-                    SessionRow(run: run)
+                VStack(spacing: 8) {
+                    ForEach(recentRuns) { run in
+                        SessionRow(run: run)
+                            .padding(.horizontal, 20)
+                    }
                 }
             }
         }

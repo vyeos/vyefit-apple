@@ -45,6 +45,24 @@ struct MockRunSession: Identifiable {
     let heartRateAvg: Int
     let heartRateMax: Int
     let type: RunGoalType
+    
+    var sessionType: SessionType { .run }
+}
+
+struct MockWorkoutSession: Identifiable {
+    let id = UUID()
+    let date: Date
+    let name: String
+    let duration: TimeInterval
+    let calories: Int
+    let exerciseCount: Int
+    
+    var sessionType: SessionType { .workout }
+}
+
+enum SessionType {
+    case workout
+    case run
 }
 
 struct MockWeekday: Identifiable {
@@ -171,8 +189,19 @@ enum SampleData {
         MockRunSession(date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!, distance: 10.0, duration: 3300, calories: 780, avgPace: 5.5, heartRateAvg: 152, heartRateMax: 175, type: .time),
         MockRunSession(date: Calendar.current.date(byAdding: .day, value: -7, to: Date())!, distance: 7.5, duration: 2400, calories: 610, avgPace: 5.33, heartRateAvg: 150, heartRateMax: 172, type: .intervals),
         MockRunSession(date: Calendar.current.date(byAdding: .day, value: -12, to: Date())!, distance: 5.0, duration: 1500, calories: 400, avgPace: 5.0, heartRateAvg: 145, heartRateMax: 165, type: .quickStart),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -15, to: Date())!, distance: 21.1, duration: 7200, calories: 1500, avgPace: 5.7, heartRateAvg: 160, heartRateMax: 180, type: .distance), // Half marathon
+        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -15, to: Date())!, distance: 21.1, duration: 7200, calories: 1500, avgPace: 5.7, heartRateAvg: 160, heartRateMax: 180, type: .distance),
         MockRunSession(date: Calendar.current.date(byAdding: .day, value: -20, to: Date())!, distance: 4.0, duration: 1200, calories: 300, avgPace: 5.0, heartRateAvg: 150, heartRateMax: 170, type: .quickStart),
+    ]
+    
+    // MARK: Workout Sessions
+    
+    static let workoutSessions: [MockWorkoutSession] = [
+        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -1, to: Date())!, name: "Push Day", duration: 2700, calories: 380, exerciseCount: 5),
+        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -3, to: Date())!, name: "Pull Day", duration: 2400, calories: 320, exerciseCount: 4),
+        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -6, to: Date())!, name: "Leg Day", duration: 3000, calories: 450, exerciseCount: 6),
+        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -10, to: Date())!, name: "Full Body", duration: 3600, calories: 520, exerciseCount: 8),
+        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -14, to: Date())!, name: "Push Day", duration: 2700, calories: 380, exerciseCount: 5),
+        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -18, to: Date())!, name: "Upper Body", duration: 2400, calories: 340, exerciseCount: 5),
     ]
 
     // MARK: Weekly Schedule

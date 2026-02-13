@@ -45,11 +45,7 @@ struct MilestoneRow: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .background(Theme.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
     }
 }
 

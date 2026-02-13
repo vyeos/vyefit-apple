@@ -49,8 +49,11 @@ struct DashboardView: View {
                             .foregroundStyle(Theme.textPrimary)
                             .padding(.horizontal, 20)
 
-                        ForEach(SampleData.runSessions.prefix(2)) { run in
-                            SessionRow(run: run)
+                        VStack(spacing: 8) {
+                            ForEach(SampleData.runSessions.prefix(2)) { run in
+                                SessionRow(run: run)
+                                    .padding(.horizontal, 20)
+                            }
                         }
                     }
                 }

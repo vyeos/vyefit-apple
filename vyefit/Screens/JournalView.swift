@@ -2,7 +2,7 @@
 //  JournalView.swift
 //  vyefit
 //
-//  Journal tab — weekly reflection and milestone tracking.
+//  Journal tab — weekly reflection.
 //
 
 import SwiftUI
@@ -29,18 +29,6 @@ struct JournalView: View {
                     .background(Theme.cream)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .padding(.horizontal, 20)
-
-                    // Achievements
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Milestones")
-                            .font(.system(size: 18, weight: .semibold, design: .serif))
-                            .foregroundStyle(Theme.textPrimary)
-                            .padding(.horizontal, 20)
-
-                        ForEach(SampleData.achievements.prefix(4)) { a in
-                            MilestoneRow(achievement: a)
-                        }
-                    }
                 }
                 .padding(.vertical)
             }
