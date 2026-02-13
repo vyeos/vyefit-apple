@@ -35,7 +35,7 @@ struct SessionRow: View {
                     Text("•")
                         .foregroundStyle(Theme.stone)
                     
-                    Text(run.date, format: .dateTime.weekday(.wide))
+                    Text(run.date, format: .dateTime.weekday(.abbreviated))
                         .foregroundStyle(Theme.textSecondary)
                 }
                 .font(.system(size: 13))
@@ -45,10 +45,10 @@ struct SessionRow: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 HStack(spacing: 4) {
-                    Image(systemName: "heart.fill")
+                    Image(systemName: "flame.fill")
                         .font(.system(size: 10))
                         .foregroundStyle(Theme.terracotta)
-                    Text("\(run.heartRateAvg) bpm")
+                    Text("\(run.calories)")
                         .foregroundStyle(Theme.terracotta)
                 }
                 .font(.system(size: 12, weight: .medium))

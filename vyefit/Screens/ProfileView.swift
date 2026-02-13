@@ -129,7 +129,7 @@ struct WorkoutSessionRow: View {
     let session: MockWorkoutSession
     
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             ZStack {
                 Circle()
                     .fill(Theme.terracotta.opacity(0.15))
@@ -140,33 +140,35 @@ struct WorkoutSessionRow: View {
                     .foregroundStyle(Theme.terracotta)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(session.name)
                     .font(.system(size: 16, weight: .semibold, design: .serif))
                     .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
                 
                 HStack(spacing: 6) {
                     Text("\(session.exerciseCount) exercises")
-                        .fontWeight(.medium)
-                        .foregroundStyle(Theme.textPrimary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
                     
                     Text("•")
+                        .font(.system(size: 13))
                         .foregroundStyle(Theme.stone)
                     
-                    Text(session.date, format: .dateTime.weekday(.wide))
+                    Text(session.date, format: .dateTime.weekday(.abbreviated))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Theme.textSecondary)
                 }
-                .font(.system(size: 13))
             }
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: 3) {
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 10))
                         .foregroundStyle(Theme.terracotta)
-                    Text("\(session.calories) kcal")
+                    Text("\(session.calories)")
                         .foregroundStyle(Theme.terracotta)
                 }
                 .font(.system(size: 12, weight: .medium))
