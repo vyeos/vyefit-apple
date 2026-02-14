@@ -97,25 +97,38 @@ struct ScheduleEditorView: View {
                                 HStack {
                                     Text(day.shortName)
                                         .font(.system(size: 14, weight: .medium))
-                                        .frame(width: 36, alignment: .leading)
+                                        .frame(width: 40, alignment: .leading)
                                     
                                     if let daySchedule = daySchedule, !daySchedule.items.isEmpty {
-                                        HStack(spacing: 4) {
-                                            ForEach(0..<min(daySchedule.items.count, 4), id: \.self) { index in
-                                                Circle()
-                                                    .fill(colorForItem(daySchedule.items[index]))
-                                                    .frame(width: 6, height: 6)
+                                        // Show first 2 activities with icon and name
+                                        HStack(spacing: 8) {
+                                            ForEach(daySchedule.items.prefix(2)) { item in
+                                                let displayInfo = getDisplayInfo(for: item)
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: displayInfo.icon)
+                                                        .font(.system(size: 10))
+                                                    Text(displayInfo.title)
+                                                        .font(.system(size: 12, weight: .medium))
+                                                        .lineLimit(1)
+                                                }
+                                                .foregroundStyle(displayInfo.color)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(displayInfo.color.opacity(0.12))
+                                                .clipShape(Capsule())
                                             }
-                                            if daySchedule.items.count > 4 {
-                                                Text("+\(daySchedule.items.count - 4)")
-                                                    .font(.system(size: 10))
+                                            
+                                            if daySchedule.items.count > 2 {
+                                                Text("+\(daySchedule.items.count - 2)")
+                                                    .font(.system(size: 11))
                                                     .foregroundStyle(Theme.textSecondary)
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(Theme.sand.opacity(0.3))
+                                                    .clipShape(Capsule())
                                             }
                                         }
                                         Spacer()
-                                        Text("\(itemCount) item\(itemCount == 1 ? "" : "s")")
-                                            .font(.system(size: 13))
-                                            .foregroundStyle(Theme.textSecondary)
                                     } else {
                                         Spacer()
                                         Text("Empty")
@@ -198,6 +211,26 @@ struct ScheduleEditorView: View {
             return Color.blue.opacity(0.6)
         case .busy:
             return Color.orange.opacity(0.7)
+        }
+    }
+    
+    private func getDisplayInfo(for item: ScheduleItem) -> (icon: String, title: String, color: Color) {
+        switch item.type {
+        case .workout:
+            if let workoutId = item.workoutId,
+               let workout = workoutStore.workouts.first(where: { $0.id == workoutId }) {
+                return (icon: "dumbbell.fill", title: workout.name, color: Theme.terracotta)
+            }
+            return (icon: "dumbbell.fill", title: "Workout", color: Theme.terracotta)
+        case .run:
+            if let runType = item.runType {
+                return (icon: runType.icon, title: runType.rawValue, color: Theme.sage)
+            }
+            return (icon: "figure.run", title: "Run", color: Theme.sage)
+        case .rest:
+            return (icon: "bed.double.fill", title: "Rest Day", color: Color.blue.opacity(0.6))
+        case .busy:
+            return (icon: "briefcase.fill", title: "Busy", color: Color.orange.opacity(0.7))
         }
     }
     

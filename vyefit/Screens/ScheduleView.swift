@@ -159,11 +159,6 @@ struct ScheduleView: View {
                 
                 // Weekly view
                 weeklyScheduleView(schedule: schedule)
-                
-                // Today's focus
-                if let todaySchedule = scheduleStore.todaySchedule, !todaySchedule.items.isEmpty {
-                    todayFocusView(items: todaySchedule.items)
-                }
             } else {
                 noActiveScheduleView
             }
@@ -228,36 +223,7 @@ struct ScheduleView: View {
             .padding(.horizontal, 20)
         }
     }
-    
-    private func todayFocusView(items: [ScheduleItem]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Today's Focus")
-                .font(.system(size: 16, weight: .semibold, design: .serif))
-                .foregroundStyle(Theme.textPrimary)
-            
-            VStack(spacing: 8) {
-                ForEach(items) { item in
-                    DayScheduleItemView(
-                        item: item,
-                        workoutName: scheduleStore.getWorkoutName(for: item, from: workoutStore.workouts),
-                        onDelete: {},
-                        onEdit: {}
-                    )
-                }
-            }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cream)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.terracotta.opacity(0.3), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal, 20)
-    }
-    
+
     // MARK: - All Schedules View
     
     private var allSchedulesView: some View {
