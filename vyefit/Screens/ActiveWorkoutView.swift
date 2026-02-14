@@ -354,7 +354,7 @@ struct SetRow: View {
                 .padding(.vertical, 8)
                 .background(set.isCompleted ? Theme.sage.opacity(0.2) : Theme.sand)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .onChange(of: weightText) { _, newValue in
+                .onChange(of: weightText) { oldValue, newValue in
                     onUpdate(Int(repsText), Double(newValue))
                 }
             
@@ -365,7 +365,7 @@ struct SetRow: View {
                 .padding(.vertical, 8)
                 .background(set.isCompleted ? Theme.sage.opacity(0.2) : Theme.sand)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .onChange(of: repsText) { _, newValue in
+                .onChange(of: repsText) { oldValue, newValue in
                     onUpdate(Int(newValue), Double(weightText))
                 }
             
@@ -501,3 +501,4 @@ struct StatsCard: View {
         onEnd: {}
     )
 }
+

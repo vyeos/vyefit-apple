@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os.log
 
 struct RunView: View {
     @Environment(RunStore.self) private var runStore
@@ -37,10 +38,10 @@ struct RunView: View {
                 VStack(spacing: 24) {
                     // Header
                     headerSection
-									
-										// Personal Bests
-										statsSection
-									
+                    
+                    // Personal Bests
+                    statsSection
+                    
                     // Run Types Grid
                     runTypesSection
                     
@@ -287,3 +288,4 @@ struct StatHighlightCard: View {
 #Preview {
     RunView()
 }
+
