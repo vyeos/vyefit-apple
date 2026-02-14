@@ -35,16 +35,51 @@ struct MockSet: Identifiable {
     let isCompleted: Bool
 }
 
+struct HeartRateDataPoint: Identifiable {
+    let id = UUID()
+    let timestamp: TimeInterval // seconds from start
+    let heartRate: Int
+}
+
+struct RunSplit: Identifiable {
+    let id = UUID()
+    let kilometer: Int // 1, 2, 3...
+    let pace: Double // min/km
+    let elevationChange: Double // meters
+}
+
+struct MapCoordinate: Identifiable {
+    let id = UUID()
+    let latitude: Double
+    let longitude: Double
+    let timestamp: TimeInterval
+}
+
 struct MockRunSession: Identifiable {
     let id = UUID()
     let date: Date
+    let name: String // e.g., "Morning Run"
+    let location: String // e.g., "Central Park, NY"
     let distance: Double // km
     let duration: TimeInterval // seconds
     let calories: Int
     let avgPace: Double // min/km
     let heartRateAvg: Int
     let heartRateMax: Int
+    let heartRateData: [HeartRateDataPoint] // HR over time
     let type: RunGoalType
+    
+    // Run-specific stats
+    let elevationGain: Double // meters
+    let elevationLoss: Double // meters
+    let avgCadence: Int // steps per minute
+    let splits: [RunSplit] // km splits
+    let route: [MapCoordinate] // GPS coordinates
+    
+    // Pause tracking
+    let wasPaused: Bool
+    let totalElapsedTime: TimeInterval? // includes pauses
+    let workingTime: TimeInterval? // excludes pauses
     
     var sessionType: SessionType { .run }
 }
@@ -53,9 +88,21 @@ struct MockWorkoutSession: Identifiable {
     let id = UUID()
     let date: Date
     let name: String
+    let location: String // e.g. "Gym A"
     let duration: TimeInterval
     let calories: Int
     let exerciseCount: Int
+    let heartRateAvg: Int
+    let heartRateMax: Int
+    let heartRateData: [HeartRateDataPoint] // HR over time
+    
+    // Reference to the workout template that was performed
+    let workout: MockWorkout?
+    
+    // Pause tracking
+    let wasPaused: Bool
+    let totalElapsedTime: TimeInterval? // includes pauses
+    let workingTime: TimeInterval? // excludes pauses
     
     var sessionType: SessionType { .workout }
 }
@@ -182,26 +229,287 @@ enum SampleData {
     ]
 
     // MARK: Run Sessions
+    
+    static func generateHeartRateData(duration: TimeInterval, avgHR: Int, maxHR: Int) -> [HeartRateDataPoint] {
+        var data: [HeartRateDataPoint] = []
+        let points = Int(duration / 30) // Every 30 seconds
+        for i in 0...points {
+            let timestamp = TimeInterval(i * 30)
+            let variation = Int.random(in: -15...15)
+            let baseHR = avgHR + variation
+            let hr = max(80, min(maxHR + 5, baseHR))
+            data.append(HeartRateDataPoint(timestamp: timestamp, heartRate: hr))
+        }
+        return data
+    }
+    
+    static func generateSplits(distance: Double, avgPace: Double) -> [RunSplit] {
+        var splits: [RunSplit] = []
+        let kmCount = Int(distance)
+        for km in 1...kmCount {
+            let paceVariation = Double.random(in: -0.3...0.3)
+            let elevation = Double.random(in: -10...25)
+            splits.append(RunSplit(kilometer: km, pace: avgPace + paceVariation, elevationChange: elevation))
+        }
+        return splits
+    }
+    
+    static func generateRoute() -> [MapCoordinate] {
+        // Mock route coordinates (simulating a loop)
+        return [
+            MapCoordinate(latitude: 40.7829, longitude: -73.9654, timestamp: 0),
+            MapCoordinate(latitude: 40.7850, longitude: -73.9680, timestamp: 300),
+            MapCoordinate(latitude: 40.7880, longitude: -73.9700, timestamp: 600),
+            MapCoordinate(latitude: 40.7900, longitude: -73.9680, timestamp: 900),
+            MapCoordinate(latitude: 40.7880, longitude: -73.9650, timestamp: 1200),
+            MapCoordinate(latitude: 40.7850, longitude: -73.9630, timestamp: 1500),
+            MapCoordinate(latitude: 40.7829, longitude: -73.9654, timestamp: 1800),
+        ]
+    }
 
     static let runSessions: [MockRunSession] = [
-        MockRunSession(date: Date(), distance: 5.2, duration: 1560, calories: 420, avgPace: 5.0, heartRateAvg: 155, heartRateMax: 178, type: .distance),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -2, to: Date())!, distance: 3.1, duration: 1020, calories: 260, avgPace: 5.5, heartRateAvg: 148, heartRateMax: 170, type: .quickStart),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!, distance: 10.0, duration: 3300, calories: 780, avgPace: 5.5, heartRateAvg: 152, heartRateMax: 175, type: .time),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -7, to: Date())!, distance: 7.5, duration: 2400, calories: 610, avgPace: 5.33, heartRateAvg: 150, heartRateMax: 172, type: .intervals),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -12, to: Date())!, distance: 5.0, duration: 1500, calories: 400, avgPace: 5.0, heartRateAvg: 145, heartRateMax: 165, type: .quickStart),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -15, to: Date())!, distance: 21.1, duration: 7200, calories: 1500, avgPace: 5.7, heartRateAvg: 160, heartRateMax: 180, type: .distance),
-        MockRunSession(date: Calendar.current.date(byAdding: .day, value: -20, to: Date())!, distance: 4.0, duration: 1200, calories: 300, avgPace: 5.0, heartRateAvg: 150, heartRateMax: 170, type: .quickStart),
+        MockRunSession(
+            date: Date(),
+            name: "Morning Run",
+            location: "Central Park, NY",
+            distance: 5.2,
+            duration: 1560,
+            calories: 420,
+            avgPace: 5.0,
+            heartRateAvg: 155,
+            heartRateMax: 178,
+            heartRateData: generateHeartRateData(duration: 1560, avgHR: 155, maxHR: 178),
+            type: .distance,
+            elevationGain: 45.0,
+            elevationLoss: 42.0,
+            avgCadence: 172,
+            splits: generateSplits(distance: 5.2, avgPace: 5.0),
+            route: generateRoute(),
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockRunSession(
+            date: Calendar.current.date(byAdding: .day, value: -2, to: Date())!,
+            name: "Quick Jog",
+            location: "Brooklyn Bridge Park",
+            distance: 3.1,
+            duration: 1020,
+            calories: 260,
+            avgPace: 5.5,
+            heartRateAvg: 148,
+            heartRateMax: 170,
+            heartRateData: generateHeartRateData(duration: 1020, avgHR: 148, maxHR: 170),
+            type: .quickStart,
+            elevationGain: 12.0,
+            elevationLoss: 12.0,
+            avgCadence: 168,
+            splits: generateSplits(distance: 3.1, avgPace: 5.5),
+            route: generateRoute(),
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockRunSession(
+            date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!,
+            name: "Long Run",
+            location: "West Side Highway",
+            distance: 10.0,
+            duration: 3300,
+            calories: 780,
+            avgPace: 5.5,
+            heartRateAvg: 152,
+            heartRateMax: 175,
+            heartRateData: generateHeartRateData(duration: 3300, avgHR: 152, maxHR: 175),
+            type: .time,
+            elevationGain: 85.0,
+            elevationLoss: 82.0,
+            avgCadence: 170,
+            splits: generateSplits(distance: 10.0, avgPace: 5.5),
+            route: generateRoute(),
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockRunSession(
+            date: Calendar.current.date(byAdding: .day, value: -7, to: Date())!,
+            name: "Interval Training",
+            location: "McCarren Park Track",
+            distance: 7.5,
+            duration: 2400,
+            calories: 610,
+            avgPace: 5.33,
+            heartRateAvg: 150,
+            heartRateMax: 172,
+            heartRateData: generateHeartRateData(duration: 2400, avgHR: 150, maxHR: 172),
+            type: .intervals,
+            elevationGain: 8.0,
+            elevationLoss: 8.0,
+            avgCadence: 175,
+            splits: generateSplits(distance: 7.5, avgPace: 5.33),
+            route: generateRoute(),
+            wasPaused: true,
+            totalElapsedTime: 2580,
+            workingTime: 2400
+        ),
+        MockRunSession(
+            date: Calendar.current.date(byAdding: .day, value: -12, to: Date())!,
+            name: "Easy Run",
+            location: "Prospect Park",
+            distance: 5.0,
+            duration: 1500,
+            calories: 400,
+            avgPace: 5.0,
+            heartRateAvg: 145,
+            heartRateMax: 165,
+            heartRateData: generateHeartRateData(duration: 1500, avgHR: 145, maxHR: 165),
+            type: .quickStart,
+            elevationGain: 32.0,
+            elevationLoss: 30.0,
+            avgCadence: 166,
+            splits: generateSplits(distance: 5.0, avgPace: 5.0),
+            route: generateRoute(),
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockRunSession(
+            date: Calendar.current.date(byAdding: .day, value: -15, to: Date())!,
+            name: "Half Marathon",
+            location: "NYC Marathon Route",
+            distance: 21.1,
+            duration: 7200,
+            calories: 1500,
+            avgPace: 5.7,
+            heartRateAvg: 160,
+            heartRateMax: 180,
+            heartRateData: generateHeartRateData(duration: 7200, avgHR: 160, maxHR: 180),
+            type: .distance,
+            elevationGain: 156.0,
+            elevationLoss: 154.0,
+            avgCadence: 168,
+            splits: generateSplits(distance: 21.1, avgPace: 5.7),
+            route: generateRoute(),
+            wasPaused: true,
+            totalElapsedTime: 7650,
+            workingTime: 7200
+        ),
+        MockRunSession(
+            date: Calendar.current.date(byAdding: .day, value: -20, to: Date())!,
+            name: "Recovery Run",
+            location: "East River Park",
+            distance: 4.0,
+            duration: 1200,
+            calories: 300,
+            avgPace: 5.0,
+            heartRateAvg: 150,
+            heartRateMax: 170,
+            heartRateData: generateHeartRateData(duration: 1200, avgHR: 150, maxHR: 170),
+            type: .quickStart,
+            elevationGain: 15.0,
+            elevationLoss: 15.0,
+            avgCadence: 170,
+            splits: generateSplits(distance: 4.0, avgPace: 5.0),
+            route: generateRoute(),
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
     ]
     
     // MARK: Workout Sessions
     
     static let workoutSessions: [MockWorkoutSession] = [
-        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -1, to: Date())!, name: "Push Day", duration: 2700, calories: 380, exerciseCount: 5),
-        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -3, to: Date())!, name: "Pull Day", duration: 2400, calories: 320, exerciseCount: 4),
-        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -6, to: Date())!, name: "Leg Day", duration: 3000, calories: 450, exerciseCount: 6),
-        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -10, to: Date())!, name: "Full Body", duration: 3600, calories: 520, exerciseCount: 8),
-        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -14, to: Date())!, name: "Push Day", duration: 2700, calories: 380, exerciseCount: 5),
-        MockWorkoutSession(date: Calendar.current.date(byAdding: .day, value: -18, to: Date())!, name: "Upper Body", duration: 2400, calories: 340, exerciseCount: 5),
+        MockWorkoutSession(
+            date: Calendar.current.date(byAdding: .day, value: -1, to: Date())!,
+            name: "Push Day",
+            location: "Gym A - Downtown",
+            duration: 2700,
+            calories: 380,
+            exerciseCount: 5,
+            heartRateAvg: 125,
+            heartRateMax: 155,
+            heartRateData: generateHeartRateData(duration: 2700, avgHR: 125, maxHR: 155),
+            workout: workouts[0], // Push Day
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockWorkoutSession(
+            date: Calendar.current.date(byAdding: .day, value: -3, to: Date())!,
+            name: "Pull Day",
+            location: "Home Gym",
+            duration: 2400,
+            calories: 320,
+            exerciseCount: 4,
+            heartRateAvg: 120,
+            heartRateMax: 148,
+            heartRateData: generateHeartRateData(duration: 2400, avgHR: 120, maxHR: 148),
+            workout: workouts[1], // Pull Day
+            wasPaused: true,
+            totalElapsedTime: 2700,
+            workingTime: 2400
+        ),
+        MockWorkoutSession(
+            date: Calendar.current.date(byAdding: .day, value: -6, to: Date())!,
+            name: "Leg Day",
+            location: "Gym A - Downtown",
+            duration: 3000,
+            calories: 450,
+            exerciseCount: 6,
+            heartRateAvg: 135,
+            heartRateMax: 165,
+            heartRateData: generateHeartRateData(duration: 3000, avgHR: 135, maxHR: 165),
+            workout: workouts[2], // Leg Day
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockWorkoutSession(
+            date: Calendar.current.date(byAdding: .day, value: -10, to: Date())!,
+            name: "Full Body",
+            location: "Gym B - Uptown",
+            duration: 3600,
+            calories: 520,
+            exerciseCount: 8,
+            heartRateAvg: 128,
+            heartRateMax: 158,
+            heartRateData: generateHeartRateData(duration: 3600, avgHR: 128, maxHR: 158),
+            workout: workouts[3], // Full Body
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockWorkoutSession(
+            date: Calendar.current.date(byAdding: .day, value: -14, to: Date())!,
+            name: "Push Day",
+            location: "Gym A - Downtown",
+            duration: 2700,
+            calories: 380,
+            exerciseCount: 5,
+            heartRateAvg: 122,
+            heartRateMax: 152,
+            heartRateData: generateHeartRateData(duration: 2700, avgHR: 122, maxHR: 152),
+            workout: workouts[0], // Push Day
+            wasPaused: false,
+            totalElapsedTime: nil,
+            workingTime: nil
+        ),
+        MockWorkoutSession(
+            date: Calendar.current.date(byAdding: .day, value: -18, to: Date())!,
+            name: "Upper Body",
+            location: "Home Gym",
+            duration: 2400,
+            calories: 340,
+            exerciseCount: 5,
+            heartRateAvg: 118,
+            heartRateMax: 145,
+            heartRateData: generateHeartRateData(duration: 2400, avgHR: 118, maxHR: 145),
+            workout: nil, // Custom workout
+            wasPaused: true,
+            totalElapsedTime: 2760,
+            workingTime: 2400
+        ),
     ]
 
     // MARK: Weekly Schedule
