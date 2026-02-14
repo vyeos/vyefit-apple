@@ -413,6 +413,7 @@ struct ScheduleCard: View {
 struct ScheduleSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var scheduleStore: ScheduleStore
+    @State private var showingResetConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -452,6 +453,10 @@ struct ScheduleSettingsView: View {
                                         .font(.system(size: 14))
                                     
                                     Spacer()
+                                    
+                                    Image(systemName: "line.3.horizontal")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Theme.stone)
                                 }
                             }
                             .onMove { source, destination in
@@ -459,7 +464,24 @@ struct ScheduleSettingsView: View {
                             }
                         }
                         
-                        Text("Drag to reorder the cycle. Only active schedules will be used.")
+                        let inactiveSchedules = scheduleStore.schedules.filter { !$0.isActive }
+                        if !inactiveSchedules.isEmpty {
+                            Menu {
+                                ForEach(inactiveSchedules) { schedule in
+                                    Button {
+                                        scheduleStore.activateSchedule(id: schedule.id)
+                                    } label: {
+                                        Text(schedule.name)
+                                        // Menu items are limited, using text only or system images.
+                                        // Custom shapes like Circle are not standard in Menu buttons.
+                                    }
+                                }
+                            } label: {
+                                Label("Add Schedule to Cycle", systemImage: "plus")
+                            }
+                        }
+                        
+                        Text("Drag to reorder the cycle. Add existing schedules to the cycle using the button above.")
                             .font(.system(size: 12))
                             .foregroundStyle(Theme.textSecondary)
                     }
@@ -467,10 +489,18 @@ struct ScheduleSettingsView: View {
                 
                 Section {
                     Button(role: .destructive) {
-                        scheduleStore.resetToDefaults()
-                        dismiss()
+                        showingResetConfirmation = true
                     } label: {
                         Label("Reset All Schedules", systemImage: "arrow.counterclockwise")
+                    }
+                    .alert("Reset All Schedules?", isPresented: $showingResetConfirmation) {
+                        Button("Cancel", role: .cancel) { }
+                        Button("Reset", role: .destructive) {
+                            scheduleStore.resetToDefaults()
+                            dismiss()
+                        }
+                    } message: {
+                        Text("This will delete all schedules and reset settings to default. This action cannot be undone.")
                     }
                 }
             }
