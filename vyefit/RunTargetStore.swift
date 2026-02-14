@@ -43,7 +43,30 @@ class RunTargetStore {
     ]
     
     init() {
-        // Load from storage if implemented, else use defaults + empty saved
+        loadData()
+    }
+    
+    // MARK: - Persistence
+    
+    private func saveData() {
+        if let encoded = try? JSONEncoder().encode(savedTargets) {
+            UserDefaults.standard.set(encoded, forKey: "savedRunTargets")
+        }
+        if let encoded = try? JSONEncoder().encode(savedIntervals) {
+            UserDefaults.standard.set(encoded, forKey: "savedIntervals")
+        }
+    }
+    
+    private func loadData() {
+        if let data = UserDefaults.standard.data(forKey: "savedRunTargets"),
+           let decoded = try? JSONDecoder().decode([RunTarget].self, from: data) {
+            savedTargets = decoded
+        }
+        
+        if let data = UserDefaults.standard.data(forKey: "savedIntervals"),
+           let decoded = try? JSONDecoder().decode([IntervalWorkout].self, from: data) {
+            savedIntervals = decoded
+        }
     }
     
     func defaultTargets(for type: RunGoalType) -> [RunTarget] {
@@ -66,10 +89,11 @@ class RunTargetStore {
     
     func addTarget(_ target: RunTarget) {
         savedTargets.append(target)
-        // Persist logic here
+        saveData()
     }
     
     func saveInterval(_ interval: IntervalWorkout) {
         savedIntervals.append(interval)
+        saveData()
     }
 }

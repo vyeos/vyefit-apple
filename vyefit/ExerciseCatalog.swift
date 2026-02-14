@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CatalogExercise: Identifiable, Hashable {
+struct CatalogExercise: Identifiable, Hashable, Codable {
     var id: String { name }
     let name: String
     let muscleGroup: String
