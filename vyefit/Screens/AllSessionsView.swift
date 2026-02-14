@@ -15,11 +15,11 @@ struct AllSessionsView: View {
     }
     
     private var allRuns: [MockRunSession] {
-        SampleData.runSessions.sorted { $0.date > $1.date }
+        HistoryStore.shared.mockRunSessions.sorted { $0.date > $1.date }
     }
     
     private var allWorkouts: [MockWorkoutSession] {
-        SampleData.workoutSessions.sorted { $0.date > $1.date }
+        HistoryStore.shared.mockWorkoutSessions.sorted { $0.date > $1.date }
     }
     
     private var filteredSessions: [(session: Any, type: SessionType, date: Date)] {
@@ -42,9 +42,11 @@ struct AllSessionsView: View {
     
     private var groupedSessions: [(String, [(session: Any, type: SessionType, date: Date)])] {
         let sessions = filteredSessions
-        let uniqueMonths = Set(sessions.map {
-            Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: $0.date))!
-        }).sorted(by: >)
+        let uniqueMonths: [Date] = Set(
+            sessions.compactMap { item in
+                Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: item.date))
+            }
+        ).sorted(by: >)
         
         return uniqueMonths.map { monthDate in
             let key = monthDate.formatted(.dateTime.month(.wide).year())
@@ -76,7 +78,7 @@ struct AllSessionsView: View {
                                 .padding(.horizontal, 20)
                             
                             VStack(spacing: 8) {
-                                ForEach(sessions, id: \.date) { item in
+                                ForEach(Array(sessions.enumerated()), id: \.offset) { _, item in
                                     if item.type == .run, let run = item.session as? MockRunSession {
                                         SessionRow(run: run)
                                             .padding(.horizontal, 20)

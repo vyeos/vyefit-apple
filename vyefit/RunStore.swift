@@ -18,6 +18,21 @@ class RunStore {
     }
     
     func endActiveSession() {
+        if let session = activeSession {
+            HistoryStore.shared.saveRun(
+                type: session.configuration.type.rawValue,
+                distance: session.currentDistance,
+                duration: TimeInterval(session.elapsedSeconds),
+                calories: session.activeCalories,
+                avgHeartRate: session.currentHeartRate
+            )
+        }
+        activeSession?.endRun()
+        activeSession = nil
+        showActiveRun = false
+    }
+    
+    func discardActiveSession() {
         activeSession?.endRun()
         activeSession = nil
         showActiveRun = false

@@ -12,12 +12,12 @@ struct ProfileView: View {
     
     private var currentMonthRuns: [MockRunSession] {
         let calendar = Calendar.current
-        return SampleData.runSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        return HistoryStore.shared.mockRunSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
     }
     
     private var currentMonthWorkouts: [MockWorkoutSession] {
         let calendar = Calendar.current
-        return SampleData.workoutSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        return HistoryStore.shared.mockWorkoutSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
     }
 
     var body: some View {

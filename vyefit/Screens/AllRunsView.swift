@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct AllRunsView: View {
-    let runs: [MockRunSession] = SampleData.runSessions.sorted { $0.date > $1.date }
+    var runs: [MockRunSession] { HistoryStore.shared.mockRunSessions.sorted { $0.date > $1.date } }
     
     var groupedRuns: [(String, [MockRunSession])] {
         let uniqueMonths = Set(runs.map {

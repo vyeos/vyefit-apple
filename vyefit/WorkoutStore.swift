@@ -98,6 +98,22 @@ class WorkoutStore {
     }
     
     func endActiveSession() {
+        if let session = activeSession {
+            HistoryStore.shared.saveWorkout(
+                name: session.workout.name,
+                duration: TimeInterval(session.elapsedSeconds),
+                calories: session.activeCalories,
+                exerciseCount: session.workout.exercises.count,
+                avgHeartRate: session.currentHeartRate,
+                workoutType: session.workout.workoutType.rawValue
+            )
+        }
+        activeSession?.endWorkout()
+        activeSession = nil
+        showActiveWorkout = false
+    }
+    
+    func discardActiveSession() {
         activeSession?.endWorkout()
         activeSession = nil
         showActiveWorkout = false

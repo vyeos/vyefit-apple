@@ -73,16 +73,20 @@ struct HomeView: View {
         }
         .fullScreenCover(isPresented: $workoutStore.showActiveWorkout) {
             if let session = workoutStore.activeSession {
-                ActiveWorkoutView(session: session) {
-                    workoutStore.endActiveSession()
-                }
+                ActiveWorkoutView(
+                    session: session,
+                    onEnd: { workoutStore.endActiveSession() },
+                    onDiscard: { workoutStore.discardActiveSession() }
+                )
             }
         }
         .fullScreenCover(isPresented: $runStore.showActiveRun) {
             if let session = runStore.activeSession {
-                ActiveRunView(session: session) {
-                    runStore.endActiveSession()
-                }
+                ActiveRunView(
+                    session: session,
+                    onEnd: { runStore.endActiveSession() },
+                    onDiscard: { runStore.discardActiveSession() }
+                )
             }
         }
         .preferredColorScheme(preferredScheme)
