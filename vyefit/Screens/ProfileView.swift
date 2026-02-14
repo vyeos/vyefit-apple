@@ -162,7 +162,6 @@ struct ProfileView: View {
             .background(Theme.background)
             .navigationTitle("You")
             .navigationBarTitleDisplayMode(.large)
-            .navigationBarHidden(true)
         }
     }
 }
