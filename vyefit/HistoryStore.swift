@@ -8,13 +8,6 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Enums
-
-enum SessionType: String, Codable {
-    case workout
-    case run
-}
-
 // MARK: - Shared Data Models
 
 struct HistoryHeartRateDataPoint: Identifiable, Codable {
@@ -78,8 +71,6 @@ struct CompletedWorkout: Identifiable, Codable {
     let wasPaused: Bool
     let totalElapsedTime: TimeInterval?
     let workingTime: TimeInterval?
-    
-    var sessionType: SessionType { .workout }
 }
 
 struct CompletedRun: Identifiable, Codable {
@@ -105,8 +96,6 @@ struct CompletedRun: Identifiable, Codable {
     let wasPaused: Bool
     let totalElapsedTime: TimeInterval?
     let workingTime: TimeInterval?
-    
-    var sessionType: SessionType { .run }
 }
 
 // MARK: - History Store
@@ -117,20 +106,6 @@ class HistoryStore {
     
     var completedWorkouts: [CompletedWorkout] = []
     var completedRuns: [CompletedRun] = []
-    
-    var allSessions: [(session: Any, type: SessionType, date: Date)] {
-        var sessions: [(session: Any, type: SessionType, date: Date)] = []
-        
-        for workout in completedWorkouts {
-            sessions.append((workout, .workout, workout.date))
-        }
-        
-        for run in completedRuns {
-            sessions.append((run, .run, run.date))
-        }
-        
-        return sessions.sorted { $0.date > $1.date }
-    }
     
     init() {
         loadHistory()
@@ -223,5 +198,71 @@ class HistoryStore {
            let decoded = try? JSONDecoder().decode([CompletedRun].self, from: data) {
             completedRuns = decoded
         }
+    }
+    
+    func toMockRunSession(_ completed: CompletedRun) -> MockRunSession {
+        let runType = RunGoalType(rawValue: completed.type) ?? .quickStart
+        let heartRateMock = completed.heartRateData.map { HeartRateDataPoint(timestamp: $0.timestamp, heartRate: $0.heartRate) }
+        let splitsMock = completed.splits.map { RunSplit(kilometer: $0.kilometer, pace: $0.pace, elevationChange: $0.elevationChange) }
+        let routeMock = completed.route.map { MapCoordinate(latitude: $0.latitude, longitude: $0.longitude, timestamp: $0.timestamp) }
+        
+        return MockRunSession(
+            date: completed.date,
+            name: completed.name,
+            location: completed.location,
+            distance: completed.distance,
+            duration: completed.duration,
+            calories: completed.calories,
+            avgPace: completed.avgPace,
+            heartRateAvg: completed.heartRateAvg,
+            heartRateMax: completed.heartRateMax,
+            heartRateData: heartRateMock,
+            type: runType,
+            elevationGain: completed.elevationGain,
+            elevationLoss: completed.elevationLoss,
+            avgCadence: completed.avgCadence,
+            splits: splitsMock,
+            route: routeMock,
+            wasPaused: completed.wasPaused,
+            totalElapsedTime: completed.totalElapsedTime,
+            workingTime: completed.workingTime
+        )
+    }
+    
+    func toMockWorkoutSession(_ completed: CompletedWorkout) -> MockWorkoutSession {
+        let heartRateMock = completed.heartRateData.map { HeartRateDataPoint(timestamp: $0.timestamp, heartRate: $0.heartRate) }
+        
+        let mockWorkout: MockWorkout? = MockWorkout(
+            name: completed.workoutName,
+            exercises: [],
+            color: Theme.terracotta,
+            icon: "dumbbell.fill",
+            lastPerformed: completed.date,
+            scheduledDay: nil
+        )
+        
+        return MockWorkoutSession(
+            date: completed.date,
+            name: completed.name,
+            location: completed.location,
+            duration: completed.duration,
+            calories: completed.calories,
+            exerciseCount: completed.exerciseCount,
+            heartRateAvg: completed.heartRateAvg,
+            heartRateMax: completed.heartRateMax,
+            heartRateData: heartRateMock,
+            workout: mockWorkout,
+            wasPaused: completed.wasPaused,
+            totalElapsedTime: completed.totalElapsedTime,
+            workingTime: completed.workingTime
+        )
+    }
+    
+    var mockRunSessions: [MockRunSession] {
+        completedRuns.map { toMockRunSession($0) }
+    }
+    
+    var mockWorkoutSessions: [MockWorkoutSession] {
+        completedWorkouts.map { toMockWorkoutSession($0) }
     }
 }

@@ -15,11 +15,11 @@ struct AllSessionsView: View {
     }
     
     private var allRuns: [MockRunSession] {
-        SampleData.runSessions.sorted { $0.date > $1.date }
+        HistoryStore.shared.mockRunSessions.sorted { $0.date > $1.date }
     }
     
     private var allWorkouts: [MockWorkoutSession] {
-        SampleData.workoutSessions.sorted { $0.date > $1.date }
+        HistoryStore.shared.mockWorkoutSessions.sorted { $0.date > $1.date }
     }
     
     private var filteredSessions: [(session: Any, type: SessionType, date: Date)] {

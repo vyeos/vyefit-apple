@@ -20,16 +20,16 @@ struct RunView: View {
     
     // Stats Calculation
     var longestRun: MockRunSession? {
-        SampleData.runSessions.max(by: { $0.distance < $1.distance })
+        HistoryStore.shared.mockRunSessions.max(by: { $0.distance < $1.distance })
     }
     
     var fastestPaceRun: MockRunSession? {
         // Lower pace value is faster (min/km)
-        SampleData.runSessions.min(by: { $0.avgPace < $1.avgPace })
+        HistoryStore.shared.mockRunSessions.min(by: { $0.avgPace < $1.avgPace })
     }
     
     var maxCaloriesRun: MockRunSession? {
-        SampleData.runSessions.max(by: { $0.calories < $1.calories })
+        HistoryStore.shared.mockRunSessions.max(by: { $0.calories < $1.calories })
     }
     
     var body: some View {

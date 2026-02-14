@@ -8,6 +8,10 @@
 import SwiftUI
 
 struct DashboardView: View {
+    private var recentRuns: [MockRunSession] {
+        HistoryStore.shared.mockRunSessions.sorted { $0.date > $1.date }.prefix(2).map { $0 }
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -40,7 +44,7 @@ struct DashboardView: View {
                             .padding(.horizontal, 20)
 
                         VStack(spacing: 8) {
-                            ForEach(SampleData.runSessions.prefix(2)) { run in
+                            ForEach(recentRuns) { run in
                                 SessionRow(run: run)
                                     .padding(.horizontal, 20)
                             }
