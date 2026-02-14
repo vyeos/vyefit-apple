@@ -239,47 +239,26 @@ class ScheduleStore {
         return workouts.first { $0.id == workoutId }?.name
     }
     
-    func getItemDisplayInfo(_ item: ScheduleItem, from workouts: [UserWorkout]) -> (icon: String, title: String, subtitle: String?, color: Color) {
+    func getItemDisplayInfo(_ item: ScheduleItem, from workouts: [UserWorkout]) -> (icon: String, title: String, color: Color) {
         switch item.type {
         case .workout:
-            if let workoutName = getWorkoutName(for: item, from: workouts) {
-                return (
-                    icon: "dumbbell.fill",
-                    title: workoutName,
-                    subtitle: item.duration != nil ? "\(item.duration!) min" : nil,
-                    color: Theme.terracotta
-                )
-            } else {
-                return (
-                    icon: "dumbbell.fill",
-                    title: "Workout",
-                    subtitle: item.duration != nil ? "\(item.duration!) min" : nil,
-                    color: Theme.terracotta
-                )
-            }
+            return (
+                icon: "dumbbell.fill",
+                title: getWorkoutName(for: item, from: workouts) ?? "Workout",
+                color: Theme.terracotta
+            )
             
         case .run:
-            if let runType = item.runType {
-                return (
-                    icon: runType.icon,
-                    title: runType.rawValue,
-                    subtitle: item.duration != nil ? "\(item.duration!) min" : runType.description,
-                    color: Theme.sage
-                )
-            } else {
-                return (
-                    icon: "figure.run",
-                    title: "Run",
-                    subtitle: item.duration != nil ? "\(item.duration!) min" : nil,
-                    color: Theme.sage
-                )
-            }
+            return (
+                icon: item.runType?.icon ?? "figure.run",
+                title: item.runType?.rawValue ?? "Run",
+                color: Theme.sage
+            )
             
         case .rest:
             return (
                 icon: "bed.double.fill",
                 title: "Rest Day",
-                subtitle: item.notes,
                 color: Color.blue.opacity(0.6)
             )
             
@@ -287,7 +266,6 @@ class ScheduleStore {
             return (
                 icon: "briefcase.fill",
                 title: "Busy",
-                subtitle: item.notes,
                 color: Color.orange.opacity(0.7)
             )
         }

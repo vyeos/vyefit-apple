@@ -13,51 +13,30 @@ struct DayScheduleItemView: View {
     let onDelete: () -> Void
     let onEdit: () -> Void
     
-    private var displayInfo: (icon: String, title: String, subtitle: String?, color: Color) {
-        // Default values based on item type
+    private var displayInfo: (icon: String, title: String, color: Color) {
         switch item.type {
         case .workout:
-            if let name = workoutName {
-                return (
-                    icon: "dumbbell.fill",
-                    title: name,
-                    subtitle: item.duration != nil ? "\(item.duration!) min" : nil,
-                    color: Theme.terracotta
-                )
-            }
             return (
                 icon: "dumbbell.fill",
-                title: "Workout",
-                subtitle: item.duration != nil ? "\(item.duration!) min" : nil,
+                title: workoutName ?? "Workout",
                 color: Theme.terracotta
             )
         case .run:
-            if let runType = item.runType {
-                return (
-                    icon: runType.icon,
-                    title: runType.rawValue,
-                    subtitle: item.duration != nil ? "\(item.duration!) min" : runType.description,
-                    color: Theme.sage
-                )
-            }
             return (
-                icon: "figure.run",
-                title: "Run",
-                subtitle: item.duration != nil ? "\(item.duration!) min" : nil,
+                icon: item.runType?.icon ?? "figure.run",
+                title: item.runType?.rawValue ?? "Run",
                 color: Theme.sage
             )
         case .rest:
             return (
                 icon: "bed.double.fill",
                 title: "Rest Day",
-                subtitle: item.notes,
                 color: Color.blue.opacity(0.6)
             )
         case .busy:
             return (
                 icon: "briefcase.fill",
                 title: "Busy",
-                subtitle: item.notes,
                 color: Color.orange.opacity(0.7)
             )
         }
@@ -73,21 +52,19 @@ struct DayScheduleItemView: View {
                 .background(displayInfo.color.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             
-            // Content
-            VStack(alignment: .leading, spacing: 2) {
-                Text(displayInfo.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                
-                if let subtitle = displayInfo.subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(1)
-                }
-            }
+            // Title
+            Text(displayInfo.title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
             
             Spacer()
+            
+            // Notes indicator
+            if let notes = item.notes, !notes.isEmpty {
+                Image(systemName: "text.bubble.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
+            }
             
             // Menu
             Menu {
@@ -118,21 +95,21 @@ struct DayScheduleItemView: View {
 #Preview {
     VStack(spacing: 8) {
         DayScheduleItemView(
-            item: ScheduleItem.workout(UUID(), duration: 60),
+            item: ScheduleItem.workout(UUID(), notes: "Heavy day"),
             workoutName: "Push Day",
             onDelete: {},
             onEdit: {}
         )
         
         DayScheduleItemView(
-            item: ScheduleItem.run(.tempo, duration: 35),
+            item: ScheduleItem.run(.tempo),
             workoutName: nil,
             onDelete: {},
             onEdit: {}
         )
         
         DayScheduleItemView(
-            item: ScheduleItem.rest(),
+            item: ScheduleItem.rest(notes: "Recovery"),
             workoutName: nil,
             onDelete: {},
             onEdit: {}

@@ -288,6 +288,9 @@ struct ScheduleView: View {
                         onEdit: { editingSchedule = schedule },
                         onToggleActive: {
                             scheduleStore.activateSchedule(id: schedule.id)
+                        },
+                        onRemoveFromCycle: {
+                            scheduleStore.deactivateSchedule(id: schedule.id)
                         }
                     )
                 }
@@ -368,6 +371,7 @@ struct ScheduleCard: View {
     let repeatMode: ScheduleRepeatMode
     let onEdit: () -> Void
     let onToggleActive: () -> Void
+    let onRemoveFromCycle: () -> Void
     
     var body: some View {
         Button(action: onEdit) {
@@ -402,22 +406,28 @@ struct ScheduleCard: View {
                 
                 Spacer()
                 
-                // Toggle
-                if repeatMode != .cyclic || !isActive {
+                // Toggle or menu
+                if repeatMode == .cyclic && isActive {
+                    // In cyclic mode, show menu to remove
+                    Menu {
+                        Button(role: .destructive, action: onRemoveFromCycle) {
+                            Label("Remove from Cycle", systemImage: "minus.circle")
+                        }
+                    } label: {
+                        Text("#\(schedule.order + 1)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                            .frame(width: 28, height: 28)
+                            .background(Theme.sand.opacity(0.3))
+                            .clipShape(Circle())
+                    }
+                } else {
                     Button(action: onToggleActive) {
                         Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 22))
                             .foregroundStyle(isActive ? Theme.sage : Theme.stone.opacity(0.4))
                     }
                     .buttonStyle(.plain)
-                } else {
-                    // Show order in cyclic mode
-                    Text("#\(schedule.order + 1)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 28, height: 28)
-                        .background(Theme.sand.opacity(0.3))
-                        .clipShape(Circle())
                 }
             }
             .padding(16)
