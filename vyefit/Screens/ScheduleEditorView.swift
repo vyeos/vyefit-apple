@@ -18,7 +18,7 @@ struct ScheduleEditorView: View {
     @State private var selectedColor: String
     @State private var selectedDay: DayOfWeek = .monday
     @State private var showDayEditor = false
-    @State private var newlyCreatedScheduleId: UUID?
+    @State private var draftDays: [ScheduleDay]
     
     private let colors = [
         "CC7359", "8CA680", "A3C4BC", "6B8E7B", "D4A574",
@@ -32,6 +32,7 @@ struct ScheduleEditorView: View {
         _name = State(initialValue: editingSchedule?.name ?? "")
         _description = State(initialValue: editingSchedule?.description ?? "")
         _selectedColor = State(initialValue: editingSchedule?.color ?? "CC7359")
+        _draftDays = State(initialValue: editingSchedule?.days ?? DayOfWeek.allCases.map { ScheduleDay(day: $0, items: []) })
     }
     
     private var scheduleColor: Color {
@@ -40,17 +41,6 @@ struct ScheduleEditorView: View {
     
     private var isEditing: Bool {
         editingSchedule != nil
-    }
-    
-    private var scheduleDays: [ScheduleDay] {
-        if let existing = editingSchedule {
-            return existing.days
-        }
-        if let newId = newlyCreatedScheduleId,
-           let schedule = scheduleStore.schedules.first(where: { $0.id == newId }) {
-            return schedule.days
-        }
-        return DayOfWeek.allCases.map { ScheduleDay(day: $0, items: []) }
     }
     
     var body: some View {
@@ -84,65 +74,62 @@ struct ScheduleEditorView: View {
                     .padding(.vertical, 8)
                 }
                 
-                if isEditing || newlyCreatedScheduleId != nil {
-                    Section("Weekly Schedule") {
-                        ForEach(DayOfWeek.allCases) { day in
-                            let daySchedule = scheduleDays.first { $0.day == day }
-                            let itemCount = daySchedule?.items.count ?? 0
-                            
-                            Button {
-                                selectedDay = day
-                                showDayEditor = true
-                            } label: {
-                                HStack {
-                                    Text(day.shortName)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .frame(width: 40, alignment: .leading)
-                                    
-                                    if let daySchedule = daySchedule, !daySchedule.items.isEmpty {
-                                        // Show first 2 activities with icon and name
-                                        HStack(spacing: 8) {
-                                            ForEach(daySchedule.items.prefix(2)) { item in
-                                                let displayInfo = getDisplayInfo(for: item)
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: displayInfo.icon)
-                                                        .font(.system(size: 10))
-                                                    Text(displayInfo.title)
-                                                        .font(.system(size: 12, weight: .medium))
-                                                        .lineLimit(1)
-                                                }
-                                                .foregroundStyle(displayInfo.color)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(displayInfo.color.opacity(0.12))
-                                                .clipShape(Capsule())
+                Section("Weekly Schedule") {
+                    ForEach(DayOfWeek.allCases) { day in
+                        let daySchedule = draftDays.first { $0.day == day }
+                        
+                        Button {
+                            selectedDay = day
+                            showDayEditor = true
+                        } label: {
+                            HStack {
+                                Text(day.shortName)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .frame(width: 40, alignment: .leading)
+                                
+                                if let daySchedule = daySchedule, !daySchedule.items.isEmpty {
+                                    // Show first 2 activities with icon and name
+                                    HStack(spacing: 8) {
+                                        ForEach(daySchedule.items.prefix(2)) { item in
+                                            let displayInfo = getDisplayInfo(for: item)
+                                            HStack(spacing: 4) {
+                                                Image(systemName: displayInfo.icon)
+                                                    .font(.system(size: 10))
+                                                Text(displayInfo.title)
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .lineLimit(1)
                                             }
-                                            
-                                            if daySchedule.items.count > 2 {
-                                                Text("+\(daySchedule.items.count - 2)")
-                                                    .font(.system(size: 11))
-                                                    .foregroundStyle(Theme.textSecondary)
-                                                    .padding(.horizontal, 6)
-                                                    .padding(.vertical, 2)
-                                                    .background(Theme.sand.opacity(0.3))
-                                                    .clipShape(Capsule())
-                                            }
+                                            .foregroundStyle(displayInfo.color)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(displayInfo.color.opacity(0.12))
+                                            .clipShape(Capsule())
                                         }
-                                        Spacer()
-                                    } else {
-                                        Spacer()
-                                        Text("Empty")
-                                            .font(.system(size: 13))
-                                            .foregroundStyle(Theme.textSecondary.opacity(0.6))
+                                        
+                                        if daySchedule.items.count > 2 {
+                                            Text("+\(daySchedule.items.count - 2)")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(Theme.textSecondary)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Theme.sand.opacity(0.3))
+                                                .clipShape(Capsule())
+                                        }
                                     }
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(Theme.stone)
+                                    Spacer()
+                                } else {
+                                    Spacer()
+                                    Text("Empty")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Theme.textSecondary.opacity(0.6))
                                 }
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Theme.stone)
                             }
-                            .foregroundStyle(Theme.textPrimary)
                         }
+                        .foregroundStyle(Theme.textPrimary)
                     }
                 }
                 
@@ -163,54 +150,33 @@ struct ScheduleEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { 
-                        // If we created a schedule but are canceling, delete it
-                        if let newId = newlyCreatedScheduleId {
-                            scheduleStore.deleteSchedule(id: newId)
-                        }
-                        dismiss() 
-                    }
+                    Button("Cancel") { dismiss() }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isEditing ? "Save" : "Continue") {
+                    Button(isEditing ? "Save" : "Create") {
                         if isEditing {
                             saveSchedule()
-                            dismiss()
                         } else {
-                            // Create schedule first, then allow editing days
-                            if newlyCreatedScheduleId == nil {
-                                createInitialSchedule()
-                            } else {
-                                dismiss()
-                            }
+                            createSchedule()
                         }
+                        dismiss()
                     }
                     .disabled(name.isEmpty)
                 }
             }
             .sheet(isPresented: $showDayEditor) {
-                if let scheduleId = editingSchedule?.id ?? newlyCreatedScheduleId {
-                    ScheduleDayEditor(
-                        scheduleStore: scheduleStore,
-                        scheduleId: scheduleId,
-                        day: selectedDay
-                    )
-                }
+                DraftDayEditor(
+                    day: selectedDay,
+                    items: draftDays.first { $0.day == selectedDay }?.items ?? [],
+                    workouts: workoutStore.workouts,
+                    onSave: { updatedItems in
+                        if let index = draftDays.firstIndex(where: { $0.day == selectedDay }) {
+                            draftDays[index].items = updatedItems
+                        }
+                    }
+                )
             }
-        }
-    }
-    
-    private func colorForItem(_ item: ScheduleItem) -> Color {
-        switch item.type {
-        case .workout:
-            return Theme.terracotta
-        case .run:
-            return Theme.sage
-        case .rest:
-            return Color.blue.opacity(0.6)
-        case .busy:
-            return Color.orange.opacity(0.7)
         }
     }
     
@@ -234,13 +200,12 @@ struct ScheduleEditorView: View {
         }
     }
     
-    private func createInitialSchedule() {
+    private func createSchedule() {
         let descriptionValue = description.isEmpty ? nil : description
-        let newSchedule = Schedule.createEmpty(name: name, color: selectedColor)
-        var schedule = newSchedule
+        var schedule = Schedule.createEmpty(name: name, color: selectedColor)
         schedule.description = descriptionValue
+        schedule.days = draftDays
         scheduleStore.addSchedule(schedule)
-        newlyCreatedScheduleId = schedule.id
     }
     
     private func saveSchedule() {
@@ -251,34 +216,34 @@ struct ScheduleEditorView: View {
             updatedSchedule.name = name
             updatedSchedule.description = descriptionValue
             updatedSchedule.color = selectedColor
+            updatedSchedule.days = draftDays
             updatedSchedule.updatedAt = Date()
             scheduleStore.updateSchedule(updatedSchedule)
         }
     }
 }
 
-// MARK: - Schedule Day Editor
+// MARK: - Draft Day Editor
 
-struct ScheduleDayEditor: View {
+struct DraftDayEditor: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(WorkoutStore.self) private var workoutStore
-    @Bindable var scheduleStore: ScheduleStore
-    let scheduleId: UUID
     let day: DayOfWeek
+    let workouts: [UserWorkout]
+    let onSave: ([ScheduleItem]) -> Void
     
+    @State var items: [ScheduleItem]
     @State private var showingAddSheet = false
     @State private var editingItem: ScheduleItem?
     
-    private var schedule: Schedule? {
-        scheduleStore.schedules.first { $0.id == scheduleId }
-    }
-    
-    private var scheduleDay: ScheduleDay? {
-        schedule?.days.first { $0.day == day }
+    init(day: DayOfWeek, items: [ScheduleItem], workouts: [UserWorkout], onSave: @escaping ([ScheduleItem]) -> Void) {
+        self.day = day
+        self.workouts = workouts
+        self.onSave = onSave
+        _items = State(initialValue: items)
     }
     
     private var hasRestOrBusy: Bool {
-        scheduleDay?.items.contains { $0.type == .rest || $0.type == .busy } ?? false
+        items.contains { $0.type == .rest || $0.type == .busy }
     }
     
     var body: some View {
@@ -291,12 +256,10 @@ struct ScheduleDayEditor: View {
                             .font(.system(size: 20, weight: .semibold, design: .serif))
                             .foregroundStyle(Theme.textPrimary)
                         
-                        if let scheduleDay = scheduleDay {
-                            let itemCount = scheduleDay.items.count
-                            Text("\(itemCount) activity\(itemCount == 1 ? "" : "s")")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Theme.textSecondary)
-                        }
+                        let itemCount = items.count
+                        Text("\(itemCount) activity\(itemCount == 1 ? "" : "s")")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.textSecondary)
                     }
                     
                     Spacer()
@@ -315,27 +278,33 @@ struct ScheduleDayEditor: View {
                 .background(Theme.cream)
                 
                 // Items list
-                if let scheduleDay = scheduleDay, !scheduleDay.items.isEmpty {
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            ForEach(scheduleDay.items) { item in
-                                DayScheduleItemView(
-                                    item: item,
-                                    workoutName: scheduleStore.getWorkoutName(for: item, from: workoutStore.workouts),
-                                    onDelete: {
-                                        scheduleStore.removeItem(item.id, from: day, in: scheduleId)
-                                    },
-                                    onEdit: {
-                                        editingItem = item
-                                    }
-                                )
-                            }
-                            .onMove { source, destination in
-                                scheduleStore.moveItem(in: day, scheduleId: scheduleId, from: source, to: destination)
+                if !items.isEmpty {
+                    List {
+                        ForEach(items) { item in
+                            DraftDayItemRow(
+                                item: item,
+                                workoutName: getWorkoutName(for: item)
+                            )
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    items.removeAll { $0.id == item.id }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                
+                                Button {
+                                    editingItem = item
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(Theme.sage)
                             }
                         }
-                        .padding(20)
+                        .onMove { source, destination in
+                            items.move(fromOffsets: source, toOffset: destination)
+                        }
                     }
+                    .listStyle(.plain)
                 } else {
                     // Empty state
                     VStack(spacing: 12) {
@@ -360,41 +329,89 @@ struct ScheduleDayEditor: View {
             .navigationTitle("Schedule \(day.shortName)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        onSave(items)
                         dismiss()
                     }
                 }
             }
             .sheet(isPresented: $showingAddSheet) {
-                AddScheduleItemSheet(
-                    scheduleStore: scheduleStore,
-                    scheduleId: scheduleId,
-                    day: day,
-                    workouts: workoutStore.workouts,
+                AddDraftItemSheet(
+                    items: $items,
+                    workouts: workouts,
                     hasRestOrBusy: hasRestOrBusy
                 )
             }
             .sheet(item: $editingItem) { item in
-                EditScheduleItemSheet(
-                    scheduleStore: scheduleStore,
-                    scheduleId: scheduleId,
-                    day: day,
+                EditDraftItemSheet(
+                    items: $items,
                     item: item,
-                    workouts: workoutStore.workouts
+                    workouts: workouts
                 )
             }
         }
     }
+    
+    private func getWorkoutName(for item: ScheduleItem) -> String? {
+        guard item.type == .workout, let workoutId = item.workoutId else { return nil }
+        return workouts.first { $0.id == workoutId }?.name
+    }
 }
 
-// MARK: - Add Schedule Item Sheet
+// MARK: - Draft Day Item Row
 
-struct AddScheduleItemSheet: View {
+struct DraftDayItemRow: View {
+    let item: ScheduleItem
+    let workoutName: String?
+    
+    private var displayInfo: (icon: String, title: String, color: Color) {
+        switch item.type {
+        case .workout:
+            return (icon: "dumbbell.fill", title: workoutName ?? "Workout", color: Theme.terracotta)
+        case .run:
+            return (icon: item.runType?.icon ?? "figure.run", title: item.runType?.rawValue ?? "Run", color: Theme.sage)
+        case .rest:
+            return (icon: "bed.double.fill", title: "Rest Day", color: Color.blue.opacity(0.6))
+        case .busy:
+            return (icon: "briefcase.fill", title: "Busy", color: Color.orange.opacity(0.7))
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: displayInfo.icon)
+                .font(.system(size: 12))
+                .foregroundStyle(displayInfo.color)
+                .frame(width: 28, height: 28)
+                .background(displayInfo.color.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            
+            Text(displayInfo.title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            
+            Spacer()
+            
+            if let notes = item.notes, !notes.isEmpty {
+                Image(systemName: "text.bubble.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Add Draft Item Sheet
+
+struct AddDraftItemSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Bindable var scheduleStore: ScheduleStore
-    let scheduleId: UUID
-    let day: DayOfWeek
+    @Binding var items: [ScheduleItem]
     let workouts: [UserWorkout]
     let hasRestOrBusy: Bool
     
@@ -503,31 +520,34 @@ struct AddScheduleItemSheet: View {
             item = ScheduleItem.busy(notes: notesValue)
         }
         
-        scheduleStore.addItem(item, to: day, in: scheduleId)
+        // If adding rest/busy, clear other items first
+        if selectedType == .rest || selectedType == .busy {
+            items.removeAll()
+        }
+        
+        items.append(item)
     }
 }
 
-// MARK: - Edit Schedule Item Sheet
+// MARK: - Edit Draft Item Sheet
 
-struct EditScheduleItemSheet: View {
+struct EditDraftItemSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Bindable var scheduleStore: ScheduleStore
-    let scheduleId: UUID
-    let day: DayOfWeek
+    @Binding var items: [ScheduleItem]
     let item: ScheduleItem
     let workouts: [UserWorkout]
     
+    @State private var selectedType: ScheduleItemType
     @State private var selectedWorkout: UserWorkout?
     @State private var selectedRunType: ScheduleRunType
     @State private var notes: String
     
-    init(scheduleStore: ScheduleStore, scheduleId: UUID, day: DayOfWeek, item: ScheduleItem, workouts: [UserWorkout]) {
-        self.scheduleStore = scheduleStore
-        self.scheduleId = scheduleId
-        self.day = day
+    init(items: Binding<[ScheduleItem]>, item: ScheduleItem, workouts: [UserWorkout]) {
+        self._items = items
         self.item = item
         self.workouts = workouts
         
+        _selectedType = State(initialValue: item.type)
         _selectedWorkout = State(initialValue: item.workoutId.flatMap { id in workouts.first { $0.id == id } })
         _selectedRunType = State(initialValue: item.runType ?? .easy)
         _notes = State(initialValue: item.notes ?? "")
@@ -537,15 +557,16 @@ struct EditScheduleItemSheet: View {
         NavigationStack {
             Form {
                 Section("Type") {
-                    HStack {
-                        Text("Activity")
-                        Spacer()
-                        Label(item.type.rawValue, systemImage: item.type.icon)
-                            .foregroundStyle(Theme.textSecondary)
+                    Picker("Activity Type", selection: $selectedType) {
+                        ForEach(ScheduleItemType.allCases) { type in
+                            Label(type.rawValue, systemImage: type.icon)
+                                .tag(type)
+                        }
                     }
+                    .pickerStyle(.navigationLink)
                 }
                 
-                switch item.type {
+                switch selectedType {
                 case .workout:
                     Section("Workout") {
                         if workouts.isEmpty {
@@ -580,6 +601,14 @@ struct EditScheduleItemSheet: View {
                 Section("Notes") {
                     TextField("Optional notes", text: $notes)
                 }
+                
+                if selectedType == .rest || selectedType == .busy {
+                    Section {
+                        Text("Changing to \(selectedType.rawValue) will remove all other activities from this day.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
             }
             .navigationTitle("Edit Activity")
             .navigationBarTitleDisplayMode(.inline)
@@ -593,8 +622,18 @@ struct EditScheduleItemSheet: View {
                         saveItem()
                         dismiss()
                     }
+                    .disabled(!canSave)
                 }
             }
+        }
+    }
+    
+    private var canSave: Bool {
+        switch selectedType {
+        case .workout:
+            return selectedWorkout != nil
+        case .run, .rest, .busy:
+            return true
         }
     }
     
@@ -602,7 +641,7 @@ struct EditScheduleItemSheet: View {
         let notesValue = notes.isEmpty ? nil : notes
         
         let updatedItem: ScheduleItem
-        switch item.type {
+        switch selectedType {
         case .workout:
             guard let workout = selectedWorkout else { return }
             updatedItem = ScheduleItem(
@@ -642,7 +681,14 @@ struct EditScheduleItemSheet: View {
             )
         }
         
-        scheduleStore.updateItem(updatedItem, in: day, scheduleId: scheduleId)
+        // If changing to rest/busy, remove all other items first
+        if selectedType == .rest || selectedType == .busy {
+            items.removeAll { $0.id != item.id }
+        }
+        
+        if let index = items.firstIndex(where: { $0.id == item.id }) {
+            items[index] = updatedItem
+        }
     }
 }
 
