@@ -16,8 +16,7 @@ struct ScheduleEditorView: View {
     @State private var name: String
     @State private var description: String
     @State private var selectedColor: String
-    @State private var selectedDay: DayOfWeek = .monday
-    @State private var showDayEditor = false
+    @State private var editingDay: DayOfWeek?
     @State private var draftDays: [ScheduleDay]
     
     private let colors = [
@@ -79,8 +78,7 @@ struct ScheduleEditorView: View {
                         let daySchedule = draftDays.first { $0.day == day }
                         
                         Button {
-                            selectedDay = day
-                            showDayEditor = true
+                            editingDay = day
                         } label: {
                             HStack {
                                 Text(day.shortName)
@@ -165,13 +163,13 @@ struct ScheduleEditorView: View {
                     .disabled(name.isEmpty)
                 }
             }
-            .sheet(isPresented: $showDayEditor) {
+            .sheet(item: $editingDay) { day in
                 DraftDayEditor(
-                    day: selectedDay,
-                    items: draftDays.first { $0.day == selectedDay }?.items ?? [],
+                    day: day,
+                    items: draftDays.first { $0.day == day }?.items ?? [],
                     workouts: workoutStore.workouts,
                     onSave: { updatedItems in
-                        if let index = draftDays.firstIndex(where: { $0.day == selectedDay }) {
+                        if let index = draftDays.firstIndex(where: { $0.day == day }) {
                             draftDays[index].items = updatedItems
                         }
                     }
