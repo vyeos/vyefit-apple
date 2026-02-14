@@ -37,10 +37,10 @@ struct RunView: View {
                 VStack(spacing: 24) {
                     // Header
                     headerSection
-									
-										// Personal Bests
-										statsSection
-									
+                                    
+                                        // Personal Bests
+                                        statsSection
+                                    
                     // Run Types Grid
                     runTypesSection
                     
@@ -73,8 +73,8 @@ struct RunView: View {
         VStack(spacing: 8) {
             HStack {
                 Text("Start a Run")
-                    .font(.system(size: 20, weight: .semibold, design: .serif))
-                    .foregroundStyle(Theme.textPrimary)
+                .font(.system(size: 20, weight: .semibold, design: .serif))
+                .foregroundStyle(Theme.textPrimary)
                 Spacer()
             }
             .padding(.horizontal, 20)
@@ -116,6 +116,24 @@ struct RunView: View {
                 .foregroundStyle(Theme.textSecondary)
                 .tracking(1)
                 .padding(.horizontal, 20)
+            
+            // Favorites Section
+            let favorites = RunTargetStore.shared.savedTargets.filter { $0.isFavorite }
+            if !favorites.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(favorites) { target in
+                            TargetCard(target: target, isSelected: false, unit: "km") // Unit hardcoded for now, should come from settings
+                                .onTapGesture {
+                                    // Start the favorite run directly
+                                    startFavoriteRun(target)
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.bottom, 8)
+            }
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 RunTypeCard(type: .distance, action: { selectedRunType = .distance })
@@ -216,6 +234,29 @@ struct RunView: View {
             }
             .padding(.horizontal, 20)
         }
+    }
+    
+    private func startFavoriteRun(_ target: RunTarget) {
+        if hasActiveSession {
+            showActiveSessionAlert = true
+            return
+        }
+        
+        let config: RunConfiguration
+        switch target.type {
+        case .distance:
+            config = RunConfiguration(type: .distance, targetValue: target.value)
+        case .time:
+            config = RunConfiguration(type: .time, targetValue: target.value)
+        case .pace:
+            let paceValue = (target.value ?? 0) * 60 + (target.secondaryValue ?? 0)
+            config = RunConfiguration(type: .pace, targetValue: target.value, targetPace: paceValue)
+        case .calories:
+            config = RunConfiguration(type: .calories, targetValue: target.value)
+        default:
+            config = RunConfiguration(type: .quickStart)
+        }
+        runStore.startSession(configuration: config)
     }
 }
 

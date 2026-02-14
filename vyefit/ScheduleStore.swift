@@ -40,11 +40,21 @@ class ScheduleStore {
     }
     
     var allSchedules: [Schedule] {
-        schedules.sorted { $0.order < $1.order }
+        schedules.sorted {
+            if $0.isFavorite != $1.isFavorite {
+                return $0.isFavorite
+            }
+            return $0.order < $1.order
+        }
     }
     
     var activeSchedules: [Schedule] {
-        schedules.filter { $0.isActive }.sorted { $0.order < $1.order }
+        schedules.filter { $0.isActive }.sorted {
+             if $0.isFavorite != $1.isFavorite {
+                return $0.isFavorite
+             }
+             return $0.order < $1.order
+        }
     }
     
     var todaySchedule: ScheduleDay? {
@@ -74,6 +84,12 @@ class ScheduleStore {
     }
     
     // MARK: - Schedule Management
+    
+    func toggleFavorite(id: UUID) {
+        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
+        schedules[index].isFavorite.toggle()
+        saveSettings()
+    }
     
     func addSchedule(_ schedule: Schedule) {
         var newSchedule = schedule

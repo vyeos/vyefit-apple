@@ -51,6 +51,7 @@ struct RunTarget: Identifiable, Codable, Equatable {
     var value: Double? // Primary value (distance in km, time in sec, cals)
     var secondaryValue: Double? // e.g. minutes for pace (min part)
     var tertiaryValue: Double? // e.g. seconds for pace (sec part)
+    var isFavorite: Bool = false
     
     // Display helper
     func description(unit: String) -> String {

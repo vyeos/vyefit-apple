@@ -14,6 +14,17 @@ struct UserWorkout: Identifiable, Hashable, Codable {
     var exercises: [CatalogExercise]
     var icon: String
     let createdAt: Date
+    var isFavorite: Bool
+    
+    init(id: UUID, name: String, workoutType: WorkoutType, exercises: [CatalogExercise], icon: String, createdAt: Date, isFavorite: Bool = false) {
+        self.id = id
+        self.name = name
+        self.workoutType = workoutType
+        self.exercises = exercises
+        self.icon = icon
+        self.createdAt = createdAt
+        self.isFavorite = isFavorite
+    }
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -59,6 +70,12 @@ class WorkoutStore {
         saveWorkouts()
     }
 
+    func toggleFavorite(id: UUID) {
+        guard let index = workouts.firstIndex(where: { $0.id == id }) else { return }
+        workouts[index].isFavorite.toggle()
+        saveWorkouts()
+    }
+    
     func addCustomExercise(_ exercise: CatalogExercise) {
         guard !customExercises.contains(exercise),
               !ExerciseCatalog.all.contains(exercise) else { return }
@@ -69,6 +86,13 @@ class WorkoutStore {
     // MARK: - Persistence
     
     private func saveWorkouts() {
+        // Sort before saving to maintain order
+        workouts.sort {
+            if $0.isFavorite != $1.isFavorite {
+                return $0.isFavorite
+            }
+            return $0.createdAt > $1.createdAt
+        }
         if let encoded = try? JSONEncoder().encode(workouts) {
             UserDefaults.standard.set(encoded, forKey: "userWorkouts")
         }
@@ -83,7 +107,12 @@ class WorkoutStore {
     private func loadData() {
         if let data = UserDefaults.standard.data(forKey: "userWorkouts"),
            let decoded = try? JSONDecoder().decode([UserWorkout].self, from: data) {
-            workouts = decoded
+            workouts = decoded.sorted {
+                if $0.isFavorite != $1.isFavorite {
+                    return $0.isFavorite
+                }
+                return $0.createdAt > $1.createdAt
+            }
         }
         
         if let data = UserDefaults.standard.data(forKey: "customExercises"),

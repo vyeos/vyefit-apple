@@ -87,8 +87,20 @@ class RunTargetStore {
         return defaultTargets(for: type) + customTargets(for: type)
     }
     
+    func toggleFavorite(id: UUID) {
+        if let index = savedTargets.firstIndex(where: { $0.id == id }) {
+            savedTargets[index].isFavorite.toggle()
+            saveData()
+        }
+    }
+
     func addTarget(_ target: RunTarget) {
         savedTargets.append(target)
+        saveData()
+    }
+    
+    func deleteTarget(id: UUID) {
+        savedTargets.removeAll { $0.id == id }
         saveData()
     }
     

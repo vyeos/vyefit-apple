@@ -219,6 +219,7 @@ struct Schedule: Identifiable, Codable, Equatable {
     var updatedAt: Date
     var isActive: Bool
     var order: Int // For cyclic mode ordering
+    var isFavorite: Bool
     
     var totalItems: Int {
         days.reduce(0) { $0 + $1.items.count }
@@ -254,7 +255,8 @@ struct Schedule: Identifiable, Codable, Equatable {
             createdAt: Date(),
             updatedAt: Date(),
             isActive: false,
-            order: 0
+            order: 0,
+            isFavorite: false
         )
     }
 }

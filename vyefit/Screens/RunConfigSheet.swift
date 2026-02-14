@@ -243,6 +243,31 @@ struct RunConfigSheet: View {
                     Text(selected.description(unit: unitString))
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.textPrimary)
+                        
+                    Button {
+                        withAnimation {
+                            store.toggleFavorite(id: selected.id)
+                            // Force refresh by re-selecting (a bit hacky but works for Binding/ObservedObject)
+                            // Actually, store is Observable so it should update if we access it.
+                            // But selectedTarget is a local copy.
+                            if let index = store.savedTargets.firstIndex(where: { $0.id == selected.id }) {
+                                selectedTarget = store.savedTargets[index]
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: selected.isFavorite ? "star.fill" : "star")
+                                .font(.system(size: 14))
+                            Text(selected.isFavorite ? "Favorited" : "Favorite")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundStyle(selected.isFavorite ? Color.yellow : Theme.textSecondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Theme.background)
+                        .clipShape(Capsule())
+                    }
+                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)

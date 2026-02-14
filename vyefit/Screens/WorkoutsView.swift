@@ -41,6 +41,11 @@ struct WorkoutsView: View {
 							        	}
 							        }
                                     },
+                                    onToggleFavorite: {
+                                        withAnimation {
+                                            workoutStore.toggleFavorite(id: workout.id)
+                                        }
+                                    },
                                     onStart: {
                                         if workoutStore.activeSession != nil || runStore.activeSession != nil {
                                             showActiveSessionAlert = true
@@ -124,6 +129,7 @@ struct UserWorkoutCard: View {
     let workout: UserWorkout
     var onEdit: () -> Void
     var onDelete: () -> Void
+    var onToggleFavorite: () -> Void
     var onStart: () -> Void
 
     var body: some View {
@@ -139,8 +145,15 @@ struct UserWorkoutCard: View {
                 Text(workout.name)
                     .font(.system(size: 18, weight: .semibold, design: .serif))
                     .foregroundStyle(Theme.textPrimary)
-
+                
                 Spacer()
+                
+                Button(action: onToggleFavorite) {
+                    Image(systemName: workout.isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 14))
+                        .foregroundStyle(workout.isFavorite ? Color.yellow : Theme.stone)
+                        .frame(width: 28, height: 28)
+                }
 
                 Menu {
                     Button {

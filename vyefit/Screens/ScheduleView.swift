@@ -257,6 +257,11 @@ struct ScheduleView: View {
                         },
                         onRemoveFromCycle: {
                             scheduleStore.deactivateSchedule(id: schedule.id)
+                        },
+                        onToggleFavorite: {
+                            withAnimation {
+                                scheduleStore.toggleFavorite(id: schedule.id)
+                            }
                         }
                     )
                 }
@@ -338,73 +343,82 @@ struct ScheduleCard: View {
     let onEdit: () -> Void
     let onToggleActive: () -> Void
     let onRemoveFromCycle: () -> Void
+    let onToggleFavorite: () -> Void
     
     var body: some View {
-        Button(action: onEdit) {
-            HStack(spacing: 14) {
-                // Color indicator
-                Circle()
-                    .fill(Color(hex: schedule.color))
-                    .frame(width: 12, height: 12)
+        HStack(spacing: 14) {
+            // Color indicator
+            Circle()
+                .fill(Color(hex: schedule.color))
+                .frame(width: 12, height: 12)
+            
+            // Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(schedule.name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
                 
-                // Info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(schedule.name)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.textPrimary)
+                HStack(spacing: 12) {
+                    Text("\(schedule.totalItems) activities")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.textSecondary)
                     
-                    HStack(spacing: 12) {
-                        Text("\(schedule.totalItems) activities")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Theme.textSecondary)
-                        
-                        if isActive {
-                            Text(repeatMode == .cyclic ? "In Cycle" : "Active")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Theme.sage)
-                                .clipShape(Capsule())
-                        }
+                    if isActive {
+                        Text(repeatMode == .cyclic ? "In Cycle" : "Active")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Theme.sage)
+                            .clipShape(Capsule())
                     }
-                }
-                
-                Spacer()
-                
-                // Toggle or menu
-                if repeatMode == .cyclic && isActive {
-                    // In cyclic mode, show menu to remove
-                    Menu {
-                        Button(role: .destructive, action: onRemoveFromCycle) {
-                            Label("Remove from Cycle", systemImage: "minus.circle")
-                        }
-                    } label: {
-                        Text("#\(schedule.order + 1)")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Theme.textSecondary)
-                            .frame(width: 28, height: 28)
-                            .background(Theme.sand.opacity(0.3))
-                            .clipShape(Circle())
-                    }
-                } else {
-                    Button(action: onToggleActive) {
-                        Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 22))
-                            .foregroundStyle(isActive ? Theme.sage : Theme.stone.opacity(0.4))
-                    }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding(16)
-            .background(Theme.cream)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isActive ? Theme.sage.opacity(0.4) : Color.clear, lineWidth: 1.5)
-            )
+            
+            Spacer()
+            
+            Button(action: onToggleFavorite) {
+                Image(systemName: schedule.isFavorite ? "star.fill" : "star")
+                    .font(.system(size: 14))
+                    .foregroundStyle(schedule.isFavorite ? Color.yellow : Theme.stone)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            
+            // Toggle or menu
+            if repeatMode == .cyclic && isActive {
+                // In cyclic mode, show menu to remove
+                Menu {
+                    Button(role: .destructive, action: onRemoveFromCycle) {
+                        Label("Remove from Cycle", systemImage: "minus.circle")
+                    }
+                } label: {
+                    Text("#\(schedule.order + 1)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 28, height: 28)
+                        .background(Theme.sand.opacity(0.3))
+                        .clipShape(Circle())
+                }
+            } else {
+                Button(action: onToggleActive) {
+                    Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .foregroundStyle(isActive ? Theme.sage : Theme.stone.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .background(Theme.cream)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isActive ? Theme.sage.opacity(0.4) : Color.clear, lineWidth: 1.5)
+        )
+        .onTapGesture {
+            onEdit()
+        }
     }
 }
 
