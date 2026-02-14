@@ -31,14 +31,6 @@ struct RunView: View {
         SampleData.runSessions.max(by: { $0.calories < $1.calories })
     }
     
-    var recentRuns: [MockRunSession] {
-        // Last 1 month
-        let monthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date())!
-        return SampleData.runSessions
-            .filter { $0.date >= monthAgo }
-            .sorted { $0.date > $1.date }
-    }
-    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -195,33 +187,34 @@ struct RunView: View {
     
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Recent Runs")
-                    .font(.system(size: 16, weight: .semibold, design: .serif))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
+            Text("HISTORY")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+                .tracking(1)
+                .padding(.horizontal, 20)
                 
-                NavigationLink(destination: AllRunsView()) {
-                    Text("View All")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Theme.terracotta)
+            NavigationLink(destination: AllSessionsView(filter: .run)) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("All Run Sessions")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("View your complete running history")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.stone)
                 }
+                .padding(16)
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .padding(.horizontal, 20)
-            
-            if recentRuns.isEmpty {
-                Text("No runs in the past month.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.textSecondary)
-                    .padding(.horizontal, 20)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(recentRuns) { run in
-                        SessionRow(run: run)
-                            .padding(.horizontal, 20)
-                    }
-                }
-            }
         }
     }
 }

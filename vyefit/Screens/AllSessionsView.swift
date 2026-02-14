@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct AllSessionsView: View {
-    @State private var filter: SessionFilter = .all
+    @State var filter: SessionFilter
+    
+    init(filter: SessionFilter = .all) {
+        _filter = State(initialValue: filter)
+    }
     
     private var allRuns: [MockRunSession] {
         SampleData.runSessions.sorted { $0.date > $1.date }
