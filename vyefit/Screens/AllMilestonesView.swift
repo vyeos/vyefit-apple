@@ -58,15 +58,6 @@ struct AllMilestonesView: View {
             .background(Theme.background)
             .navigationTitle("Milestones")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Theme.terracotta)
-                }
-            }
         }
     }
     
