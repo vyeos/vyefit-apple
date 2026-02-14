@@ -37,10 +37,10 @@ struct HomeView: View {
                     }
                     .tag(2)
 
-                JournalView()
+                ScheduleView()
                     .tabItem {
-                        Image(systemName: "book.fill")
-                        Text("Journal")
+                        Image(systemName: "calendar")
+                        Text("Schedule")
                     }
                     .tag(3)
 

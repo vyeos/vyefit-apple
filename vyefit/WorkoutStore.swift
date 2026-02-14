@@ -7,13 +7,21 @@
 
 import SwiftUI
 
-struct UserWorkout: Identifiable {
+struct UserWorkout: Identifiable, Hashable {
     let id: UUID
     var name: String
     var workoutType: WorkoutType
     var exercises: [CatalogExercise]
     var icon: String
     let createdAt: Date
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: UserWorkout, rhs: UserWorkout) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 @Observable
