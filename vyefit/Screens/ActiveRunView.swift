@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ActiveRunView: View {
     @Bindable var session: RunSession
     @Environment(\.dismiss) private var dismiss
     @State private var showEndConfirmation = false
     @State private var showShortSessionAlert = false
+    @State private var isPerformingAction = false
     var onEnd: () -> Void
     var onDiscard: () -> Void
     @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
@@ -45,19 +47,33 @@ struct ActiveRunView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("End") {
-                        showEndConfirmation = true
+                    Menu {
+                        Button(role: .destructive) {
+                            showEndConfirmation = true
+                        } label: {
+                            Label("End", systemImage: "stop.circle")
+                        }
+                        Divider()
+                        Button {
+                            dismiss()
+                        } label: {
+                            Label("Minimize", systemImage: "arrow.down.right.and.arrow.up.left")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Theme.terracotta)
                     }
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.terracotta)
                 }
             }
             .alert("End Run?", isPresented: $showEndConfirmation) {
                 Button("End Run", role: .destructive) {
-                    if session.elapsedSeconds < 60 {
-                        showShortSessionAlert = true
-                    } else {
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    isPerformingAction = true
+                    Task(priority: TaskPriority.userInitiated) {
+                        defer { isPerformingAction = false }
                         onEnd()
+                        await session.endRunAsync()
                         dismiss()
                     }
                 }
@@ -65,8 +81,14 @@ struct ActiveRunView: View {
             }
             .alert("Discard Run?", isPresented: $showShortSessionAlert) {
                 Button("Discard", role: .destructive) {
-                    onDiscard()
-                    dismiss()
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                    isPerformingAction = true
+                    Task(priority: TaskPriority.userInitiated) {
+                        defer { isPerformingAction = false }
+                        onDiscard()
+                        await session.endRunAsync()
+                        dismiss()
+                    }
                 }
                 Button("Keep Going", role: .cancel) { }
             } message: {
@@ -92,6 +114,8 @@ struct ActiveRunView: View {
                 .font(.system(size: 72, weight: .bold, design: .rounded))
                 .foregroundStyle(session.primaryMetric == .heartRate && session.currentZone != nil ? session.currentZone!.color : Theme.textPrimary)
                 .monospacedDigit()
+                .contentTransition(.numericText())
+                .accessibilityLabel("Primary metric: \(primaryMetricLabel) \(primaryMetricValue)")
             
             if session.primaryMetric == .heartRate, let zone = session.currentZone {
                 HStack(spacing: 8) {
@@ -107,6 +131,8 @@ struct ActiveRunView: View {
                 .background(Theme.cream)
                 .clipShape(Capsule())
                 .padding(.top, 4)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Heart rate zone \(zone.id), \(zone.name)")
             }
             
             if let remaining = session.targetRemaining {
@@ -221,6 +247,8 @@ struct ActiveRunView: View {
                     unit: metric.unit,
                     icon: metric.icon
                 )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(metric.label): \(metric.value) \(metric.unit)")
             }
         }
         .padding(.horizontal, 8)
@@ -264,8 +292,11 @@ struct ActiveRunView: View {
     private var controlButtons: some View {
         VStack(spacing: 16) {
             Button {
-                withAnimation {
-                    session.togglePause()
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                isPerformingAction = true
+                Task(priority: TaskPriority.userInitiated) {
+                    defer { isPerformingAction = false }
+                    await session.togglePauseAsync()
                 }
             } label: {
                 HStack(spacing: 8) {
@@ -278,7 +309,9 @@ struct ActiveRunView: View {
                 .padding(.vertical, 16)
                 .background(session.state == .active ? Theme.terracotta : Theme.sage)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
+                .opacity(isPerformingAction ? 0.6 : 1)
             }
+            .disabled(isPerformingAction)
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
@@ -300,7 +333,13 @@ struct ActiveRunView: View {
                     .foregroundStyle(Theme.textPrimary)
                 
                 Button {
-                    withAnimation { session.togglePause() }
+                    guard !isPerformingAction else { return }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    isPerformingAction = true
+                    Task(priority: TaskPriority.userInitiated) {
+                        defer { isPerformingAction = false }
+                        await session.togglePauseAsync()
+                    }
                 } label: {
                     Text("Resume")
                         .font(.headline)
@@ -309,11 +348,14 @@ struct ActiveRunView: View {
                         .padding(.vertical, 12)
                         .background(Theme.sage)
                         .clipShape(Capsule())
+                        .opacity(isPerformingAction ? 0.6 : 1)
                 }
+                .disabled(isPerformingAction)
             }
             .padding(32)
-            .background(Theme.cream)
+            .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(RoundedRectangle(cornerRadius: 24).stroke(Theme.stone.opacity(0.15), lineWidth: 1))
             .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
         }
         .contentShape(Rectangle())
@@ -364,3 +406,4 @@ struct SecondaryMetricCard: View {
         onDiscard: {}
     )
 }
+

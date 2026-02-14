@@ -198,6 +198,26 @@ class RunSession {
         }
     }
     
+    @MainActor
+    func togglePauseAsync() async {
+        // Update UI state on main actor quickly
+        if state == .active {
+            state = .paused
+        } else if state == .paused {
+            state = .active
+        }
+        // Placeholder for any heavy work to be done off-main if needed
+        await Task.yield()
+    }
+    
+    @MainActor
+    func endRunAsync() async {
+        state = .completed
+        stopTimer()
+        // Placeholder for any heavy work to be done off-main if needed
+        await Task.yield()
+    }
+    
     func endRun() {
         state = .completed
         stopTimer()
