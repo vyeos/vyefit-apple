@@ -42,6 +42,10 @@ enum Theme {
         dynamicColor(light: UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1), dark: darkBackground)
     }
 
+    static var cardBackground: Color {
+        dynamicColor(light: UIColor(red: 0.99, green: 0.97, blue: 0.94, alpha: 1), dark: darkSurface)
+    }
+
     private static func dynamicColor(light: UIColor, dark: UIColor) -> Color {
         Color(uiColor: UIColor { traits in
             traits.userInterfaceStyle == .dark ? dark : light

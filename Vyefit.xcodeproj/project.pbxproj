@@ -24,9 +24,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		204C85632F3B7FE800AB6C92 /* vyefit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = vyefit.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		204C85752F3B7FEA00AB6C92 /* vyefitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = vyefitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		204C857F2F3B7FEA00AB6C92 /* vyefitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = vyefitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		204C85632F3B7FE800AB6C92 /* Vyefit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vyefit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		204C85752F3B7FEA00AB6C92 /* VyefitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VyefitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		204C857F2F3B7FEA00AB6C92 /* VyefitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VyefitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -85,9 +85,9 @@
 		204C85642F3B7FE800AB6C92 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				204C85632F3B7FE800AB6C92 /* vyefit.app */,
-				204C85752F3B7FEA00AB6C92 /* vyefitTests.xctest */,
-				204C857F2F3B7FEA00AB6C92 /* vyefitUITests.xctest */,
+				204C85632F3B7FE800AB6C92 /* Vyefit.app */,
+				204C85752F3B7FEA00AB6C92 /* VyefitTests.xctest */,
+				204C857F2F3B7FEA00AB6C92 /* VyefitUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +95,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		204C85622F3B7FE800AB6C92 /* vyefit */ = {
+		204C85622F3B7FE800AB6C92 /* Vyefit */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 204C85892F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "vyefit" */;
+			buildConfigurationList = 204C85892F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "Vyefit" */;
 			buildPhases = (
 				204C855F2F3B7FE800AB6C92 /* Sources */,
 				204C85602F3B7FE800AB6C92 /* Frameworks */,
@@ -110,16 +110,16 @@
 			fileSystemSynchronizedGroups = (
 				204C85652F3B7FE800AB6C92 /* vyefit */,
 			);
-			name = vyefit;
+			name = Vyefit;
 			packageProductDependencies = (
 			);
 			productName = vyefit;
-			productReference = 204C85632F3B7FE800AB6C92 /* vyefit.app */;
+			productReference = 204C85632F3B7FE800AB6C92 /* Vyefit.app */;
 			productType = "com.apple.product-type.application";
 		};
-		204C85742F3B7FEA00AB6C92 /* vyefitTests */ = {
+		204C85742F3B7FEA00AB6C92 /* VyefitTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 204C858C2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "vyefitTests" */;
+			buildConfigurationList = 204C858C2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "VyefitTests" */;
 			buildPhases = (
 				204C85712F3B7FEA00AB6C92 /* Sources */,
 				204C85722F3B7FEA00AB6C92 /* Frameworks */,
@@ -133,16 +133,16 @@
 			fileSystemSynchronizedGroups = (
 				204C85782F3B7FEA00AB6C92 /* vyefitTests */,
 			);
-			name = vyefitTests;
+			name = VyefitTests;
 			packageProductDependencies = (
 			);
 			productName = vyefitTests;
-			productReference = 204C85752F3B7FEA00AB6C92 /* vyefitTests.xctest */;
+			productReference = 204C85752F3B7FEA00AB6C92 /* VyefitTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		204C857E2F3B7FEA00AB6C92 /* vyefitUITests */ = {
+		204C857E2F3B7FEA00AB6C92 /* VyefitUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 204C858F2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "vyefitUITests" */;
+			buildConfigurationList = 204C858F2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "VyefitUITests" */;
 			buildPhases = (
 				204C857B2F3B7FEA00AB6C92 /* Sources */,
 				204C857C2F3B7FEA00AB6C92 /* Frameworks */,
@@ -156,11 +156,11 @@
 			fileSystemSynchronizedGroups = (
 				204C85822F3B7FEA00AB6C92 /* vyefitUITests */,
 			);
-			name = vyefitUITests;
+			name = VyefitUITests;
 			packageProductDependencies = (
 			);
 			productName = vyefitUITests;
-			productReference = 204C857F2F3B7FEA00AB6C92 /* vyefitUITests.xctest */;
+			productReference = 204C857F2F3B7FEA00AB6C92 /* VyefitUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -186,7 +186,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 204C855E2F3B7FE800AB6C92 /* Build configuration list for PBXProject "vyefit" */;
+			buildConfigurationList = 204C855E2F3B7FE800AB6C92 /* Build configuration list for PBXProject "Vyefit" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -200,9 +200,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				204C85622F3B7FE800AB6C92 /* vyefit */,
-				204C85742F3B7FEA00AB6C92 /* vyefitTests */,
-				204C857E2F3B7FEA00AB6C92 /* vyefitUITests */,
+				204C85622F3B7FE800AB6C92 /* Vyefit */,
+				204C85742F3B7FEA00AB6C92 /* VyefitTests */,
+				204C857E2F3B7FEA00AB6C92 /* VyefitUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -258,12 +258,12 @@
 /* Begin PBXTargetDependency section */
 		204C85772F3B7FEA00AB6C92 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 204C85622F3B7FE800AB6C92 /* vyefit */;
+			target = 204C85622F3B7FE800AB6C92 /* Vyefit */;
 			targetProxy = 204C85762F3B7FEA00AB6C92 /* PBXContainerItemProxy */;
 		};
 		204C85812F3B7FEA00AB6C92 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 204C85622F3B7FE800AB6C92 /* vyefit */;
+			target = 204C85622F3B7FE800AB6C92 /* Vyefit */;
 			targetProxy = 204C85802F3B7FEA00AB6C92 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -472,7 +472,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/vyefit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/vyefit";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vyefit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vyefit";
 			};
 			name = Debug;
 		};
@@ -494,7 +494,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/vyefit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/vyefit";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vyefit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vyefit";
 			};
 			name = Release;
 		};
@@ -541,7 +541,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		204C855E2F3B7FE800AB6C92 /* Build configuration list for PBXProject "vyefit" */ = {
+		204C855E2F3B7FE800AB6C92 /* Build configuration list for PBXProject "Vyefit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				204C85872F3B7FEA00AB6C92 /* Debug */,
@@ -550,7 +550,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		204C85892F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "vyefit" */ = {
+		204C85892F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "Vyefit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				204C858A2F3B7FEA00AB6C92 /* Debug */,
@@ -559,7 +559,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		204C858C2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "vyefitTests" */ = {
+		204C858C2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "VyefitTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				204C858D2F3B7FEA00AB6C92 /* Debug */,
@@ -568,7 +568,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		204C858F2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "vyefitUITests" */ = {
+		204C858F2F3B7FEA00AB6C92 /* Build configuration list for PBXNativeTarget "VyefitUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				204C85902F3B7FEA00AB6C92 /* Debug */,

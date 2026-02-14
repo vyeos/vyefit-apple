@@ -10,13 +10,7 @@ import SwiftUI
 struct AllRunsView: View {
     let runs: [MockRunSession] = SampleData.runSessions.sorted { $0.date > $1.date }
     
-    // Group runs by "Month Year" string
     var groupedRuns: [(String, [MockRunSession])] {
-//        let grouped = Dictionary(grouping: runs) { run in
-//            run.date.formatted(.dateTime.month(.wide).year())
-//        }
-        // Sort keys (Month Year) by date descending is tricky with strings.
-        // Better to get unique month dates, sort them, then map.
         let uniqueMonths = Set(runs.map {
             Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: $0.date))!
         }).sorted(by: >)
@@ -40,8 +34,11 @@ struct AllRunsView: View {
                             .foregroundStyle(Theme.textPrimary)
                             .padding(.horizontal, 20)
                         
-                        ForEach(runs) { run in
-                            SessionRow(run: run)
+                        VStack(spacing: 8) {
+                            ForEach(runs) { run in
+                                SessionRow(run: run)
+                                    .padding(.horizontal, 20)
+                            }
                         }
                     }
                 }

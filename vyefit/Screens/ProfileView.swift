@@ -2,20 +2,29 @@
 //  ProfileView.swift
 //  vyefit
 //
-//  You tab — user avatar, name, and settings list.
+//  You tab — user avatar, name, milestones, and recent sessions.
 //
 
 import SwiftUI
 
 struct ProfileView: View {
     @AppStorage("userName") private var userName = "Rudra Patel"
-    @AppStorage("appTheme") private var appTheme = "System"
+    
+    private var currentMonthRuns: [MockRunSession] {
+        let calendar = Calendar.current
+        return SampleData.runSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+    }
+    
+    private var currentMonthWorkouts: [MockWorkoutSession] {
+        let calendar = Calendar.current
+        return SampleData.workoutSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    VStack(spacing: 12) {
+                    HStack(spacing: 16) {
                         Circle()
                             .fill(Theme.sand)
                             .frame(width: 80, height: 80)
@@ -25,67 +34,123 @@ struct ProfileView: View {
                                     .foregroundStyle(Theme.stone)
                             )
 
-                        TextField("Your name", text: $userName)
-                            .font(.system(size: 22, weight: .semibold, design: .serif))
-                            .foregroundStyle(Theme.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .textInputAutocapitalization(.words)
-                            .disableAutocorrection(true)
-                            .tint(Theme.terracotta)
-                            .textFieldStyle(.plain)
-                            .padding(.horizontal, 24)
+                        VStack(alignment: .leading, spacing: 4) {
+                            TextField("Your name", text: $userName)
+                                .font(.system(size: 22, weight: .semibold, design: .serif))
+                                .foregroundStyle(Theme.textPrimary)
+                                .textInputAutocapitalization(.words)
+                                .disableAutocorrection(true)
+                                .tint(Theme.terracotta)
+                                .textFieldStyle(.plain)
 
-                        Text("Mindful Mover")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Theme.sage)
+                            Text("Mindful Mover")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.sage)
+                        }
+                        
+                        Spacer()
+                        
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Theme.textSecondary)
+                        }
                     }
+                    .padding(.horizontal, 20)
                     .padding(.top)
-
-                    // Settings
-                    VStack(spacing: 0) {
-                        NavigationLink {
-                            UnitsMeasurementsView()
-                        } label: {
-                            SettingRow(icon: "scalemass", title: "Units & Measurements")
+                    
+                    // Milestones
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Text("Milestones")
+                                .font(.system(size: 16, weight: .semibold, design: .serif))
+                                .foregroundStyle(Theme.textPrimary)
+                            
+                            Spacer()
+                            
+                            NavigationLink {
+                                AllMilestonesView()
+                            } label: {
+                                Text("View All")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(Theme.terracotta)
+                            }
                         }
 
-                        NavigationLink {
-                            HealthIntegrationView()
-                        } label: {
-                            SettingRow(icon: "heart", title: "Health Integration")
+                        // Show in-progress milestones first, then completed, limited to 4
+                        let inProgressMilestones = SampleData.achievements.filter { !$0.isUnlocked }
+                        let completedMilestones = SampleData.achievements.filter { $0.isUnlocked }
+                        let displayMilestones = Array((inProgressMilestones + completedMilestones).prefix(4))
+                        
+                        ForEach(displayMilestones) { a in
+                            MilestoneRow(achievement: a)
                         }
-
-                        NavigationLink {
-                            RemindersView()
-                        } label: {
-                            SettingRow(icon: "bell", title: "Reminders")
-                        }
-
-                        NavigationLink {
-                            BackupSyncView()
-                        } label: {
-                            SettingRow(icon: "icloud", title: "Backup & Sync")
+                        
+                        // Show count of hidden milestones
+                        let remainingCount = SampleData.achievements.count - displayMilestones.count
+                        if remainingCount > 0 {
+                            NavigationLink {
+                                AllMilestonesView()
+                            } label: {
+                                HStack {
+                                    Text("\(remainingCount) more milestones")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Theme.textSecondary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Theme.stone)
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Theme.sand.opacity(0.5))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
-                    .buttonStyle(.plain)
-                    .tint(Theme.terracotta)
+                    .padding(20)
                     .background(Theme.cream)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .padding(.horizontal, 20)
-
-                    // Appearance
+                    
+                    // Recent Sessions
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("Appearance", systemImage: "paintbrush")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Theme.textPrimary)
-                        
-                        Picker("Theme", selection: $appTheme) {
-                            Text("System").tag("System")
-                            Text("Light").tag("Light")
-                            Text("Dark").tag("Dark")
+                        HStack {
+                            Text("Recent Sessions")
+                                .font(.system(size: 16, weight: .semibold, design: .serif))
+                                .foregroundStyle(Theme.textPrimary)
+                            Spacer()
+                            NavigationLink {
+                                AllSessionsView()
+                            } label: {
+                                Text("View All")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(Theme.terracotta)
+                            }
                         }
-                        .pickerStyle(.segmented)
-                        .tint(Theme.terracotta)
+                        
+                        if currentMonthRuns.isEmpty && currentMonthWorkouts.isEmpty {
+                            Text("No sessions this month")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Theme.textSecondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 20)
+                        } else {
+                            VStack(spacing: 8) {
+                                ForEach(currentMonthRuns.prefix(3)) { run in
+                                    SessionRow(run: run)
+																}
+                                
+                                ForEach(currentMonthWorkouts.prefix(2)) { workout in
+                                    WorkoutSessionRow(session: workout)
+                                }
+                            }
+                        }
                     }
                     .padding(20)
                     .background(Theme.cream)
@@ -98,6 +163,68 @@ struct ProfileView: View {
             .navigationTitle("You")
             .navigationBarTitleDisplayMode(.large)
         }
+    }
+}
+
+struct WorkoutSessionRow: View {
+    let session: MockWorkoutSession
+    
+    var body: some View {
+        NavigationLink(destination: SessionDetailView(workoutSession: session)) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.terracotta.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Theme.terracotta)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(session.name)
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                    
+                    HStack(spacing: 6) {
+                        Text("\(session.exerciseCount) exercises")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+                        
+                        Text("•")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.stone)
+                        
+                        Text(session.date, format: .dateTime.weekday(.abbreviated))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Theme.terracotta)
+                        Text("\(session.calories)")
+                            .foregroundStyle(Theme.terracotta)
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    
+                    Text(SampleData.formatDuration(session.duration))
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(Theme.stone)
+                }
+            }
+            .padding(12)
+            .background(Theme.background)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
