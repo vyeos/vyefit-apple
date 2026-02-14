@@ -306,7 +306,7 @@ struct SessionDetailView: View {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14))
                 }
-                .foregroundStyle(Theme.terracotta)
+								.foregroundStyle(Theme.stone)
                 .padding(.horizontal, 4)
             }
             .sheet(isPresented: $showHeartRateDetails) {
@@ -653,83 +653,7 @@ struct HeartRateDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Full Graph with Zones
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Heart Rate")
-                            .font(.system(size: 20, weight: .semibold, design: .serif))
-                            .foregroundStyle(Theme.textPrimary)
-                        
-                        if #available(iOS 16.0, *), !heartRateData.isEmpty {
-                            let minHR = (heartRateData.map { $0.heartRate }.min() ?? 60) - 10
-                            let maxHR = (heartRateData.map { $0.heartRate }.max() ?? 180) + 10
-                            let chartData = heartRateData.map { point -> (time: Date, hr: Int) in
-                                let time = startTime.addingTimeInterval(point.timestamp)
-                                return (time: time, hr: point.heartRate)
-                            }
-                            
-                            GeometryReader { geometry in
-                                ZStack {
-                                    // Zone background colors
-                                    ForEach(HeartRateZone.defaults) { zone in
-                                        Rectangle()
-                                            .fill(zone.color.opacity(0.1))
-                                            .frame(height: calculateZoneHeight(zone: zone, minHR: minHR, maxHR: maxHR, totalHeight: 200))
-                                            .offset(y: calculateZoneOffset(zone: zone, minHR: minHR, maxHR: maxHR, totalHeight: 200))
-                                    }
-                                    
-                                    Chart(chartData, id: \.time) { dataPoint in
-                                        LineMark(
-                                            x: .value("Time", dataPoint.time),
-                                            y: .value("HR", dataPoint.hr)
-                                        )
-                                        .foregroundStyle(zoneColor(for: dataPoint.hr))
-                                        .lineStyle(StrokeStyle(lineWidth: 2))
-                                    }
-                                    .chartYAxis(.hidden)
-                                    .chartXAxis {
-                                        AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                                            AxisValueLabel(anchor: .top) {
-                                                if let date = value.as(Date.self) {
-                                                    Text(date, format: .dateTime.hour().minute())
-                                                        .font(.system(size: 12))
-                                                        .foregroundStyle(Theme.textSecondary)
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .chartYScale(domain: minHR...maxHR)
-                                    .frame(width: geometry.size.width - 50, height: 200)
-                                    
-                                    // Max/Min labels
-                                    VStack {
-                                        HStack {
-                                            Spacer()
-                                            Text("\(heartRateData.map { $0.heartRate }.max() ?? 0)")
-                                                .font(.system(size: 14, weight: .semibold))
-                                                .foregroundStyle(Theme.terracotta)
-                                        }
-                                        Spacer()
-                                        HStack {
-                                            Spacer()
-                                            Text("\(heartRateData.map { $0.heartRate }.min() ?? 0)")
-                                                .font(.system(size: 14, weight: .semibold))
-                                                .foregroundStyle(Theme.sage)
-                                                .padding(.bottom, 20)
-                                        }
-                                    }
-                                    .frame(width: 40)
-                                    .offset(x: (geometry.size.width - 25) / 2)
-                                }
-                            }
-                            .frame(height: 200)
-                            
-                            // Avg label below graph
-                            Text("\(heartRateAvg) BPM AVG")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Theme.terracotta)
-                        }
-                    }
-                    .padding(.horizontal)
+
                     
                     // Zone Breakdown
                     VStack(alignment: .leading, spacing: 16) {
@@ -765,22 +689,6 @@ struct HeartRateDetailView: View {
         }
     }
     
-    private func zoneColor(for hr: Int) -> Color {
-        HeartRateZone.defaults.first { hr >= $0.minBPM && hr <= $0.maxBPM }?.color ?? Theme.stone
-    }
-    
-    private func calculateZoneHeight(zone: HeartRateZone, minHR: Int, maxHR: Int, totalHeight: CGFloat) -> CGFloat {
-        let range = maxHR - minHR
-        let zoneRange = zone.maxBPM - zone.minBPM
-        return totalHeight * CGFloat(zoneRange) / CGFloat(range)
-    }
-    
-    private func calculateZoneOffset(zone: HeartRateZone, minHR: Int, maxHR: Int, totalHeight: CGFloat) -> CGFloat {
-        let range = maxHR - minHR
-        let zoneStart = zone.minBPM - minHR
-        let offset = totalHeight * CGFloat(zoneStart) / CGFloat(range)
-        return -(totalHeight / 2) + offset + calculateZoneHeight(zone: zone, minHR: minHR, maxHR: maxHR, totalHeight: totalHeight) / 2
-    }
 }
 
 struct ZoneRow: View {
