@@ -14,6 +14,7 @@ struct SessionDetailView: View {
     let workoutSession: MockWorkoutSession?
     
     @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
+    @State private var showHeartRateDetails = false
     
     private var isRun: Bool { runSession != nil }
     private var sessionName: String {
@@ -208,27 +209,29 @@ struct SessionDetailView: View {
                 let startTime = sessionDate
                 
                 // Create time-based x values
-                let chartData = heartRateData.map { point -> (time: Date, hr: Int) in
+                let chartData = heartRateData.map { point -> (time: Date, hr: Int, isMin: Bool, isMax: Bool) in
                     let time = startTime.addingTimeInterval(point.timestamp)
-                    return (time: time, hr: point.heartRate)
+                    let isMin = point.heartRate == minHRValue
+                    let isMax = point.heartRate == maxHRValue
+                    return (time: time, hr: point.heartRate, isMin: isMin, isMax: isMax)
                 }
                 
                 GeometryReader { geometry in
                     ZStack {
-                        // Chart
+                        // Chart takes full width
                         Chart(chartData, id: \.time) { dataPoint in
                             RuleMark(
                                 x: .value("Time", dataPoint.time),
                                 yStart: .value("Min", minHRValue - 5),
                                 yEnd: .value("HR", dataPoint.hr)
                             )
-                            .foregroundStyle(Theme.terracotta)
+                            .foregroundStyle(barColor(for: dataPoint.hr, isMin: dataPoint.isMin, isMax: dataPoint.isMax))
                             .lineStyle(StrokeStyle(lineWidth: 2))
                         }
                         .chartYAxis(.hidden)
                         .chartXAxis {
                             AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                                AxisValueLabel {
+                                AxisValueLabel(anchor: .top) {
                                     if let date = value.as(Date.self) {
                                         Text(date, format: .dateTime.hour().minute())
                                             .font(.system(size: 11, weight: .medium))
@@ -240,27 +243,33 @@ struct SessionDetailView: View {
                         .chartYScale(domain: (minHRValue - 10)...(maxHRValue + 10))
                         .frame(width: geometry.size.width, height: 140)
                         
-                        // Max HR label (top right)
+                        // Max HR label overlay (top right)
                         VStack {
                             HStack {
                                 Spacer()
                                 Text("\(maxHRValue)")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Theme.textSecondary)
+                                    .foregroundStyle(Theme.terracotta)
+                                    .padding(.trailing, 4)
                             }
                             Spacer()
-                            // Min HR label (bottom right)
+                        }
+                        
+                        // Min HR label overlay (bottom right)
+                        VStack {
+                            Spacer()
                             HStack {
                                 Spacer()
                                 Text("\(minHRValue)")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Theme.textSecondary)
+                                    .foregroundStyle(Theme.sage)
+                                    .padding(.trailing, 4)
+                                    .padding(.bottom, 20)
                             }
                         }
-                        .padding(.trailing, 8)
                     }
                 }
-                .frame(height: 140)
+                .frame(height: 160)
                 
                 // Average BPM
                 HStack {
@@ -286,20 +295,28 @@ struct SessionDetailView: View {
                 .frame(height: 140)
             }
             
-            // Heart Rate Zones Legend (for runs)
-            if isRun {
-                HStack(spacing: 12) {
-                    ForEach(HeartRateZone.defaults) { zone in
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(zone.color)
-                                .frame(width: 8, height: 8)
-                            Text("Z\(zone.id)")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                    }
+            // Show Details Button
+            Button {
+                showHeartRateDetails = true
+            } label: {
+                HStack {
+                    Text("Show Heart Rate Details")
+                        .font(.system(size: 15, weight: .medium))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
                 }
+                .foregroundStyle(Theme.terracotta)
+                .padding(.horizontal, 4)
+            }
+            .sheet(isPresented: $showHeartRateDetails) {
+                HeartRateDetailView(
+                    heartRateData: heartRateData,
+                    heartRateAvg: heartRateAvg,
+                    heartRateMax: heartRateMax,
+                    startTime: sessionDate,
+                    duration: duration
+                )
             }
         }
         .padding(16)
@@ -570,6 +587,12 @@ struct SessionDetailView: View {
         return Color.red
     }
     
+    private func barColor(for hr: Int, isMin: Bool, isMax: Bool) -> Color {
+        if isMax { return Theme.terracotta }
+        if isMin { return Theme.sage }
+        return Theme.stone.opacity(0.6)
+    }
+    
     private func formatTimeLabel(_ minutes: Double) -> String {
         let mins = Int(minutes)
         let hrs = mins / 60
@@ -579,6 +602,245 @@ struct SessionDetailView: View {
             return "\(hrs)h \(remainingMins)m"
         }
         return "\(mins)m"
+    }
+}
+
+// MARK: - Heart Rate Detail View
+
+struct HeartRateDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    let heartRateData: [HeartRateDataPoint]
+    let heartRateAvg: Int
+    let heartRateMax: Int
+    let startTime: Date
+    let duration: TimeInterval
+    
+    private var zoneTimes: [(zone: HeartRateZone, time: TimeInterval)] {
+        var times: [Int: TimeInterval] = [:]
+        
+        for i in 0..<heartRateData.count {
+            let hr = heartRateData[i].heartRate
+            let zone = HeartRateZone.defaults.first { hr >= $0.minBPM && hr <= $0.maxBPM } ?? HeartRateZone.defaults.first!
+            
+            let timeInZone: TimeInterval
+            if i < heartRateData.count - 1 {
+                timeInZone = heartRateData[i + 1].timestamp - heartRateData[i].timestamp
+            } else {
+                timeInZone = 30 // Last point, assume 30 seconds
+            }
+            
+            times[zone.id, default: 0] += timeInZone
+        }
+        
+        return HeartRateZone.defaults.map { zone in
+            (zone: zone, time: times[zone.id] ?? 0)
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Avg HR Header
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Avg. Heart Rate")
+                            .font(.system(size: 17))
+                            .foregroundStyle(Theme.textSecondary)
+                        Text("\(heartRateAvg)BPM")
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.terracotta)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Full Graph with Zones
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Heart Rate")
+                            .font(.system(size: 20, weight: .semibold, design: .serif))
+                            .foregroundStyle(Theme.textPrimary)
+                        
+                        if #available(iOS 16.0, *), !heartRateData.isEmpty {
+                            let minHR = (heartRateData.map { $0.heartRate }.min() ?? 60) - 10
+                            let maxHR = (heartRateData.map { $0.heartRate }.max() ?? 180) + 10
+                            let chartData = heartRateData.map { point -> (time: Date, hr: Int) in
+                                let time = startTime.addingTimeInterval(point.timestamp)
+                                return (time: time, hr: point.heartRate)
+                            }
+                            
+                            GeometryReader { geometry in
+                                ZStack {
+                                    // Zone background colors
+                                    ForEach(HeartRateZone.defaults) { zone in
+                                        Rectangle()
+                                            .fill(zone.color.opacity(0.1))
+                                            .frame(height: calculateZoneHeight(zone: zone, minHR: minHR, maxHR: maxHR, totalHeight: 200))
+                                            .offset(y: calculateZoneOffset(zone: zone, minHR: minHR, maxHR: maxHR, totalHeight: 200))
+                                    }
+                                    
+                                    Chart(chartData, id: \.time) { dataPoint in
+                                        LineMark(
+                                            x: .value("Time", dataPoint.time),
+                                            y: .value("HR", dataPoint.hr)
+                                        )
+                                        .foregroundStyle(zoneColor(for: dataPoint.hr))
+                                        .lineStyle(StrokeStyle(lineWidth: 2))
+                                    }
+                                    .chartYAxis(.hidden)
+                                    .chartXAxis {
+                                        AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                                            AxisValueLabel(anchor: .top) {
+                                                if let date = value.as(Date.self) {
+                                                    Text(date, format: .dateTime.hour().minute())
+                                                        .font(.system(size: 12))
+                                                        .foregroundStyle(Theme.textSecondary)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .chartYScale(domain: minHR...maxHR)
+                                    .frame(width: geometry.size.width - 50, height: 200)
+                                    
+                                    // Max/Min labels
+                                    VStack {
+                                        HStack {
+                                            Spacer()
+                                            Text("\(heartRateData.map { $0.heartRate }.max() ?? 0)")
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundStyle(Theme.terracotta)
+                                        }
+                                        Spacer()
+                                        HStack {
+                                            Spacer()
+                                            Text("\(heartRateData.map { $0.heartRate }.min() ?? 0)")
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundStyle(Theme.sage)
+                                                .padding(.bottom, 20)
+                                        }
+                                    }
+                                    .frame(width: 40)
+                                    .offset(x: (geometry.size.width - 25) / 2)
+                                }
+                            }
+                            .frame(height: 200)
+                            
+                            // Avg label below graph
+                            Text("\(heartRateAvg) BPM AVG")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Theme.terracotta)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Zone Breakdown
+                    VStack(alignment: .leading, spacing: 16) {
+                        ForEach(zoneTimes, id: \.zone.id) { item in
+                            ZoneRow(
+                                zone: item.zone,
+                                time: item.time,
+                                totalTime: duration
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Footer text
+                    Text("Estimated time in each heart rate zone.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textSecondary)
+                        .padding(.horizontal)
+                }
+                .padding(.vertical)
+            }
+            .background(Theme.background)
+            .navigationTitle("Heart Rate")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundStyle(Theme.terracotta)
+                }
+            }
+        }
+    }
+    
+    private func zoneColor(for hr: Int) -> Color {
+        HeartRateZone.defaults.first { hr >= $0.minBPM && hr <= $0.maxBPM }?.color ?? Theme.stone
+    }
+    
+    private func calculateZoneHeight(zone: HeartRateZone, minHR: Int, maxHR: Int, totalHeight: CGFloat) -> CGFloat {
+        let range = maxHR - minHR
+        let zoneRange = zone.maxBPM - zone.minBPM
+        return totalHeight * CGFloat(zoneRange) / CGFloat(range)
+    }
+    
+    private func calculateZoneOffset(zone: HeartRateZone, minHR: Int, maxHR: Int, totalHeight: CGFloat) -> CGFloat {
+        let range = maxHR - minHR
+        let zoneStart = zone.minBPM - minHR
+        let offset = totalHeight * CGFloat(zoneStart) / CGFloat(range)
+        return -(totalHeight / 2) + offset + calculateZoneHeight(zone: zone, minHR: minHR, maxHR: maxHR, totalHeight: totalHeight) / 2
+    }
+}
+
+struct ZoneRow: View {
+    let zone: HeartRateZone
+    let time: TimeInterval
+    let totalTime: TimeInterval
+    
+    private var formattedTime: String {
+        let hours = Int(time) / 3600
+        let minutes = (Int(time) % 3600) / 60
+        let seconds = Int(time) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    private var percentage: Double {
+        totalTime > 0 ? (time / totalTime) * 100 : 0
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                Text("Zone \(zone.id)")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(zone.color)
+                    .frame(width: 70, alignment: .leading)
+                
+                // Progress bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Theme.stone.opacity(0.2))
+                            .frame(height: 8)
+                        
+                        if percentage > 0 {
+                            Capsule()
+                                .fill(zone.color)
+                                .frame(width: max(4, geometry.size.width * CGFloat(percentage / 100)), height: 8)
+                        }
+                    }
+                }
+                .frame(height: 8)
+                
+                Text(formattedTime)
+                    .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 70, alignment: .trailing)
+            }
+            
+            HStack {
+                Spacer()
+                Text("\(zone.minBPM)-\(zone.maxBPM)BPM")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
