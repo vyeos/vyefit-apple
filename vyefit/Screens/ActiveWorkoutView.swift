@@ -12,12 +12,15 @@ struct ActiveWorkoutView: View {
     @Bindable var session: WorkoutSession
     @Environment(\.dismiss) private var dismiss
     @State private var showEndConfirmation = false
+    @State private var showShortSessionAlert = false
     @State private var showAppleWatchPrompt = false
     var onEnd: () -> Void
+    var onDiscard: () -> Void
     
-    init(session: WorkoutSession, onEnd: @escaping () -> Void) {
+    init(session: WorkoutSession, onEnd: @escaping () -> Void, onDiscard: @escaping () -> Void) {
         self.session = session
         self.onEnd = onEnd
+        self.onDiscard = onDiscard
     }
     
     var body: some View {
@@ -66,10 +69,23 @@ struct ActiveWorkoutView: View {
             }
             .alert("End Workout?", isPresented: $showEndConfirmation) {
                 Button("End Workout", role: .destructive) {
-                    onEnd()
-                    dismiss()
+                    if session.elapsedSeconds < 60 {
+                        showShortSessionAlert = true
+                    } else {
+                        onEnd()
+                        dismiss()
+                    }
                 }
                 Button("Cancel", role: .cancel) { }
+            }
+            .alert("Discard Workout?", isPresented: $showShortSessionAlert) {
+                Button("Discard", role: .destructive) {
+                    onDiscard()
+                    dismiss()
+                }
+                Button("Keep Going", role: .cancel) { }
+            } message: {
+                Text("This workout is less than 1 minute. It might have been started by mistake. Discard it?")
             }
             .alert("Start on Apple Watch?", isPresented: $showAppleWatchPrompt) {
                 Button("Start \(session.workout.workoutType.rawValue)") {
@@ -498,7 +514,8 @@ struct StatsCard: View {
 #Preview {
     ActiveWorkoutView(
         session: WorkoutSession(workout: UserWorkout(id: UUID(), name: "Test Workout", workoutType: .traditionalStrengthTraining, exercises: [], icon: "dumbbell.fill", createdAt: Date())),
-        onEnd: {}
+        onEnd: {},
+        onDiscard: {}
     )
 }
 

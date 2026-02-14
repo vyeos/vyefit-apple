@@ -32,6 +32,12 @@ class RunStore {
         showActiveRun = false
     }
     
+    func discardActiveSession() {
+        activeSession?.endRun()
+        activeSession = nil
+        showActiveRun = false
+    }
+    
     func minimizeSession() {
         showActiveRun = false
     }

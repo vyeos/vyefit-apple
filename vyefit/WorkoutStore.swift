@@ -112,4 +112,10 @@ class WorkoutStore {
         activeSession = nil
         showActiveWorkout = false
     }
+    
+    func discardActiveSession() {
+        activeSession?.endWorkout()
+        activeSession = nil
+        showActiveWorkout = false
+    }
 }

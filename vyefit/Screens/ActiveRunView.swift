@@ -11,7 +11,9 @@ struct ActiveRunView: View {
     @Bindable var session: RunSession
     @Environment(\.dismiss) private var dismiss
     @State private var showEndConfirmation = false
+    @State private var showShortSessionAlert = false
     var onEnd: () -> Void
+    var onDiscard: () -> Void
     @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
     
     var body: some View {
@@ -52,10 +54,23 @@ struct ActiveRunView: View {
             }
             .alert("End Run?", isPresented: $showEndConfirmation) {
                 Button("End Run", role: .destructive) {
-                    onEnd()
-                    dismiss()
+                    if session.elapsedSeconds < 60 {
+                        showShortSessionAlert = true
+                    } else {
+                        onEnd()
+                        dismiss()
+                    }
                 }
                 Button("Cancel", role: .cancel) { }
+            }
+            .alert("Discard Run?", isPresented: $showShortSessionAlert) {
+                Button("Discard", role: .destructive) {
+                    onDiscard()
+                    dismiss()
+                }
+                Button("Keep Going", role: .cancel) { }
+            } message: {
+                Text("This run is less than 1 minute. It might have been started by mistake. Discard it?")
             }
         }
     }
@@ -345,6 +360,7 @@ struct SecondaryMetricCard: View {
 #Preview {
     ActiveRunView(
         session: RunSession(configuration: RunConfiguration(type: .distance, targetValue: 5.0)),
-        onEnd: {}
+        onEnd: {},
+        onDiscard: {}
     )
 }
