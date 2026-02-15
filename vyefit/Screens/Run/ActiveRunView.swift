@@ -47,34 +47,26 @@ struct ActiveRunView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button(role: .destructive) {
-                            showEndConfirmation = true
-                        } label: {
-                            Label("End", systemImage: "stop.circle")
-                        }
-                        Divider()
-                        Button {
-                            dismiss()
-                        } label: {
-                            Label("Minimize", systemImage: "arrow.down.right.and.arrow.up.left")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Theme.terracotta)
+                    Button("End") {
+                        showEndConfirmation = true
                     }
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.terracotta)
                 }
             }
             .alert("End Run?", isPresented: $showEndConfirmation) {
                 Button("End Run", role: .destructive) {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    isPerformingAction = true
-                    Task(priority: TaskPriority.userInitiated) {
-                        defer { isPerformingAction = false }
-                        await session.endRunAsync()
-                        onEnd()
-                        dismiss()
+                    if session.elapsedSeconds < 60 {
+                        showShortSessionAlert = true
+                    } else {
+                        isPerformingAction = true
+                        Task(priority: TaskPriority.userInitiated) {
+                            defer { isPerformingAction = false }
+                            await session.endRunAsync()
+                            onEnd()
+                            dismiss()
+                        }
                     }
                 }
                 Button("Cancel", role: .cancel) { }

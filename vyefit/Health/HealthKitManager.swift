@@ -160,7 +160,7 @@ final class HealthKitManager: NSObject, ObservableObject {
     // MARK: - Builders
 
     private func buildCompletedWorkout(from workout: HKWorkout, completion: @escaping (CompletedWorkout) -> Void) {
-        let calories = Int(workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0)
+        var calories = 0
         let group = DispatchGroup()
         var heartRateAvg = 0
         var heartRateMax = 0
@@ -176,6 +176,12 @@ final class HealthKitManager: NSObject, ObservableObject {
         group.enter()
         fetchHeartRateSeries(for: workout) { data in
             heartRateData = data
+            group.leave()
+        }
+        
+        group.enter()
+        fetchActiveEnergy(for: workout) { kcal in
+            calories = kcal
             group.leave()
         }
 
@@ -204,7 +210,7 @@ final class HealthKitManager: NSObject, ObservableObject {
     private func buildCompletedRun(from workout: HKWorkout, completion: @escaping (CompletedRun) -> Void) {
         let distanceMeters = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
         let distanceKm = distanceMeters / 1000.0
-        let calories = Int(workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0)
+        var calories = 0
 
         let group = DispatchGroup()
         var heartRateAvg = 0
@@ -246,6 +252,12 @@ final class HealthKitManager: NSObject, ObservableObject {
         group.enter()
         fetchSplits(for: workout) { runSplits in
             splits = runSplits
+            group.leave()
+        }
+        
+        group.enter()
+        fetchActiveEnergy(for: workout) { kcal in
+            calories = kcal
             group.leave()
         }
 
@@ -411,6 +423,19 @@ final class HealthKitManager: NSObject, ObservableObject {
             completion(splits)
         }
 
+        healthStore.execute(query)
+    }
+    
+    private func fetchActiveEnergy(for workout: HKWorkout, completion: @escaping (Int) -> Void) {
+        guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else {
+            completion(0)
+            return
+        }
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        let query = HKStatisticsQuery(quantityType: energyType, quantitySamplePredicate: predicate, options: [.cumulativeSum]) { _, statistics, _ in
+            let kcal = Int(statistics?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
+            completion(kcal)
+        }
         healthStore.execute(query)
     }
 }
