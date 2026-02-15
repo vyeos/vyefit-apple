@@ -10,8 +10,6 @@ import Combine
 
 struct HomeView: View {
     @State private var selectedTab = 0
-    @State private var workoutStore = WorkoutStore()
-    @State private var runStore = RunStore()
     @AppStorage("appTheme") private var appTheme = "System"
 
     var body: some View {
@@ -52,41 +50,47 @@ struct HomeView: View {
                     }
                     .tag(4)
             }
-            .environment(workoutStore)
-            .environment(runStore)
+            .environment(WorkoutStore.shared)
+            .environment(RunStore.shared)
             .tint(Theme.terracotta)
             .toolbarBackground(Theme.background, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
             
-            if let session = workoutStore.activeSession, !workoutStore.showActiveWorkout {
+            if let session = WorkoutStore.shared.activeSession, !WorkoutStore.shared.showActiveWorkout {
                 MiniWorkoutPlayer(session: session) {
-                    workoutStore.showActiveWorkout = true
+                    WorkoutStore.shared.showActiveWorkout = true
                 }
                 .padding(.bottom, 60)
             }
             
-            if let session = runStore.activeSession, !runStore.showActiveRun {
+            if let session = RunStore.shared.activeSession, !RunStore.shared.showActiveRun {
                 MiniRunPlayer(session: session) {
-                    runStore.showActiveRun = true
+                    RunStore.shared.showActiveRun = true
                 }
-                .padding(.bottom, workoutStore.activeSession != nil ? 130 : 60)
+                .padding(.bottom, WorkoutStore.shared.activeSession != nil ? 130 : 60)
             }
         }
-        .fullScreenCover(isPresented: $workoutStore.showActiveWorkout) {
-            if let session = workoutStore.activeSession {
+        .fullScreenCover(isPresented: Binding(
+            get: { WorkoutStore.shared.showActiveWorkout },
+            set: { WorkoutStore.shared.showActiveWorkout = $0 }
+        )) {
+            if let session = WorkoutStore.shared.activeSession {
                 ActiveWorkoutView(
                     session: session,
-                    onEnd: { workoutStore.endActiveSession() },
-                    onDiscard: { workoutStore.discardActiveSession() }
+                    onEnd: { WorkoutStore.shared.endActiveSession() },
+                    onDiscard: { WorkoutStore.shared.discardActiveSession() }
                 )
             }
         }
-        .fullScreenCover(isPresented: $runStore.showActiveRun) {
-            if let session = runStore.activeSession {
+        .fullScreenCover(isPresented: Binding(
+            get: { RunStore.shared.showActiveRun },
+            set: { RunStore.shared.showActiveRun = $0 }
+        )) {
+            if let session = RunStore.shared.activeSession {
                 ActiveRunView(
                     session: session,
-                    onEnd: { runStore.endActiveSession() },
-                    onDiscard: { runStore.discardActiveSession() }
+                    onEnd: { RunStore.shared.endActiveSession() },
+                    onDiscard: { RunStore.shared.discardActiveSession() }
                 )
             }
         }

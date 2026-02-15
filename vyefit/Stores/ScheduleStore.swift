@@ -9,6 +9,8 @@ import SwiftUI
 
 @Observable
 class ScheduleStore {
+    static let shared = ScheduleStore()
+    
     var schedules: [Schedule] = []
     var repeatMode: ScheduleRepeatMode = .weekly
     var currentScheduleIndex: Int = 0

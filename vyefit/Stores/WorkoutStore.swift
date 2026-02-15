@@ -27,6 +27,8 @@ struct UserWorkout: Identifiable, Hashable, Codable {
 
 @Observable
 class WorkoutStore {
+    static let shared = WorkoutStore()
+    
     var workouts: [UserWorkout] = []
     var customExercises: [CatalogExercise] = []
     

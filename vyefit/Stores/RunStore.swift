@@ -10,6 +10,8 @@ import HealthKit
 
 @Observable
 class RunStore {
+    static let shared = RunStore()
+    
     var activeSession: RunSession?
     var showActiveRun: Bool = false
     
