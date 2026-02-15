@@ -123,11 +123,9 @@ class RunSession {
     private func tick() {
         guard state == .active else { return }
         
-        if !usesWatchMetrics {
-            let now = Date()
-            let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
-            elapsedSeconds = max(Int(elapsed), 0)
-        }
+        let now = Date()
+        let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+        elapsedSeconds = max(Int(elapsed), 0)
         
         // If not HealthKit-backed, keep lightweight simulation
         var distDelta: Double = 0
@@ -483,9 +481,6 @@ class RunSession {
             if metrics.heartRate > 0 {
                 self.currentHeartRate = Int(metrics.heartRate)
                 self.hasHeartRateData = true
-            }
-            if metrics.elapsedSeconds > 0 {
-                self.elapsedSeconds = metrics.elapsedSeconds
             }
         }
         

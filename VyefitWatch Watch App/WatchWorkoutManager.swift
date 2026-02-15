@@ -6,7 +6,7 @@
 import Foundation
 import Combine
 import HealthKit
-import CoreLocation
+@preconcurrency import CoreLocation
 
 @MainActor
 final class WatchWorkoutManager: NSObject, ObservableObject {
@@ -24,6 +24,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private var locationManager: CLLocationManager?
     private var lastLocation: CLLocation?
     private var startDate: Date?
+    private var ticker: Timer?
+    private var lastMetricsSend: Date?
     
     override init() {
         super.init()
@@ -64,29 +66,60 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             session.startActivity(with: startDate!)
             builder.beginCollection(withStart: startDate!) { _, _ in }
             startRouteTrackingIfNeeded(location: location)
+            startTicker()
         } catch {
             isRunning = false
         }
     }
-    
+
+    @MainActor
     func end() {
-        session?.end()
+        // Keep a simple sync entry point for existing call sites
+        Task { [weak self] in
+            guard let self else { return }
+            await self.endAsync()
+        }
+    }
+
+    @MainActor
+    func endAsync() async {
+        // Capture references by value to avoid capturing `self` in @Sendable closures
         let builder = self.builder
         let routeBuilder = self.routeBuilder
         let locationManager = self.locationManager
-        builder?.endCollection(withEnd: Date()) { [weak self] _, _ in
-            builder?.finishWorkout { workout, _ in
-                DispatchQueue.main.async {
-                    self?.isRunning = false
-                    locationManager?.stopUpdatingLocation()
-                    if let workout, let routeBuilder {
-                        routeBuilder.finishRoute(with: workout, metadata: nil) { _, _ in }
-                        WatchConnectivityManager.shared.sendEnded(uuid: workout.uuid)
-                    } else {
-                        WatchConnectivityManager.shared.sendEnded(uuid: nil)
-                    }
+
+        // End collection using async alternative via continuation
+        if let builder {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                builder.endCollection(withEnd: Date()) { _, _ in
+                    continuation.resume()
                 }
             }
+        }
+
+        // Finish workout using async alternative via continuation
+        let workout: HKWorkout? = await withCheckedContinuation { (continuation: CheckedContinuation<HKWorkout?, Never>) in
+            builder?.finishWorkout { workout, _ in
+                continuation.resume(returning: workout)
+            }
+        }
+
+        // Perform UI/state updates on the main actor
+        self.isRunning = false
+        self.ticker?.invalidate()
+        self.ticker = nil
+        locationManager?.stopUpdatingLocation()
+
+        // Finish route (if any) using async alternative and notify phone
+        if let workout, let routeBuilder {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                routeBuilder.finishRoute(with: workout, metadata: nil) { _, _ in
+                    continuation.resume()
+                }
+            }
+            WatchConnectivityManager.shared.sendEnded(uuid: workout.uuid)
+        } else {
+            WatchConnectivityManager.shared.sendEnded(uuid: nil)
         }
     }
     
@@ -105,6 +138,16 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private func updateElapsed() {
         if let startDate {
             elapsedSeconds = max(Int(Date().timeIntervalSince(startDate)), 0)
+        }
+    }
+
+    private func startTicker() {
+        ticker?.invalidate()
+        ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.updateElapsed()
+            }
         }
     }
 }
@@ -143,6 +186,11 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDel
         }
         
         updateElapsed()
+        let now = Date()
+        if let last = lastMetricsSend, now.timeIntervalSince(last) < 5 {
+            return
+        }
+        lastMetricsSend = now
         let activityLabel: String
         switch workoutBuilder.workoutConfiguration.activityType {
         case .running:
@@ -185,3 +233,4 @@ extension WatchWorkoutManager: CLLocationManagerDelegate {
         }
     }
 }
+

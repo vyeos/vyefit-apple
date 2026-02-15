@@ -10,6 +10,8 @@ import WatchConnectivity
 final class WatchConnectivityManager: NSObject, ObservableObject {
     static let shared = WatchConnectivityManager()
     
+    @Published private(set) var isReachable: Bool = false
+    
     var onStartCommand: ((String, String) -> Void)?
     var onEndCommand: (() -> Void)?
     
@@ -19,6 +21,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         let session = WCSession.default
         session.delegate = self
         session.activate()
+        isReachable = session.isReachable
     }
     
     func sendMetrics(activity: String, heartRate: Double, distanceMeters: Double, activeEnergyKcal: Double, cadenceSpm: Double, elapsedSeconds: Int) {
@@ -48,7 +51,17 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 }
 
 extension WatchConnectivityManager: WCSessionDelegate {
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) { }
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        DispatchQueue.main.async {
+            self.isReachable = session.isReachable
+        }
+    }
+    
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.isReachable = session.isReachable
+        }
+    }
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         if let command = message["command"] as? String, command == "start" {

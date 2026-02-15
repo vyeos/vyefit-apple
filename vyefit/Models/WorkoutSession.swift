@@ -101,11 +101,9 @@ class WorkoutSession {
     
     private func tick() {
         if state == .active {
-            if !usesWatchMetrics {
-                let now = Date()
-                let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
-                elapsedSeconds = max(Int(elapsed), 0)
-            }
+            let now = Date()
+            let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+            elapsedSeconds = max(Int(elapsed), 0)
             
             if healthController == nil && !usesWatchMetrics, elapsedSeconds % 5 == 0 {
                 currentHeartRate = Int.random(in: 80...160)
@@ -230,9 +228,6 @@ class WorkoutSession {
             if metrics.heartRate > 0 {
                 self.currentHeartRate = Int(metrics.heartRate)
                 self.hasHeartRateData = true
-            }
-            if metrics.elapsedSeconds > 0 {
-                self.elapsedSeconds = metrics.elapsedSeconds
             }
         }
         
