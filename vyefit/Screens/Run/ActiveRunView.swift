@@ -25,6 +25,9 @@ struct ActiveRunView: View {
                     primaryMetricView
                     
                     secondaryMetricsGrid
+                    if !session.healthWarnings.isEmpty {
+                        healthWarningView
+                    }
                     
                     Spacer()
                     
@@ -213,14 +216,17 @@ struct ActiveRunView: View {
         switch session.primaryMetric {
         case .distance:
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
+            if session.isHealthBacked && !session.hasDistanceData { return "--" }
             return String(format: "%.2f", dist)
         case .time, .quickStart, .intervals:
             return session.formattedTime
         case .calories:
+            if session.isHealthBacked && !session.hasCaloriesData { return "--" }
             return "\(session.activeCalories)"
         case .pace:
             return session.currentPace
         case .heartRate:
+            if session.isHealthBacked && !session.hasHeartRateData { return "--" }
             return "\(session.currentHeartRate)"
         }
     }
@@ -255,28 +261,57 @@ struct ActiveRunView: View {
             metrics.append(("Pace", session.currentPace, "/\(distanceUnit == "Kilometers" ? "km" : "mi")", "speedometer"))
         case .time, .quickStart:
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
             metrics.append(("Pace", session.currentPace, "/\(distanceUnit == "Kilometers" ? "km" : "mi")", "speedometer"))
         case .calories:
             metrics.append(("Time", session.formattedTime, "", "clock"))
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
         case .pace:
             metrics.append(("Time", session.formattedTime, "", "clock"))
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
         case .heartRate:
             metrics.append(("Time", session.formattedTime, "", "clock"))
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
         case .intervals:
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
             metrics.append(("Pace", session.currentPace, "/\(distanceUnit == "Kilometers" ? "km" : "mi")", "speedometer"))
         }
         
-        metrics.append(("Heart Rate", "\(session.currentHeartRate)", "bpm", "heart.fill"))
-        metrics.append(("Calories", "\(session.activeCalories)", "kcal", "flame.fill"))
+        if session.isHealthBacked && !session.hasHeartRateData {
+            metrics.append(("Heart Rate", "--", "No HR", "heart.fill"))
+        } else {
+            metrics.append(("Heart Rate", "\(session.currentHeartRate)", "bpm", "heart.fill"))
+        }
+        
+        if session.isHealthBacked && !session.hasCaloriesData {
+            metrics.append(("Calories", "--", "No data", "flame.fill"))
+        } else {
+            metrics.append(("Calories", "\(session.activeCalories)", "kcal", "flame.fill"))
+        }
         
         return metrics
     }
@@ -307,6 +342,18 @@ struct ActiveRunView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
+    }
+    
+    private var healthWarningView: some View {
+        VStack(spacing: 6) {
+            ForEach(session.healthWarnings, id: \.self) { warning in
+                Text(warning)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 8)
     }
     
     private var pausedOverlay: some View {

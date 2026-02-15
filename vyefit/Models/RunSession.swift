@@ -19,6 +19,10 @@ class RunSession {
     var currentHeartRate: Int = 75
     var activeCalories: Int = 0
     
+    var hasHeartRateData: Bool = false
+    var hasDistanceData: Bool = false
+    var hasCaloriesData: Bool = false
+    
     // Interval tracking
     var currentPhase: IntervalPhase = .warmup
     var currentStepIndex: Int = 0
@@ -64,6 +68,14 @@ class RunSession {
 
     var isHealthBacked: Bool {
         healthController != nil
+    }
+    
+    var healthWarnings: [String] {
+        guard isHealthBacked, elapsedSeconds > 10 else { return [] }
+        var warnings: [String] = []
+        if !hasHeartRateData { warnings.append("No heart rate sensor detected") }
+        if !hasDistanceData { warnings.append("No GPS data detected") }
+        return warnings
     }
     
     init(configuration: RunConfiguration, healthController: HealthKitWorkoutController? = nil) {
@@ -427,9 +439,18 @@ class RunSession {
     private func wireHealthController(_ controller: HealthKitWorkoutController) {
         controller.onMetrics = { [weak self] metrics in
             guard let self else { return }
-            self.currentDistance = metrics.distanceMeters / 1000.0
-            self.activeCalories = Int(metrics.activeEnergyKcal)
-            self.currentHeartRate = Int(metrics.heartRateBpm)
+            if metrics.distanceMeters > 0 {
+                self.currentDistance = metrics.distanceMeters / 1000.0
+                self.hasDistanceData = true
+            }
+            if metrics.activeEnergyKcal > 0 {
+                self.activeCalories = Int(metrics.activeEnergyKcal)
+                self.hasCaloriesData = true
+            }
+            if metrics.heartRateBpm > 0 {
+                self.currentHeartRate = Int(metrics.heartRateBpm)
+                self.hasHeartRateData = true
+            }
         }
         controller.onStateChange = { [weak self] state in
             guard let self else { return }

@@ -14,9 +14,14 @@ class RunStore {
     var showActiveRun: Bool = false
     
     func startSession(configuration: RunConfiguration) {
-        let stored = UserDefaults.standard.object(forKey: "healthWriteWorkouts")
-        let writeEnabled = stored == nil ? false : UserDefaults.standard.bool(forKey: "healthWriteWorkouts")
-        let controller: HealthKitWorkoutController? = writeEnabled && HealthKitManager.shared.isAuthorized
+        let writeStored = UserDefaults.standard.object(forKey: "healthWriteWorkouts")
+        let writeEnabled = writeStored == nil ? false : UserDefaults.standard.bool(forKey: "healthWriteWorkouts")
+        let readStored = UserDefaults.standard.object(forKey: "healthReadWorkouts")
+        let readEnabled = readStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadWorkouts")
+        let vitalsStored = UserDefaults.standard.object(forKey: "healthReadVitals")
+        let vitalsEnabled = vitalsStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadVitals")
+        let shouldUseHealth = HealthKitManager.shared.isAuthorized && (writeEnabled || readEnabled || vitalsEnabled)
+        let controller: HealthKitWorkoutController? = shouldUseHealth
             ? HealthKitManager.shared.startWorkoutController(activityType: .running, location: .outdoor)
             : nil
         activeSession = RunSession(configuration: configuration, healthController: controller)

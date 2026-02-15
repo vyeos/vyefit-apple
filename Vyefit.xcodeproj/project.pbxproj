@@ -403,6 +403,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Vyefit reads workouts, heart rate, and activity data to show your sessions.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Vyefit saves your workouts to Apple Health so your activity stays in sync.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Vyefit uses your location to record routes for outdoor runs and workouts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -438,6 +439,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Vyefit reads workouts, heart rate, and activity data to show your sessions.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Vyefit saves your workouts to Apple Health so your activity stays in sync.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Vyefit uses your location to record routes for outdoor runs and workouts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

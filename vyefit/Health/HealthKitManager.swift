@@ -172,7 +172,7 @@ final class HealthKitManager: NSObject, ObservableObject {
             let session = try HKWorkoutSession(healthStore: healthStore, configuration: config)
             let builder = session.associatedWorkoutBuilder()
             builder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: config)
-            let controller = HealthKitWorkoutController(healthStore: healthStore, session: session, builder: builder)
+            let controller = HealthKitWorkoutController(healthStore: healthStore, session: session, builder: builder, locationType: location)
             return controller
         } catch {
             return nil
@@ -466,14 +466,20 @@ final class HealthKitWorkoutController: NSObject {
     private let healthStore: HKHealthStore
     private let session: HKWorkoutSession
     private let builder: HKLiveWorkoutBuilder
+    private let locationType: HKWorkoutSessionLocationType
+    private var routeBuilder: HKWorkoutRouteBuilder?
+    private var locationManager: CLLocationManager?
+    private var lastLocation: CLLocation?
+    private var totalDistanceMeters: Double = 0
 
     var onMetrics: ((HealthKitMetrics) -> Void)?
     var onStateChange: ((HKWorkoutSessionState) -> Void)?
 
-    init(healthStore: HKHealthStore, session: HKWorkoutSession, builder: HKLiveWorkoutBuilder) {
+    init(healthStore: HKHealthStore, session: HKWorkoutSession, builder: HKLiveWorkoutBuilder, locationType: HKWorkoutSessionLocationType) {
         self.healthStore = healthStore
         self.session = session
         self.builder = builder
+        self.locationType = locationType
         super.init()
         session.delegate = self
         builder.delegate = self
@@ -483,6 +489,7 @@ final class HealthKitWorkoutController: NSObject {
         let startDate = Date()
         session.startActivity(with: startDate)
         builder.beginCollection(withStart: startDate) { _, _ in }
+        startRouteTrackingIfNeeded()
     }
 
     func pause() {
@@ -497,9 +504,33 @@ final class HealthKitWorkoutController: NSObject {
         session.end()
         builder.endCollection(withEnd: Date()) { [weak self] _, _ in
             self?.builder.finishWorkout { workout, _ in
-                DispatchQueue.main.async { completion?(workout) }
+                guard let self else {
+                    DispatchQueue.main.async { completion?(workout) }
+                    return
+                }
+                if let workout, let routeBuilder = self.routeBuilder, self.locationType == .outdoor {
+                    self.locationManager?.stopUpdatingLocation()
+                    routeBuilder.finishRoute(with: workout, metadata: nil) { _, _ in
+                        DispatchQueue.main.async { completion?(workout) }
+                    }
+                } else {
+                    self.locationManager?.stopUpdatingLocation()
+                    DispatchQueue.main.async { completion?(workout) }
+                }
             }
         }
+    }
+
+    private func startRouteTrackingIfNeeded() {
+        guard locationType == .outdoor else { return }
+        let manager = CLLocationManager()
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.activityType = .fitness
+        manager.delegate = self
+        manager.requestWhenInUseAuthorization()
+        manager.startUpdatingLocation()
+        locationManager = manager
+        routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: .local())
     }
 }
 
@@ -533,7 +564,8 @@ extension HealthKitWorkoutController: HKWorkoutSessionDelegate, HKLiveWorkoutBui
             metrics.heartRateBpm = stats.mostRecentQuantity()?.doubleValue(for: unit) ?? 0
         }
 
-        if let stepsType = HKQuantityType.quantityType(forIdentifier: .stepCount), collectedTypes.contains(stepsType),
+        if let stepsType = HKQuantityType.quantityType(forIdentifier: .stepCount),
+           collectedTypes.contains(stepsType),
            let stats = workoutBuilder.statistics(for: stepsType) {
             let steps = stats.sumQuantity()?.doubleValue(for: .count()) ?? 0
             let minutes = max(workoutBuilder.elapsedTime / 60.0, 1.0 / 60.0)
@@ -542,6 +574,32 @@ extension HealthKitWorkoutController: HKWorkoutSessionDelegate, HKLiveWorkoutBui
 
         DispatchQueue.main.async {
             self.onMetrics?(metrics)
+        }
+    }
+}
+
+extension HealthKitWorkoutController: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let routeBuilder else { return }
+        routeBuilder.insertRouteData(locations) { _, _ in }
+        
+        guard let distanceType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning) else { return }
+        var samples: [HKQuantitySample] = []
+        for location in locations {
+            if let last = lastLocation {
+                let delta = location.distance(from: last)
+                if delta > 0 {
+                    totalDistanceMeters += delta
+                    let quantity = HKQuantity(unit: .meter(), doubleValue: delta)
+                    let sample = HKQuantitySample(type: distanceType, quantity: quantity, start: last.timestamp, end: location.timestamp)
+                    samples.append(sample)
+                }
+            }
+            lastLocation = location
+        }
+        
+        if !samples.isEmpty {
+            builder.add(samples) { _, _ in }
         }
     }
 }

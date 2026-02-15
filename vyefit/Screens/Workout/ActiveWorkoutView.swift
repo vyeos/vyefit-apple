@@ -137,6 +137,9 @@ struct LogView: View {
         ZStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    if !session.healthWarnings.isEmpty {
+                        HealthWarningBanner(messages: session.healthWarnings)
+                    }
                     if session.state != .paused {
                         if session.isResting {
                             RestTimerBanner(session: session)
@@ -446,9 +449,12 @@ struct StatsView: View {
     
     var body: some View {
         VStack(spacing: 20) {
+            if !session.healthWarnings.isEmpty {
+                HealthWarningBanner(messages: session.healthWarnings)
+            }
             StatsCard(
                 title: "Heart Rate",
-                value: "\(session.currentHeartRate)",
+                value: session.isHealthBacked && !session.hasHeartRateData ? "--" : "\(session.currentHeartRate)",
                 unit: "BPM",
                 icon: "heart.fill",
                 color: .red
@@ -456,7 +462,7 @@ struct StatsView: View {
             
             StatsCard(
                 title: "Active Calories",
-                value: "\(session.activeCalories)",
+                value: session.isHealthBacked && !session.hasCaloriesData ? "--" : "\(session.activeCalories)",
                 unit: "KCAL",
                 icon: "flame.fill",
                 color: .orange
@@ -543,6 +549,24 @@ struct StatsCard: View {
         .padding()
         .background(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+struct HealthWarningBanner: View {
+    let messages: [String]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(messages, id: \.self) { message in
+                Text(message)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Theme.sand.opacity(0.4))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
