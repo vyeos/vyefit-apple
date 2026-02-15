@@ -138,7 +138,7 @@ struct DashboardView: View {
                     // Wellness cards
                     HStack(spacing: 14) {
                         WellnessCard(icon: "flame.fill", value: "\(workoutsThisWeek)", label: "Workouts\nthis week", color: Theme.terracotta)
-                        WellnessCard(icon: "figure.run", value: String(format: "%.1f", kmThisMonth), label: "km Run\nthis month", color: Theme.stone)
+                        WellnessCard(icon: "figure.run", value: String(format: "%.1f", kmThisMonth), label: "km\nthis month", color: Theme.stone)
                     }
                     .padding(.horizontal, 20)
 
@@ -147,9 +147,6 @@ struct DashboardView: View {
                         WellnessCard(icon: "bolt.fill", value: "\(dayStreak)", label: "Day\nStreak", color: Theme.terracotta)
                     }
                     .padding(.horizontal, 20)
-
-                    // Week calendar
-                    WeekStripView()
 
                     // This Week's Sessions
                     VStack(alignment: .leading, spacing: 14) {

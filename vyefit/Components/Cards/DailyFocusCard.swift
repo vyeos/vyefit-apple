@@ -62,7 +62,7 @@ struct DailyFocusCard: View {
                 color: Theme.sage,
                 isRest: false
             )
-        } else if let busyItem = todayItems.first(where: { $0.type == .busy }) {
+				} else if todayItems.first(where: { $0.type == .busy }) != nil {
             return (
                 icon: "briefcase.fill",
                 title: "Busy",
