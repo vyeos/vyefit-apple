@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct WorkoutCard: View {
-    let workout: MockWorkout
+    let workout: WorkoutTemplate
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -33,15 +33,4 @@ struct WorkoutCard: View {
         .background(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
-}
-
-#Preview {
-    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
-        WorkoutCard(workout: SampleData.workouts[0])
-        WorkoutCard(workout: SampleData.workouts[1])
-        WorkoutCard(workout: SampleData.workouts[2])
-        WorkoutCard(workout: SampleData.workouts[3])
-    }
-    .padding(20)
-    .background(Theme.background)
 }

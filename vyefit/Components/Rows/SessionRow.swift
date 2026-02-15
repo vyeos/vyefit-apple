@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SessionRow: View {
-    let run: MockRunSession
+    let run: RunSessionRecord
 
     var body: some View {
         NavigationLink(destination: SessionDetailView(runSession: run)) {
@@ -54,7 +54,7 @@ struct SessionRow: View {
                     }
                     .font(.system(size: 12, weight: .medium))
                     
-                    Text(SampleData.formatDuration(run.duration))
+                    Text(formatDuration(run.duration))
                         .font(.system(size: 12, weight: .medium, design: .monospaced))
                         .foregroundStyle(Theme.stone)
                 }
@@ -65,15 +65,4 @@ struct SessionRow: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-}
-
-#Preview {
-    VStack(spacing: 8) {
-        SessionRow(run: SampleData.runSessions[0])
-            .padding(.horizontal, 20)
-        SessionRow(run: SampleData.runSessions[1])
-            .padding(.horizontal, 20)
-    }
-    .padding(.vertical)
-    .background(Theme.background)
 }

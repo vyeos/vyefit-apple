@@ -10,14 +10,14 @@ import SwiftUI
 struct ProfileView: View {
     @AppStorage("userName") private var userName = "Rudra Patel"
     
-    private var currentMonthRuns: [MockRunSession] {
+    private var currentMonthRuns: [RunSessionRecord] {
         let calendar = Calendar.current
-        return HistoryStore.shared.mockRunSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        return HistoryStore.shared.runSessionRecords.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
     }
     
-    private var currentMonthWorkouts: [MockWorkoutSession] {
+    private var currentMonthWorkouts: [WorkoutSessionRecord] {
         let calendar = Calendar.current
-        return HistoryStore.shared.mockWorkoutSessions.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        return HistoryStore.shared.workoutSessionRecords.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
     }
 
     var body: some View {
@@ -80,16 +80,15 @@ struct ProfileView: View {
                         }
 
                         // Show in-progress milestones first, then completed, limited to 4
-                        let inProgressMilestones = SampleData.achievements.filter { !$0.isUnlocked }
-                        let completedMilestones = SampleData.achievements.filter { $0.isUnlocked }
+                        let inProgressMilestones = Templates.achievements.filter { !$0.isUnlocked }
+                        let completedMilestones = Templates.achievements.filter { $0.isUnlocked }
                         let displayMilestones = Array((inProgressMilestones + completedMilestones).prefix(4))
                         
                         ForEach(displayMilestones) { a in
                             MilestoneRow(achievement: a)
                         }
                         
-                        // Show count of hidden milestones
-                        let remainingCount = SampleData.achievements.count - displayMilestones.count
+                        let remainingCount = Templates.achievements.count - displayMilestones.count
                         if remainingCount > 0 {
                             NavigationLink {
                                 AllMilestonesView()
@@ -167,7 +166,7 @@ struct ProfileView: View {
 }
 
 struct WorkoutSessionRow: View {
-    let session: MockWorkoutSession
+    let session: WorkoutSessionRecord
     
     var body: some View {
         NavigationLink(destination: SessionDetailView(workoutSession: session)) {
@@ -215,7 +214,7 @@ struct WorkoutSessionRow: View {
                     }
                     .font(.system(size: 12, weight: .medium))
                     
-                    Text(SampleData.formatDuration(session.duration))
+                    Text(formatDuration(session.duration))
                         .font(.system(size: 12, weight: .medium, design: .monospaced))
                         .foregroundStyle(Theme.stone)
                 }

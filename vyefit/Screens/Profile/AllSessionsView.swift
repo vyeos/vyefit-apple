@@ -14,12 +14,12 @@ struct AllSessionsView: View {
         _filter = State(initialValue: filter)
     }
     
-    private var allRuns: [MockRunSession] {
-        HistoryStore.shared.mockRunSessions.sorted { $0.date > $1.date }
+    private var allRuns: [RunSessionRecord] {
+        HistoryStore.shared.runSessionRecords.sorted { $0.date > $1.date }
     }
     
-    private var allWorkouts: [MockWorkoutSession] {
-        HistoryStore.shared.mockWorkoutSessions.sorted { $0.date > $1.date }
+    private var allWorkouts: [WorkoutSessionRecord] {
+        HistoryStore.shared.workoutSessionRecords.sorted { $0.date > $1.date }
     }
     
     private var filteredSessions: [(session: Any, type: SessionType, date: Date)] {
@@ -79,10 +79,10 @@ struct AllSessionsView: View {
                             
                             VStack(spacing: 8) {
                                 ForEach(Array(sessions.enumerated()), id: \.offset) { _, item in
-                                    if item.type == .run, let run = item.session as? MockRunSession {
+                                    if item.type == .run, let run = item.session as? RunSessionRecord {
                                         SessionRow(run: run)
                                             .padding(.horizontal, 20)
-                                    } else if item.type == .workout, let workout = item.session as? MockWorkoutSession {
+                                    } else if item.type == .workout, let workout = item.session as? WorkoutSessionRecord {
                                         WorkoutSessionRow(session: workout)
                                             .padding(.horizontal, 20)
                                     }

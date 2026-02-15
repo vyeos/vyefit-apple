@@ -11,7 +11,7 @@ struct WorkoutsView: View {
     @Environment(WorkoutStore.self) private var workoutStore
     @Environment(RunStore.self) private var runStore
     @State private var showCreateSheet = false
-    @State private var selectedTemplate: MockWorkout?
+    @State private var selectedTemplate: WorkoutTemplate?
     @State private var editingWorkout: UserWorkout?
     @State private var showActiveSessionAlert = false
 
@@ -64,14 +64,20 @@ struct WorkoutsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 4)
 
-                    // Sample/template workouts — 2x2 grid
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
-                        ForEach(SampleData.workouts) { workout in
-                            Button { selectedTemplate = workout } label: {
-                                WorkoutCard(workout: workout)
-                            }
-                            .buttonStyle(.plain)
+                    if workoutStore.workouts.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "dumbbell")
+                                .font(.system(size: 40))
+                                .foregroundStyle(Theme.stone.opacity(0.4))
+                            Text("No workouts yet")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Theme.textSecondary)
+                            Text("Create your first workout to get started")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.stone)
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
                     }
 
                 }

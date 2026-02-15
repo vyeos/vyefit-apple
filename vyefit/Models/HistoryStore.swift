@@ -8,50 +8,6 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Shared Data Models
-
-struct HistoryHeartRateDataPoint: Identifiable, Codable {
-    let id: UUID
-    let timestamp: TimeInterval
-    let heartRate: Int
-    
-    init(id: UUID = UUID(), timestamp: TimeInterval, heartRate: Int) {
-        self.id = id
-        self.timestamp = timestamp
-        self.heartRate = heartRate
-    }
-}
-
-struct HistoryRunSplit: Identifiable, Codable {
-    let id: UUID
-    let kilometer: Int
-    let pace: Double
-    let elevationChange: Double
-    
-    init(id: UUID = UUID(), kilometer: Int, pace: Double, elevationChange: Double) {
-        self.id = id
-        self.kilometer = kilometer
-        self.pace = pace
-        self.elevationChange = elevationChange
-    }
-}
-
-struct HistoryMapCoordinate: Identifiable, Codable {
-    let id: UUID
-    let latitude: Double
-    let longitude: Double
-    let timestamp: TimeInterval
-    
-    init(id: UUID = UUID(), latitude: Double, longitude: Double, timestamp: TimeInterval) {
-        self.id = id
-        self.latitude = latitude
-        self.longitude = longitude
-        self.timestamp = timestamp
-    }
-}
-
-// MARK: - Completed Session Models
-
 struct CompletedWorkout: Identifiable, Codable {
     let id: UUID
     let date: Date
@@ -62,11 +18,10 @@ struct CompletedWorkout: Identifiable, Codable {
     let exerciseCount: Int
     let heartRateAvg: Int
     let heartRateMax: Int
-    let heartRateData: [HistoryHeartRateDataPoint]
+    let heartRateData: [HeartRateDataPoint]
     
-    // We store minimal workout info to avoid referencing UserWorkout directly (which might be deleted)
     let workoutName: String
-    let workoutType: String // Store raw value of WorkoutType
+    let workoutType: String
     
     let wasPaused: Bool
     let totalElapsedTime: TimeInterval?
@@ -84,21 +39,19 @@ struct CompletedRun: Identifiable, Codable {
     let avgPace: Double
     let heartRateAvg: Int
     let heartRateMax: Int
-    let heartRateData: [HistoryHeartRateDataPoint]
-    let type: String // Store raw value of RunGoalType
+    let heartRateData: [HeartRateDataPoint]
+    let type: String
     
     let elevationGain: Double
     let elevationLoss: Double
     let avgCadence: Int
-    let splits: [HistoryRunSplit]
-    let route: [HistoryMapCoordinate]
+    let splits: [RunSplit]
+    let route: [MapCoordinate]
     
     let wasPaused: Bool
     let totalElapsedTime: TimeInterval?
     let workingTime: TimeInterval?
 }
-
-// MARK: - History Store
 
 @Observable
 class HistoryStore {
@@ -123,13 +76,13 @@ class HistoryStore {
             id: UUID(),
             date: Date(),
             name: name,
-            location: "Current Location", // Placeholder
+            location: "Current Location",
             duration: duration,
             calories: calories,
             exerciseCount: exerciseCount,
-            heartRateAvg: avgHeartRate, // Simplified
-            heartRateMax: avgHeartRate + 10, // Simplified
-            heartRateData: [], // We don't have this in WorkoutSession yet
+            heartRateAvg: avgHeartRate,
+            heartRateMax: avgHeartRate + 10,
+            heartRateData: [],
             workoutName: name,
             workoutType: workoutType,
             wasPaused: false,
@@ -161,7 +114,7 @@ class HistoryStore {
             avgPace: avgPace,
             heartRateAvg: avgHeartRate,
             heartRateMax: avgHeartRate + 10,
-            heartRateData: [], // Placeholder
+            heartRateData: [],
             type: type,
             elevationGain: 0,
             elevationLoss: 0,
@@ -176,8 +129,6 @@ class HistoryStore {
         completedRuns.insert(completed, at: 0)
         saveToDisk()
     }
-    
-    // MARK: - Persistence
     
     private func saveToDisk() {
         if let encoded = try? JSONEncoder().encode(completedWorkouts) {
@@ -200,13 +151,11 @@ class HistoryStore {
         }
     }
     
-    func toMockRunSession(_ completed: CompletedRun) -> MockRunSession {
+    func toRunSessionRecord(_ completed: CompletedRun) -> RunSessionRecord {
         let runType = RunGoalType(rawValue: completed.type) ?? .quickStart
-        let heartRateMock = completed.heartRateData.map { HeartRateDataPoint(timestamp: $0.timestamp, heartRate: $0.heartRate) }
-        let splitsMock = completed.splits.map { RunSplit(kilometer: $0.kilometer, pace: $0.pace, elevationChange: $0.elevationChange) }
-        let routeMock = completed.route.map { MapCoordinate(latitude: $0.latitude, longitude: $0.longitude, timestamp: $0.timestamp) }
         
-        return MockRunSession(
+        return RunSessionRecord(
+            id: completed.id,
             date: completed.date,
             name: completed.name,
             location: completed.location,
@@ -216,32 +165,22 @@ class HistoryStore {
             avgPace: completed.avgPace,
             heartRateAvg: completed.heartRateAvg,
             heartRateMax: completed.heartRateMax,
-            heartRateData: heartRateMock,
+            heartRateData: completed.heartRateData,
             type: runType,
             elevationGain: completed.elevationGain,
             elevationLoss: completed.elevationLoss,
             avgCadence: completed.avgCadence,
-            splits: splitsMock,
-            route: routeMock,
+            splits: completed.splits,
+            route: completed.route,
             wasPaused: completed.wasPaused,
             totalElapsedTime: completed.totalElapsedTime,
             workingTime: completed.workingTime
         )
     }
     
-    func toMockWorkoutSession(_ completed: CompletedWorkout) -> MockWorkoutSession {
-        let heartRateMock = completed.heartRateData.map { HeartRateDataPoint(timestamp: $0.timestamp, heartRate: $0.heartRate) }
-        
-        let mockWorkout: MockWorkout? = MockWorkout(
-            name: completed.workoutName,
-            exercises: [],
-            color: Theme.terracotta,
-            icon: "dumbbell.fill",
-            lastPerformed: completed.date,
-            scheduledDay: nil
-        )
-        
-        return MockWorkoutSession(
+    func toWorkoutSessionRecord(_ completed: CompletedWorkout) -> WorkoutSessionRecord {
+        return WorkoutSessionRecord(
+            id: completed.id,
             date: completed.date,
             name: completed.name,
             location: completed.location,
@@ -250,19 +189,19 @@ class HistoryStore {
             exerciseCount: completed.exerciseCount,
             heartRateAvg: completed.heartRateAvg,
             heartRateMax: completed.heartRateMax,
-            heartRateData: heartRateMock,
-            workout: mockWorkout,
+            heartRateData: completed.heartRateData,
+            workoutTemplateName: completed.workoutName,
             wasPaused: completed.wasPaused,
             totalElapsedTime: completed.totalElapsedTime,
             workingTime: completed.workingTime
         )
     }
     
-    var mockRunSessions: [MockRunSession] {
-        completedRuns.map { toMockRunSession($0) }
+    var runSessionRecords: [RunSessionRecord] {
+        completedRuns.map { toRunSessionRecord($0) }
     }
     
-    var mockWorkoutSessions: [MockWorkoutSession] {
-        completedWorkouts.map { toMockWorkoutSession($0) }
+    var workoutSessionRecords: [WorkoutSessionRecord] {
+        completedWorkouts.map { toWorkoutSessionRecord($0) }
     }
 }

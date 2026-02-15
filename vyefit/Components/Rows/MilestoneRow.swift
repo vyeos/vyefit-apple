@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MilestoneRow: View {
-    let achievement: MockAchievement
+    let achievement: Achievement
 
     var body: some View {
         HStack(spacing: 14) {
@@ -36,18 +36,14 @@ struct MilestoneRow: View {
                     .foregroundStyle(Theme.sage)
             } else {
                 VStack(alignment: .trailing, spacing: 4) {
-                    // Progress percentage text
                     Text("\(Int(achievement.progress * 100))%")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Theme.sage)
                     
-                    // Progress bar with background track
                     ZStack(alignment: .leading) {
-                        // Background track - using stone with opacity for visibility in both modes
                         Capsule()
                             .fill(Theme.stone.opacity(0.35))
                             .frame(width: 60, height: 6)
-                        // Progress fill
                         Capsule()
                             .fill(Theme.sage)
                             .frame(width: 60 * achievement.progress, height: 6)
@@ -57,12 +53,4 @@ struct MilestoneRow: View {
         }
         .padding(.vertical, 8)
     }
-}
-
-#Preview {
-    VStack {
-        MilestoneRow(achievement: SampleData.achievements[0])
-        MilestoneRow(achievement: SampleData.achievements[2])
-    }
-    .background(Theme.background)
 }

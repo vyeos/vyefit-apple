@@ -15,7 +15,7 @@ struct WeekStripView: View {
                 .foregroundStyle(Theme.textPrimary)
 
             HStack(spacing: 0) {
-                ForEach(SampleData.weekSchedule) { day in
+                ForEach(Templates.weekSchedule(workouts: [])) { day in
                     VStack(spacing: 10) {
                         Text(day.shortName)
                             .font(.system(size: 12, weight: .medium))
@@ -43,9 +43,4 @@ struct WeekStripView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal, 20)
     }
-}
-
-#Preview {
-    WeekStripView()
-        .background(Theme.background)
 }

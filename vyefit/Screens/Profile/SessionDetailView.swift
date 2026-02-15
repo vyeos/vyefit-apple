@@ -10,8 +10,8 @@ import Charts
 import MapKit
 
 struct SessionDetailView: View {
-    let runSession: MockRunSession?
-    let workoutSession: MockWorkoutSession?
+    let runSession: RunSessionRecord?
+    let workoutSession: WorkoutSessionRecord?
     
     @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
     @State private var showHeartRateDetails = false
@@ -51,12 +51,12 @@ struct SessionDetailView: View {
         runSession?.workingTime ?? workoutSession?.workingTime
     }
     
-    init(runSession: MockRunSession) {
+    init(runSession: RunSessionRecord) {
         self.runSession = runSession
         self.workoutSession = nil
     }
     
-    init(workoutSession: MockWorkoutSession) {
+    init(workoutSession: WorkoutSessionRecord) {
         self.runSession = nil
         self.workoutSession = workoutSession
     }
@@ -93,8 +93,8 @@ struct SessionDetailView: View {
                 }
                 
                 // Workout-specific sections
-                if !isRun, let workout = workoutSession?.workout {
-                    workoutPerformedSection(workout: workout)
+                if !isRun, let workout = workoutSession {
+                    workoutSessionSection(session: workout)
                 }
             }
             .padding(.vertical, 20)
@@ -325,7 +325,7 @@ struct SessionDetailView: View {
         .padding(.horizontal, 20)
     }
     
-    private func mapSection(run: MockRunSession) -> some View {
+    private func mapSection(run: RunSessionRecord) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Route")
@@ -353,7 +353,7 @@ struct SessionDetailView: View {
         .padding(.horizontal, 20)
     }
     
-    private func runStatsSection(run: MockRunSession) -> some View {
+    private func runStatsSection(run: RunSessionRecord) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Run Stats")
                 .font(.system(size: 18, weight: .semibold, design: .serif))
@@ -423,7 +423,7 @@ struct SessionDetailView: View {
         .padding(.horizontal, 20)
     }
     
-    private func splitsSection(run: MockRunSession) -> some View {
+    private func splitsSection(run: RunSessionRecord) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             let paceUnit = distanceUnit == "Kilometers" ? "min/km" : "min/mi"
             
@@ -495,66 +495,35 @@ struct SessionDetailView: View {
         .padding(.horizontal, 20)
     }
     
-    private func workoutPerformedSection(workout: MockWorkout) -> some View {
+    private func workoutSessionSection(session: WorkoutSessionRecord) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Workout Performed")
+            Text("Workout")
                 .font(.system(size: 18, weight: .semibold, design: .serif))
                 .foregroundStyle(Theme.textPrimary)
             
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(workout.color.opacity(0.15))
-                            .frame(width: 48, height: 48)
-                        
-                        Image(systemName: workout.icon)
-                            .font(.system(size: 22))
-                            .foregroundStyle(workout.color)
-                    }
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.terracotta.opacity(0.15))
+                        .frame(width: 48, height: 48)
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(workout.name)
-                            .font(.system(size: 18, weight: .semibold, design: .serif))
-                            .foregroundStyle(Theme.textPrimary)
-                        
-                        Text("\(workout.exercises.count) exercises")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Theme.textSecondary)
-                    }
-                    
-                    Spacer()
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Theme.terracotta)
                 }
                 
-                Divider()
-                    .background(Theme.stone.opacity(0.2))
-                
-                // Exercises list
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(workout.exercises) { exercise in
-                        HStack {
-                            Image(systemName: exercise.icon)
-                                .font(.system(size: 14))
-                                .foregroundStyle(Theme.sage)
-                                .frame(width: 24)
-                            
-                            Text(exercise.name)
-                                .font(.system(size: 15))
-                                .foregroundStyle(Theme.textPrimary)
-                            
-                            Spacer()
-                            
-                            Text("\(exercise.sets.count) sets")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                        .padding(.vertical, 4)
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(session.workoutTemplateName ?? session.name)
+                        .font(.system(size: 18, weight: .semibold, design: .serif))
+                        .foregroundStyle(Theme.textPrimary)
+                    
+                    Text("\(session.exerciseCount) exercises")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.textSecondary)
                 }
+                
+                Spacer()
             }
-            .padding(16)
-            .background(Theme.sand.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(16)
         .background(Theme.cardBackground)
@@ -817,25 +786,5 @@ struct RouteMapView: View {
             }
         }
         .mapStyle(.standard)
-    }
-}
-
-// MARK: - Previews
-
-#Preview {
-    NavigationStack {
-        SessionDetailView(runSession: SampleData.runSessions[0])
-    }
-}
-
-#Preview("Workout") {
-    NavigationStack {
-        SessionDetailView(workoutSession: SampleData.workoutSessions[0])
-    }
-}
-
-#Preview("Paused Run") {
-    NavigationStack {
-        SessionDetailView(runSession: SampleData.runSessions[3])
     }
 }

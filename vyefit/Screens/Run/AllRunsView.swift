@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct AllRunsView: View {
-    var runs: [MockRunSession] { HistoryStore.shared.mockRunSessions.sorted { $0.date > $1.date } }
+    var runs: [RunSessionRecord] { HistoryStore.shared.runSessionRecords.sorted { $0.date > $1.date } }
     
-    var groupedRuns: [(String, [MockRunSession])] {
+    var groupedRuns: [(String, [RunSessionRecord])] {
         let uniqueMonths = Set(runs.map {
             Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: $0.date))!
         }).sorted(by: >)

@@ -32,20 +32,3 @@ struct SettingsCard<Content: View>: View {
         .padding(.horizontal, 20)
     }
 }
-
-#Preview {
-    ScrollView {
-        VStack(spacing: 16) {
-            SettingsCard("Sample") {
-                Toggle("Example", isOn: .constant(true))
-                    .tint(Theme.sage)
-            }
-
-            SettingsCard {
-                Text("No title card")
-            }
-        }
-        .padding(.vertical)
-    }
-    .background(Theme.background)
-}

@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct DashboardView: View {
-    private var recentRuns: [MockRunSession] {
-        HistoryStore.shared.mockRunSessions.sorted { $0.date > $1.date }.prefix(2).map { $0 }
+    private var recentRuns: [RunSessionRecord] {
+        HistoryStore.shared.runSessionRecords.sorted { $0.date > $1.date }.prefix(2).map { $0 }
     }
     
     var body: some View {

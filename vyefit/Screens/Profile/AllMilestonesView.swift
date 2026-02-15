@@ -22,20 +22,20 @@ struct AllMilestonesView: View {
         colorScheme == .dark ? Theme.terracotta : Theme.sage
     }
     
-    private var filteredAchievements: [MockAchievement] {
+    private var filteredAchievements: [Achievement] {
         switch selectedFilter {
         case .all:
-            return SampleData.achievements
+            return Templates.achievements
         case .inProgress:
-            return SampleData.achievements.filter { !$0.isUnlocked }
+            return Templates.achievements.filter { !$0.isUnlocked }
         case .completed:
-            return SampleData.achievements.filter { $0.isUnlocked }
+            return Templates.achievements.filter { $0.isUnlocked }
         }
     }
     
     private var progressStats: (completed: Int, total: Int, percentage: Double) {
-        let total = SampleData.achievements.count
-        let completed = SampleData.achievements.filter { $0.isUnlocked }.count
+        let total = Templates.achievements.count
+        let completed = Templates.achievements.filter { $0.isUnlocked }.count
         let percentage = total > 0 ? Double(completed) / Double(total) : 0
         return (completed, total, percentage)
     }

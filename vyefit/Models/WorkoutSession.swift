@@ -75,7 +75,6 @@ class WorkoutSession {
         if state == .active {
             elapsedSeconds += 1
             
-            // Mock data updates
             if elapsedSeconds % 5 == 0 {
                 currentHeartRate = Int.random(in: 80...160)
                 activeCalories += 1

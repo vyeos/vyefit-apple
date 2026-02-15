@@ -30,15 +30,15 @@ struct CreateWorkoutView: View {
     @State private var editMode: EditMode = .inactive
     private let editingId: UUID?
 
-    init(template: MockWorkout? = nil) {
+    init(template: WorkoutTemplate? = nil) {
         editingId = nil
         if let t = template {
             _workoutName = State(initialValue: t.name)
             _selectedIcon = State(initialValue: t.icon)
             _selectedWorkoutType = State(initialValue: .traditionalStrengthTraining)
-            _selectedExercises = State(initialValue: t.exercises.map { mock in
-                ExerciseCatalog.all.first { $0.name == mock.name }
-                    ?? CatalogExercise(name: mock.name, muscleGroup: mock.muscleGroup, icon: mock.icon)
+            _selectedExercises = State(initialValue: t.exercises.map { exercise in
+                ExerciseCatalog.all.first { $0.name == exercise.name }
+                    ?? CatalogExercise(name: exercise.name, muscleGroup: exercise.muscleGroup, icon: exercise.icon)
             })
         } else {
             _workoutName = State(initialValue: "")
@@ -247,7 +247,7 @@ struct CreateWorkoutView: View {
             Spacer()
 
             if let date = exercise.lastPerformed {
-                Text(SampleData.relativeDateString(date))
+                Text(relativeDateString(date))
                     .font(.system(size: 10))
                     .foregroundStyle(Theme.stone)
             }
@@ -466,7 +466,7 @@ struct ExercisePickerView: View {
             Spacer()
 
             if let date = exercise.lastPerformed {
-                Text(SampleData.relativeDateString(date))
+                Text(relativeDateString(date))
                     .font(.system(size: 10))
                     .foregroundStyle(Theme.stone)
             }
