@@ -72,8 +72,8 @@ struct ActiveRunView: View {
                     isPerformingAction = true
                     Task(priority: TaskPriority.userInitiated) {
                         defer { isPerformingAction = false }
-                        onEnd()
                         await session.endRunAsync()
+                        onEnd()
                         dismiss()
                     }
                 }
@@ -85,8 +85,8 @@ struct ActiveRunView: View {
                     isPerformingAction = true
                     Task(priority: TaskPriority.userInitiated) {
                         defer { isPerformingAction = false }
-                        onDiscard()
                         await session.endRunAsync()
+                        onDiscard()
                         dismiss()
                     }
                 }
@@ -406,4 +406,3 @@ struct SecondaryMetricCard: View {
         onDiscard: {}
     )
 }
-

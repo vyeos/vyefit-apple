@@ -13,7 +13,7 @@ struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showEndConfirmation = false
     @State private var showShortSessionAlert = false
-    @State private var showAppleWatchPrompt = false
+    @State private var showHealthConnectPrompt = false
     var onEnd: () -> Void
     var onDiscard: () -> Void
     
@@ -72,33 +72,45 @@ struct ActiveWorkoutView: View {
                     if session.elapsedSeconds < 60 {
                         showShortSessionAlert = true
                     } else {
-                        onEnd()
-                        dismiss()
+                        Task(priority: TaskPriority.userInitiated) {
+                            await session.endWorkoutAsync()
+                            onEnd()
+                            dismiss()
+                        }
                     }
                 }
                 Button("Cancel", role: .cancel) { }
             }
             .alert("Discard Workout?", isPresented: $showShortSessionAlert) {
                 Button("Discard", role: .destructive) {
-                    onDiscard()
-                    dismiss()
+                    Task(priority: TaskPriority.userInitiated) {
+                        await session.endWorkoutAsync()
+                        onDiscard()
+                        dismiss()
+                    }
                 }
                 Button("Keep Going", role: .cancel) { }
             } message: {
                 Text("This workout is less than 1 minute. It might have been started by mistake. Discard it?")
             }
-            .alert("Start on Apple Watch?", isPresented: $showAppleWatchPrompt) {
-                Button("Start \(session.workout.workoutType.rawValue)") {
-                    // Logic to start HKWorkoutSession would go here
+            .alert("Connect Apple Health?", isPresented: $showHealthConnectPrompt) {
+                Button("Enable") {
+                    HealthKitManager.shared.requestAuthorization(
+                        readWorkouts: true,
+                        writeWorkouts: true,
+                        readVitals: true
+                    ) { _, _ in }
                 }
                 Button("Skip", role: .cancel) { }
             } message: {
-                Text("Do you want to track this \(session.workout.workoutType.rawValue) workout on your Apple Watch?")
+                Text("Enable Apple Health to track this workout with real data from Apple Watch.")
             }
             .onAppear {
                 if !session.hasShownWatchPrompt {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showAppleWatchPrompt = true
+                        if !HealthKitManager.shared.isAuthorized {
+                            showHealthConnectPrompt = true
+                        }
                         session.hasShownWatchPrompt = true
                     }
                 }

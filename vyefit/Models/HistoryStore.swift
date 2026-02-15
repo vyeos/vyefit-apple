@@ -129,6 +129,20 @@ class HistoryStore {
         completedRuns.insert(completed, at: 0)
         saveToDisk()
     }
+
+    func importWorkout(_ completed: CompletedWorkout) -> Bool {
+        guard !completedWorkouts.contains(where: { $0.id == completed.id }) else { return false }
+        completedWorkouts.insert(completed, at: 0)
+        saveToDisk()
+        return true
+    }
+
+    func importRun(_ completed: CompletedRun) -> Bool {
+        guard !completedRuns.contains(where: { $0.id == completed.id }) else { return false }
+        completedRuns.insert(completed, at: 0)
+        saveToDisk()
+        return true
+    }
     
     private func saveToDisk() {
         if let encoded = try? JSONEncoder().encode(completedWorkouts) {

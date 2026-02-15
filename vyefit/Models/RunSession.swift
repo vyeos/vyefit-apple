@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import HealthKit
 
 @Observable
 class RunSession {
@@ -32,6 +33,10 @@ class RunSession {
     
     private var timer: AnyCancellable?
     private var startDate: Date = Date()
+    private var pauseStartDate: Date?
+    private var totalPausedSeconds: TimeInterval = 0
+    private var healthController: HealthKitWorkoutController?
+    private var finishedWorkout: HKWorkout?
     
     // Previous distance/calories for per-step delta tracking
     private var prevTickDistance: Double = 0
@@ -56,10 +61,15 @@ class RunSession {
     var isIntervalRun: Bool {
         configuration.type == .intervals
     }
+
+    var isHealthBacked: Bool {
+        healthController != nil
+    }
     
-    init(configuration: RunConfiguration) {
+    init(configuration: RunConfiguration, healthController: HealthKitWorkoutController? = nil) {
         self.configuration = configuration
         self.startDate = Date()
+        self.healthController = healthController
         
         // Setup interval state
         if let iw = configuration.intervalWorkout {
@@ -79,6 +89,10 @@ class RunSession {
             }
         }
         
+        if let healthController {
+            wireHealthController(healthController)
+            healthController.start()
+        }
         startTimer()
     }
     
@@ -95,20 +109,23 @@ class RunSession {
     private func tick() {
         guard state == .active else { return }
         
-        elapsedSeconds += 1
+        let now = Date()
+        let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+        elapsedSeconds = max(Int(elapsed), 0)
         
-        // Simulate distance + HR + calories
+        // If not HealthKit-backed, keep lightweight simulation
         var distDelta: Double = 0
-        if elapsedSeconds % 3 == 0 {
-            distDelta = 0.002 + Double.random(in: 0...0.003)
-            currentDistance += distDelta
-        }
-        
         var calDelta: Int = 0
-        if elapsedSeconds % 5 == 0 {
-            currentHeartRate = Int.random(in: 100...170)
-            activeCalories += 1
-            calDelta = 1
+        if healthController == nil {
+            if elapsedSeconds % 3 == 0 {
+                distDelta = 0.002 + Double.random(in: 0...0.003)
+                currentDistance += distDelta
+            }
+            if elapsedSeconds % 5 == 0 {
+                currentHeartRate = Int.random(in: 100...170)
+                activeCalories += 1
+                calDelta = 1
+            }
         }
         
         // Interval logic
@@ -193,8 +210,15 @@ class RunSession {
     func togglePause() {
         if state == .active {
             state = .paused
+            pauseStartDate = Date()
+            healthController?.pause()
         } else if state == .paused {
             state = .active
+            if let pauseStartDate {
+                totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
+                self.pauseStartDate = nil
+            }
+            healthController?.resume()
         }
     }
     
@@ -203,8 +227,15 @@ class RunSession {
         // Update UI state on main actor quickly
         if state == .active {
             state = .paused
+            pauseStartDate = Date()
+            healthController?.pause()
         } else if state == .paused {
             state = .active
+            if let pauseStartDate {
+                totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
+                self.pauseStartDate = nil
+            }
+            healthController?.resume()
         }
         // Placeholder for any heavy work to be done off-main if needed
         await Task.yield()
@@ -214,13 +245,22 @@ class RunSession {
     func endRunAsync() async {
         state = .completed
         stopTimer()
-        // Placeholder for any heavy work to be done off-main if needed
-        await Task.yield()
+        if let healthController {
+            await withCheckedContinuation { continuation in
+                healthController.end { [weak self] workout in
+                    self?.finishedWorkout = workout
+                    continuation.resume()
+                }
+            }
+        } else {
+            await Task.yield()
+        }
     }
     
     func endRun() {
         state = .completed
         stopTimer()
+        healthController?.end()
     }
     
     // MARK: - Formatted outputs
@@ -376,6 +416,29 @@ class RunSession {
             return String(format: "%.2f km", step.value)
         case .calories:
             return "\(Int(step.value)) kcal"
+        }
+    }
+
+    func consumeFinishedWorkout() -> HKWorkout? {
+        defer { finishedWorkout = nil }
+        return finishedWorkout
+    }
+
+    private func wireHealthController(_ controller: HealthKitWorkoutController) {
+        controller.onMetrics = { [weak self] metrics in
+            guard let self else { return }
+            self.currentDistance = metrics.distanceMeters / 1000.0
+            self.activeCalories = Int(metrics.activeEnergyKcal)
+            self.currentHeartRate = Int(metrics.heartRateBpm)
+        }
+        controller.onStateChange = { [weak self] state in
+            guard let self else { return }
+            switch state {
+            case .running: self.state = .active
+            case .paused: self.state = .paused
+            case .ended: self.state = .completed
+            default: break
+            }
         }
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HealthKit
 
 @Observable
 class RunStore {
@@ -13,21 +14,32 @@ class RunStore {
     var showActiveRun: Bool = false
     
     func startSession(configuration: RunConfiguration) {
-        activeSession = RunSession(configuration: configuration)
+        let stored = UserDefaults.standard.object(forKey: "healthWriteWorkouts")
+        let writeEnabled = stored == nil ? false : UserDefaults.standard.bool(forKey: "healthWriteWorkouts")
+        let controller: HealthKitWorkoutController? = writeEnabled && HealthKitManager.shared.isAuthorized
+            ? HealthKitManager.shared.startWorkoutController(activityType: .running, location: .outdoor)
+            : nil
+        activeSession = RunSession(configuration: configuration, healthController: controller)
         showActiveRun = true
     }
     
     func endActiveSession() {
         if let session = activeSession {
-            HistoryStore.shared.saveRun(
-                type: session.configuration.type.rawValue,
-                distance: session.currentDistance,
-                duration: TimeInterval(session.elapsedSeconds),
-                calories: session.activeCalories,
-                avgHeartRate: session.currentHeartRate
-            )
+            if let workout = session.consumeFinishedWorkout() {
+                HealthKitManager.shared.importWorkoutSample(workout) { _ in }
+            } else if !session.isHealthBacked {
+                HistoryStore.shared.saveRun(
+                    type: session.configuration.type.rawValue,
+                    distance: session.currentDistance,
+                    duration: TimeInterval(session.elapsedSeconds),
+                    calories: session.activeCalories,
+                    avgHeartRate: session.currentHeartRate
+                )
+            }
         }
-        activeSession?.endRun()
+        if let session = activeSession, session.state != .completed {
+            session.endRun()
+        }
         activeSession = nil
         showActiveRun = false
     }

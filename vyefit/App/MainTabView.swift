@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct HomeView: View {
     @State private var selectedTab = 0
@@ -88,6 +89,9 @@ struct HomeView: View {
                     onDiscard: { runStore.discardActiveSession() }
                 )
             }
+        }
+        .onAppear {
+            HealthKitManager.shared.importLatestWorkoutsIfNeeded()
         }
         .preferredColorScheme(preferredScheme)
     }

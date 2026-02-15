@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HealthKit
 
 struct UserWorkout: Identifiable, Hashable, Codable {
     let id: UUID
@@ -93,22 +94,34 @@ class WorkoutStore {
     }
     
     func startSession(for workout: UserWorkout) {
-        activeSession = WorkoutSession(workout: workout)
+        let location: HKWorkoutSessionLocationType = workout.workoutType == .running || workout.workoutType == .walking || workout.workoutType == .cycling ? .outdoor : .indoor
+        let stored = UserDefaults.standard.object(forKey: "healthWriteWorkouts")
+        let writeEnabled = stored == nil ? false : UserDefaults.standard.bool(forKey: "healthWriteWorkouts")
+        let controller: HealthKitWorkoutController? = writeEnabled && HealthKitManager.shared.isAuthorized
+            ? HealthKitManager.shared.startWorkoutController(activityType: workout.workoutType.hkActivityType, location: location)
+            : nil
+        activeSession = WorkoutSession(workout: workout, healthController: controller)
         showActiveWorkout = true
     }
     
     func endActiveSession() {
         if let session = activeSession {
-            HistoryStore.shared.saveWorkout(
-                name: session.workout.name,
-                duration: TimeInterval(session.elapsedSeconds),
-                calories: session.activeCalories,
-                exerciseCount: session.workout.exercises.count,
-                avgHeartRate: session.currentHeartRate,
-                workoutType: session.workout.workoutType.rawValue
-            )
+            if let workout = session.consumeFinishedWorkout() {
+                HealthKitManager.shared.importWorkoutSample(workout) { _ in }
+            } else if !session.isHealthBacked {
+                HistoryStore.shared.saveWorkout(
+                    name: session.workout.name,
+                    duration: TimeInterval(session.elapsedSeconds),
+                    calories: session.activeCalories,
+                    exerciseCount: session.workout.exercises.count,
+                    avgHeartRate: session.currentHeartRate,
+                    workoutType: session.workout.workoutType.rawValue
+                )
+            }
         }
-        activeSession?.endWorkout()
+        if let session = activeSession, session.state != .completed {
+            session.endWorkout()
+        }
         activeSession = nil
         showActiveWorkout = false
     }
