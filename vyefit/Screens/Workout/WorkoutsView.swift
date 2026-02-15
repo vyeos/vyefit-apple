@@ -64,20 +64,13 @@ struct WorkoutsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 4)
 
-                    if workoutStore.workouts.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "dumbbell")
-                                .font(.system(size: 40))
-                                .foregroundStyle(Theme.stone.opacity(0.4))
-                            Text("No workouts yet")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Theme.textSecondary)
-                            Text("Create your first workout to get started")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Theme.stone)
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
+                        ForEach(Templates.workouts) { workout in
+                            Button { selectedTemplate = workout } label: {
+                                WorkoutCard(workout: workout)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
                     }
 
                 }
