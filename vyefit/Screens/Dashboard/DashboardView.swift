@@ -141,8 +141,7 @@ struct DashboardView: View {
                     
                     // Daily Focus - Today's workout/rest from schedule
                     DailyFocusCard(
-                        scheduleStore: scheduleStore,
-                        workoutStore: workoutStore
+                        scheduleStore: scheduleStore
                     )
 
                     // Wellness cards
