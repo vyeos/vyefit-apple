@@ -71,16 +71,20 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     
     func end() {
         session?.end()
+        let builder = self.builder
+        let routeBuilder = self.routeBuilder
+        let locationManager = self.locationManager
         builder?.endCollection(withEnd: Date()) { [weak self] _, _ in
-            guard let self else { return }
-            self.builder?.finishWorkout { workout, _ in
-                self.isRunning = false
-                self.locationManager?.stopUpdatingLocation()
-                if let workout, let routeBuilder = self.routeBuilder {
-                    routeBuilder.finishRoute(with: workout, metadata: nil) { _, _ in }
-                    WatchConnectivityManager.shared.sendEnded(uuid: workout.uuid)
-                } else {
-                    WatchConnectivityManager.shared.sendEnded(uuid: nil)
+            builder?.finishWorkout { workout, _ in
+                DispatchQueue.main.async {
+                    self?.isRunning = false
+                    locationManager?.stopUpdatingLocation()
+                    if let workout, let routeBuilder {
+                        routeBuilder.finishRoute(with: workout, metadata: nil) { _, _ in }
+                        WatchConnectivityManager.shared.sendEnded(uuid: workout.uuid)
+                    } else {
+                        WatchConnectivityManager.shared.sendEnded(uuid: nil)
+                    }
                 }
             }
         }

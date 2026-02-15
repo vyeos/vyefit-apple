@@ -7,6 +7,7 @@
 
 import Foundation
 import WatchConnectivity
+import Combine
 
 struct WatchMetrics {
     let activity: String
