@@ -65,7 +65,7 @@ struct MiniWorkoutPlayer: View {
             .padding(10)
             .background(Theme.cream)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+            .shadow(color: Theme.bark.opacity(0.12), radius: 8, x: 0, y: 4)
             .padding(.horizontal, 16)
             .padding(.bottom, 8) // Lift up from tab bar slightly if needed, or put above it
         }

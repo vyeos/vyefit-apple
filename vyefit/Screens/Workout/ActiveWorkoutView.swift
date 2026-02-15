@@ -6,7 +6,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 struct ActiveWorkoutView: View {
     @Bindable var session: WorkoutSession
@@ -181,7 +183,7 @@ struct LogView: View {
                     } label: {
                         Text("Resume")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.cream)
                             .padding(.horizontal, 32)
                             .padding(.vertical, 12)
                             .background(Theme.sage)
@@ -191,7 +193,7 @@ struct LogView: View {
                 .padding(32)
                 .background(Theme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+                .shadow(color: Theme.bark.opacity(0.15), radius: 20, x: 0, y: 10)
             }
         }
     }
@@ -221,11 +223,11 @@ struct RestTimerBanner: View {
                 }
             }
             .buttonStyle(.bordered)
-            .tint(.white)
+            .tint(Theme.cream)
         }
         .padding()
         .background(Theme.terracotta)
-        .foregroundStyle(.white)
+        .foregroundStyle(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
@@ -254,7 +256,7 @@ struct StartNextSetBanner: View {
         }
         .padding()
         .background(Theme.sage)
-        .foregroundStyle(.white)
+        .foregroundStyle(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
@@ -457,7 +459,7 @@ struct StatsView: View {
                 value: session.isHealthBacked && !session.hasHeartRateData ? "--" : "\(session.currentHeartRate)",
                 unit: "BPM",
                 icon: "heart.fill",
-                color: .red
+                color: Theme.heartRate
             )
             
             StatsCard(
@@ -465,7 +467,7 @@ struct StatsView: View {
                 value: session.isHealthBacked && !session.hasCaloriesData ? "--" : "\(session.activeCalories)",
                 unit: "KCAL",
                 icon: "flame.fill",
-                color: .orange
+                color: Theme.calories
             )
             
             StatsCard(
@@ -473,7 +475,7 @@ struct StatsView: View {
                 value: formatDuration(session.elapsedSeconds),
                 unit: "ELAPSED",
                 icon: "clock.fill",
-                color: .blue
+                color: Theme.time
             )
             
             Button {
@@ -486,7 +488,7 @@ struct StatsView: View {
                     Text(session.state == .active ? "Pause Workout" : "Resume Workout")
                 }
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.cream)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(session.state == .active ? Theme.terracotta : Theme.sage)

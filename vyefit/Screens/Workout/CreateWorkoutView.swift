@@ -117,7 +117,7 @@ struct CreateWorkoutView: View {
                                 } label: {
                                     Image(systemName: icon)
                                         .font(.system(size: 18))
-                                        .foregroundStyle(selectedIcon == icon ? .white : Theme.textSecondary)
+                                        .foregroundStyle(selectedIcon == icon ? Theme.cream : Theme.textSecondary)
                                         .frame(width: 44, height: 44)
                                         .background(selectedIcon == icon ? Theme.terracotta : Theme.cream)
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -551,7 +551,7 @@ struct CustomExerciseSheet: View {
                                 } label: {
                                     Text(group)
                                         .font(.system(size: 13, weight: .medium, design: .serif))
-                                        .foregroundStyle(muscleGroup == group ? .white : Theme.textPrimary)
+                                        .foregroundStyle(muscleGroup == group ? Theme.cream : Theme.textPrimary)
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)
                                         .background(muscleGroup == group ? Theme.terracotta : Theme.cream)

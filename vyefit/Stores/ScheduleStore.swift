@@ -296,14 +296,14 @@ class ScheduleStore {
             return (
                 icon: "bed.double.fill",
                 title: "Rest Day",
-                color: Color.blue.opacity(0.6)
+                color: Theme.restDay
             )
             
         case .busy:
             return (
                 icon: "briefcase.fill",
                 title: "Busy",
-                color: Color.orange.opacity(0.7)
+                color: Theme.busyDay
             )
         }
     }

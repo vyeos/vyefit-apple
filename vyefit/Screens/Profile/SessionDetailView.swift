@@ -583,7 +583,7 @@ struct SessionDetailView: View {
     private func heartRateColor(for hr: Int) -> Color {
         if hr < 120 { return Theme.sage }
         if hr < 150 { return Theme.terracotta }
-        return Color.red
+        return Theme.error
     }
     
     private func barColor(for hr: Int, isMin: Bool, isMax: Bool) -> Color {

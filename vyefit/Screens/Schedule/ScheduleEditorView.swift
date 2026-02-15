@@ -62,7 +62,7 @@ struct ScheduleEditorView: View {
                                     if selectedColor == color {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 14, weight: .bold))
-                                            .foregroundStyle(.white)
+                                            .foregroundStyle(Theme.cream)
                                     }
                                 }
                                 .onTapGesture {
@@ -192,9 +192,9 @@ struct ScheduleEditorView: View {
             }
             return (icon: "figure.run", title: "Run", color: Theme.sage)
         case .rest:
-            return (icon: "bed.double.fill", title: "Rest Day", color: Color.blue.opacity(0.6))
+            return (icon: "bed.double.fill", title: "Rest Day", color: Theme.restDay)
         case .busy:
-            return (icon: "briefcase.fill", title: "Busy", color: Color.orange.opacity(0.7))
+            return (icon: "briefcase.fill", title: "Busy", color: Theme.busyDay)
         }
     }
     
@@ -374,9 +374,9 @@ struct DraftDayItemRow: View {
         case .run:
             return (icon: item.runType?.icon ?? "figure.run", title: item.runType?.rawValue ?? "Run", color: Theme.sage)
         case .rest:
-            return (icon: "bed.double.fill", title: "Rest Day", color: Color.blue.opacity(0.6))
+            return (icon: "bed.double.fill", title: "Rest Day", color: Theme.restDay)
         case .busy:
-            return (icon: "briefcase.fill", title: "Busy", color: Color.orange.opacity(0.7))
+            return (icon: "briefcase.fill", title: "Busy", color: Theme.busyDay)
         }
     }
     

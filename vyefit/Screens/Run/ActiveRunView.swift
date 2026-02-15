@@ -107,7 +107,7 @@ struct ActiveRunView: View {
             
             Text(primaryMetricValue)
                 .font(.system(size: 72, weight: .bold, design: .rounded))
-                .foregroundStyle(session.primaryMetric == .heartRate && session.currentZone != nil ? session.currentZone!.color : Theme.textPrimary)
+                .foregroundStyle(session.primaryMetric == .heartRate && session.currentZone != nil ? (session.currentZone?.color ?? Theme.textPrimary) : Theme.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .accessibilityLabel("Primary metric: \(primaryMetricLabel) \(primaryMetricValue)")
@@ -159,7 +159,7 @@ struct ActiveRunView: View {
                     .font(.system(size: 16, weight: .bold))
                     .tracking(2)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.cream)
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
             .background(session.currentPhaseColor)
@@ -331,7 +331,7 @@ struct ActiveRunView: View {
                     Text(session.state == .active ? "Pause Run" : "Resume Run")
                 }
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.cream)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(session.state == .active ? Theme.terracotta : Theme.sage)
@@ -382,7 +382,7 @@ struct ActiveRunView: View {
                 } label: {
                     Text("Resume")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.cream)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 12)
                         .background(Theme.sage)
@@ -395,7 +395,7 @@ struct ActiveRunView: View {
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(Theme.stone.opacity(0.15), lineWidth: 1))
-            .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+            .shadow(color: Theme.bark.opacity(0.15), radius: 20, x: 0, y: 10)
         }
         .contentShape(Rectangle())
         .onTapGesture { }
