@@ -13,8 +13,10 @@ struct SessionDetailView: View {
     let runSession: RunSessionRecord?
     let workoutSession: WorkoutSessionRecord?
     
+    @Environment(\.dismiss) private var dismiss
     @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
     @State private var showHeartRateDetails = false
+    @State private var showDeleteConfirmation = false
     
     private var isRun: Bool { runSession != nil }
     private var sessionName: String {
@@ -102,6 +104,34 @@ struct SessionDetailView: View {
         .background(Theme.background)
         .navigationTitle("Session Details")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Text("Delete")
+                }
+            }
+        }
+        .alert("Delete Session?", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                deleteSession()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will remove the session from Vyefit and attempt to delete it from Apple Health.")
+        }
+    }
+
+    private func deleteSession() {
+        if let runSession {
+            HistoryStore.shared.deleteRun(id: runSession.id)
+            HealthKitManager.shared.deleteWorkout(uuid: runSession.id) { _ in }
+        } else if let workoutSession {
+            HistoryStore.shared.deleteWorkout(id: workoutSession.id)
+            HealthKitManager.shared.deleteWorkout(uuid: workoutSession.id) { _ in }
+        }
+        dismiss()
     }
     
     // MARK: - Sections

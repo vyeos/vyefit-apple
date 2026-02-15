@@ -143,6 +143,16 @@ class HistoryStore {
         saveToDisk()
         return true
     }
+
+    func deleteRun(id: UUID) {
+        completedRuns.removeAll { $0.id == id }
+        saveToDisk()
+    }
+
+    func deleteWorkout(id: UUID) {
+        completedWorkouts.removeAll { $0.id == id }
+        saveToDisk()
+    }
     
     private func saveToDisk() {
         if let encoded = try? JSONEncoder().encode(completedWorkouts) {
