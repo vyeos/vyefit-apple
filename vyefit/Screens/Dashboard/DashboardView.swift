@@ -10,8 +10,17 @@ import SwiftUI
 struct DashboardView: View {
     @State private var scheduleStore = ScheduleStore()
     @State private var workoutStore = WorkoutStore()
+    @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
     
     // MARK: - Computed Properties
+    
+    private var isMetric: Bool {
+        distanceUnit == "Kilometers"
+    }
+    
+    private var distanceUnitLabel: String {
+        isMetric ? "km" : "mi"
+    }
     
     private var workoutsThisWeek: Int {
         let calendar = Calendar.current
@@ -20,12 +29,13 @@ struct DashboardView: View {
         return workoutsThisWeek.count
     }
     
-    private var kmThisMonth: Double {
+    private var distanceThisMonth: Double {
         let calendar = Calendar.current
         let monthRuns = HistoryStore.shared.runSessionRecords.filter { 
             calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) 
         }
-        return monthRuns.reduce(0) { $0 + $1.distance }
+        let totalKm = monthRuns.reduce(0) { $0 + $1.distance }
+        return isMetric ? totalKm : totalKm * 0.621371
     }
     
     private var dayStreak: Int {
@@ -138,7 +148,7 @@ struct DashboardView: View {
                     // Wellness cards
                     HStack(spacing: 14) {
                         WellnessCard(icon: "flame.fill", value: "\(workoutsThisWeek)", label: "Workouts\nthis week", color: Theme.terracotta)
-                        WellnessCard(icon: "figure.run", value: String(format: "%.1f", kmThisMonth), label: "km\nthis month", color: Theme.stone)
+                        WellnessCard(icon: "figure.run", value: String(format: "%.1f", distanceThisMonth), label: "\(distanceUnitLabel)\nthis month", color: Theme.stone)
                     }
                     .padding(.horizontal, 20)
 
