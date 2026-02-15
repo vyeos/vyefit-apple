@@ -140,6 +140,24 @@ final class HealthKitManager: NSObject, ObservableObject {
         }
     }
 
+    func importWorkout(uuid: UUID, completion: @escaping (Bool) -> Void) {
+        let predicate = HKQuery.predicateForObject(with: uuid)
+        let query = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: predicate, limit: 1, sortDescriptors: nil) { [weak self] _, samples, _ in
+            guard let self else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            guard let workout = samples?.first as? HKWorkout else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            self.importWorkoutSample(workout) { success in
+                DispatchQueue.main.async { completion(success) }
+            }
+        }
+        healthStore.execute(query)
+    }
+
     func deleteWorkout(uuid: UUID, completion: @escaping (Bool) -> Void) {
         guard isAuthorized else {
             completion(false)

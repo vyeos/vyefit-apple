@@ -102,7 +102,10 @@ class WorkoutStore {
         let vitalsStored = UserDefaults.standard.object(forKey: "healthReadVitals")
         let vitalsEnabled = vitalsStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadVitals")
         let shouldUseHealth = HealthKitManager.shared.isAuthorized && (writeEnabled || readEnabled || vitalsEnabled)
-        let controller: HealthKitWorkoutController? = shouldUseHealth
+        if WatchConnectivityManager.shared.isReachable {
+            WatchConnectivityManager.shared.startWorkout(activity: "workout", location: location == .outdoor ? "outdoor" : "indoor")
+        }
+        let controller: HealthKitWorkoutController? = shouldUseHealth && !WatchConnectivityManager.shared.isReachable
             ? HealthKitManager.shared.startWorkoutController(activityType: workout.workoutType.hkActivityType, location: location)
             : nil
         activeSession = WorkoutSession(workout: workout, healthController: controller)
@@ -111,6 +114,7 @@ class WorkoutStore {
     
     func endActiveSession() {
         if let session = activeSession {
+            WatchConnectivityManager.shared.endWorkout()
             if let workout = session.consumeFinishedWorkout() {
                 HealthKitManager.shared.importWorkoutSample(workout) { _ in }
             } else if !session.isHealthBacked {
@@ -127,6 +131,7 @@ class WorkoutStore {
         if let session = activeSession, session.state != .completed {
             session.endWorkout()
         }
+        HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
         activeSession = nil
         showActiveWorkout = false
     }

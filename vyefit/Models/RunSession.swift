@@ -41,6 +41,7 @@ class RunSession {
     private var totalPausedSeconds: TimeInterval = 0
     private var healthController: HealthKitWorkoutController?
     private var finishedWorkout: HKWorkout?
+    private var usesWatchMetrics: Bool = false
     
     // Previous distance/calories for per-step delta tracking
     private var prevTickDistance: Double = 0
@@ -67,7 +68,7 @@ class RunSession {
     }
 
     var isHealthBacked: Bool {
-        healthController != nil
+        healthController != nil || usesWatchMetrics
     }
     
     var healthWarnings: [String] {
@@ -105,6 +106,7 @@ class RunSession {
             wireHealthController(healthController)
             healthController.start()
         }
+        wireWatchMetrics()
         startTimer()
     }
     
@@ -121,14 +123,16 @@ class RunSession {
     private func tick() {
         guard state == .active else { return }
         
-        let now = Date()
-        let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
-        elapsedSeconds = max(Int(elapsed), 0)
+        if !usesWatchMetrics {
+            let now = Date()
+            let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+            elapsedSeconds = max(Int(elapsed), 0)
+        }
         
         // If not HealthKit-backed, keep lightweight simulation
         var distDelta: Double = 0
         var calDelta: Int = 0
-        if healthController == nil {
+        if healthController == nil && !usesWatchMetrics {
             if elapsedSeconds % 3 == 0 {
                 distDelta = 0.002 + Double.random(in: 0...0.003)
                 currentDistance += distDelta
@@ -460,6 +464,34 @@ class RunSession {
             case .ended: self.state = .completed
             default: break
             }
+        }
+    }
+    
+    private func wireWatchMetrics() {
+        WatchConnectivityManager.shared.onMetrics = { [weak self] metrics in
+            guard let self else { return }
+            guard metrics.activity == "run" else { return }
+            self.usesWatchMetrics = true
+            if metrics.distanceMeters > 0 {
+                self.currentDistance = metrics.distanceMeters / 1000.0
+                self.hasDistanceData = true
+            }
+            if metrics.activeEnergyKcal > 0 {
+                self.activeCalories = Int(metrics.activeEnergyKcal)
+                self.hasCaloriesData = true
+            }
+            if metrics.heartRate > 0 {
+                self.currentHeartRate = Int(metrics.heartRate)
+                self.hasHeartRateData = true
+            }
+            if metrics.elapsedSeconds > 0 {
+                self.elapsedSeconds = metrics.elapsedSeconds
+            }
+        }
+        
+        WatchConnectivityManager.shared.onWorkoutEnded = { [weak self] _ in
+            guard let self else { return }
+            self.state = .completed
         }
     }
 }

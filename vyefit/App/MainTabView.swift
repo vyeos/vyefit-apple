@@ -92,6 +92,13 @@ struct HomeView: View {
         }
         .onAppear {
             HealthKitManager.shared.importLatestWorkoutsIfNeeded()
+            WatchConnectivityManager.shared.onWorkoutEnded = { uuid in
+                if let uuid {
+                    HealthKitManager.shared.importWorkout(uuid: uuid) { _ in }
+                } else {
+                    HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
+                }
+            }
         }
         .preferredColorScheme(preferredScheme)
     }
