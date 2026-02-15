@@ -320,8 +320,13 @@ struct RemindersView: View {
         let minute = hydrationReminderMinute
         
         var notificationCount = 0
+        var seenHours: Set<Int> = []
         
         for _ in 0..<24 {
+            if seenHours.contains(hour) {
+                break
+            }
+            seenHours.insert(hour)
             // Check if this hour falls within bedtime hours
             // Bedtime period: from bedtime to first reminder time
             let isBedtime: Bool

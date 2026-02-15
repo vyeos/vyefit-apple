@@ -292,9 +292,11 @@ struct ExerciseLogCard: View {
             
             // Sets
             ForEach(Array(activeExercise.sets.enumerated()), id: \.element.id) { setIndex, set in
+                let previousSet = setIndex > 0 ? activeExercise.sets[setIndex - 1] : nil
                 SetRow(
                     setIndex: setIndex + 1,
                     set: set,
+                    previousSet: previousSet,
                     onToggle: {
                         session.completeSet(exerciseIndex: exerciseIndex, setIndex: setIndex)
                     },
@@ -333,6 +335,7 @@ struct ExerciseLogCard: View {
 struct SetRow: View {
     let setIndex: Int
     let set: WorkoutSet
+    let previousSet: WorkoutSet?
     let onToggle: () -> Void
     let onUpdate: (Int?, Double?) -> Void
     let onDelete: () -> Void
@@ -340,9 +343,10 @@ struct SetRow: View {
     @State private var weightText: String
     @State private var repsText: String
     
-    init(setIndex: Int, set: WorkoutSet, onToggle: @escaping () -> Void, onUpdate: @escaping (Int?, Double?) -> Void, onDelete: @escaping () -> Void) {
+    init(setIndex: Int, set: WorkoutSet, previousSet: WorkoutSet?, onToggle: @escaping () -> Void, onUpdate: @escaping (Int?, Double?) -> Void, onDelete: @escaping () -> Void) {
         self.setIndex = setIndex
         self.set = set
+        self.previousSet = previousSet
         self.onToggle = onToggle
         self.onUpdate = onUpdate
         self.onDelete = onDelete
@@ -358,7 +362,7 @@ struct SetRow: View {
                 .frame(width: 30)
                 .foregroundStyle(Theme.stone)
             
-            Text("-") // Placeholder for previous
+            Text(previousDisplay)
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.stone)
                 .frame(maxWidth: .infinity)
@@ -403,6 +407,25 @@ struct SetRow: View {
             }
             .frame(width: 30)
         }
+    }
+
+    private var previousDisplay: String {
+        guard let previousSet else { return "-" }
+        let reps = previousSet.reps
+        let weight = previousSet.weight
+        
+        if reps == nil && weight == nil { return "-" }
+        if let reps, let weight { return "\(formatWeight(weight)) x \(reps)" }
+        if let weight { return formatWeight(weight) }
+        if let reps { return "\(reps)" }
+        return "-"
+    }
+    
+    private func formatWeight(_ value: Double) -> String {
+        if value == floor(value) {
+            return String(Int(value))
+        }
+        return String(format: "%.1f", value)
     }
 }
 
@@ -518,4 +541,3 @@ struct StatsCard: View {
         onDiscard: {}
     )
 }
-

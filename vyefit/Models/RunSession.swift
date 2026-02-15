@@ -250,7 +250,7 @@ class RunSession {
     }
     
     var targetProgress: Double? {
-        guard let target = configuration.targetValue else { return nil }
+        guard let target = configuration.targetValue, target > 0 else { return nil }
         
         switch configuration.type {
         case .distance:
@@ -265,7 +265,7 @@ class RunSession {
     }
     
     var targetRemaining: String? {
-        guard let target = configuration.targetValue else { return nil }
+        guard let target = configuration.targetValue, target > 0 else { return nil }
         
         switch configuration.type {
         case .distance:
@@ -379,4 +379,3 @@ class RunSession {
         }
     }
 }
-

@@ -19,9 +19,12 @@ class ScheduleStore {
     var showCreateSheet: Bool = false
     var showSettingsSheet: Bool = false
     
+    private let lastWeekStartKey = "scheduleLastWeekStart"
+    
     init() {
         self.selectedDate = Date()
         loadSettings()
+        ensureNewWeekScheduleIfNeeded()
     }
     
     // MARK: - Computed Properties
@@ -219,6 +222,40 @@ class ScheduleStore {
             weekStartDay = decoded.weekStartDay
             notificationsEnabled = decoded.notificationsEnabled
         }
+    }
+
+    // MARK: - New Each Week
+    
+    private func ensureNewWeekScheduleIfNeeded() {
+        guard repeatMode == .newEachWeek else { return }
+        
+        let currentWeekStart = weekStartDate(for: Date())
+        let storedWeekStart = UserDefaults.standard.object(forKey: lastWeekStartKey) as? Date
+        
+        if storedWeekStart == nil || storedWeekStart != currentWeekStart {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d"
+            let name = "Week of \(formatter.string(from: currentWeekStart))"
+            
+            var newSchedule = Schedule.createEmpty(name: name, color: "CC7359")
+            for index in schedules.indices {
+                schedules[index].isActive = false
+            }
+            newSchedule.isActive = true
+            newSchedule.order = schedules.count
+            schedules.append(newSchedule)
+            
+            UserDefaults.standard.set(currentWeekStart, forKey: lastWeekStartKey)
+            saveSettings()
+        }
+    }
+    
+    private func weekStartDate(for date: Date) -> Date {
+        var calendar = Calendar.current
+        calendar.firstWeekday = weekStartDay.index + 2
+        let startOfDay = calendar.startOfDay(for: date)
+        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: startOfDay)
+        return calendar.date(from: components) ?? startOfDay
     }
     
     // MARK: - Reset
