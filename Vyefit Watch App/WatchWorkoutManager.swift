@@ -9,13 +9,16 @@ import HealthKit
 @preconcurrency import CoreLocation
 
 @MainActor
-final class WatchWorkoutManager: NSObject, ObservableObject {
+    final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published var isRunning: Bool = false
+    @Published var isPaused: Bool = false
     @Published var heartRate: Double = 0
     @Published var activeEnergy: Double = 0
     @Published var distanceMeters: Double = 0
     @Published var cadenceSpm: Double = 0
     @Published var elapsedSeconds: Int = 0
+    @Published var currentActivityType: HKWorkoutActivityType = .traditionalStrengthTraining
+    @Published var currentLocationType: HKWorkoutSessionLocationType = .indoor
     
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -24,6 +27,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private var locationManager: CLLocationManager?
     private var lastLocation: CLLocation?
     private var startDate: Date?
+    private var pauseStartDate: Date?
+    private var totalPausedSeconds: TimeInterval = 0
     private var ticker: Timer?
     private var lastMetricsSend: Date?
     
@@ -62,6 +67,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             session.delegate = self
             builder.delegate = self
             isRunning = true
+            currentActivityType = activity
+            currentLocationType = location
             startDate = Date()
             session.startActivity(with: startDate!)
             builder.beginCollection(withStart: startDate!) { _, _ in }
@@ -87,6 +94,15 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         let builder = self.builder
         let routeBuilder = self.routeBuilder
         let locationManager = self.locationManager
+        let hkSession = self.session
+
+        // Stop timer and location immediately
+        self.ticker?.invalidate()
+        self.ticker = nil
+        locationManager?.stopUpdatingLocation()
+        
+        // End the HealthKit session first - this tells watchOS to stop the workout
+        hkSession?.end()
 
         // End collection using async alternative via continuation
         if let builder {
@@ -104,13 +120,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             }
         }
 
-        // Perform UI/state updates on the main actor
-        self.isRunning = false
-        self.ticker?.invalidate()
-        self.ticker = nil
-        locationManager?.stopUpdatingLocation()
-
-        // Finish route (if any) using async alternative and notify phone
+        // Finish route (if any) before updating UI state
         if let workout, let routeBuilder {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 routeBuilder.finishRoute(with: workout, metadata: nil) { _, _ in
@@ -121,6 +131,42 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         } else {
             WatchConnectivityManager.shared.sendEnded(uuid: nil)
         }
+        
+        // Reset all state
+        self.isRunning = false
+        self.isPaused = false
+        self.heartRate = 0
+        self.activeEnergy = 0
+        self.distanceMeters = 0
+        self.cadenceSpm = 0
+        self.elapsedSeconds = 0
+        self.session = nil
+        self.builder = nil
+        self.routeBuilder = nil
+        self.locationManager = nil
+        self.startDate = nil
+        self.pauseStartDate = nil
+        self.totalPausedSeconds = 0
+        self.lastMetricsSend = nil
+    }
+    
+    func pause() {
+        guard isRunning, !isPaused else { return }
+        session?.pause()
+        isPaused = true
+        pauseStartDate = Date()
+        WatchConnectivityManager.shared.sendPause()
+    }
+    
+    func resume() {
+        guard isRunning, isPaused else { return }
+        session?.resume()
+        isPaused = false
+        if let pauseStartDate {
+            totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
+            self.pauseStartDate = nil
+        }
+        WatchConnectivityManager.shared.sendResume()
     }
     
     private func startRouteTrackingIfNeeded(location: HKWorkoutSessionLocationType) {
@@ -136,9 +182,13 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     }
     
     private func updateElapsed() {
-        if let startDate {
-            elapsedSeconds = max(Int(Date().timeIntervalSince(startDate)), 0)
+        guard let startDate else { return }
+        let now = Date()
+        var elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+        if isPaused, let pauseStartDate {
+            elapsed -= now.timeIntervalSince(pauseStartDate)
         }
+        elapsedSeconds = max(Int(elapsed), 0)
     }
 
     private func startTicker() {
@@ -204,7 +254,8 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDel
             distanceMeters: distanceMeters,
             activeEnergyKcal: activeEnergy,
             cadenceSpm: cadenceSpm,
-            elapsedSeconds: elapsedSeconds
+            elapsedSeconds: elapsedSeconds,
+            isPaused: isPaused
         )
     }
 }

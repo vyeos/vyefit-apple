@@ -14,6 +14,7 @@ class RunStore {
     
     var activeSession: RunSession?
     var showActiveRun: Bool = false
+    var isStartingFromWatch: Bool = false
     
     func startSession(configuration: RunConfiguration) {
         let writeStored = UserDefaults.standard.object(forKey: "healthWriteWorkouts")
@@ -23,10 +24,15 @@ class RunStore {
         let vitalsStored = UserDefaults.standard.object(forKey: "healthReadVitals")
         let vitalsEnabled = vitalsStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadVitals")
         let shouldUseHealth = HealthKitManager.shared.isAuthorized && (writeEnabled || readEnabled || vitalsEnabled)
-        if WatchConnectivityManager.shared.isReachable {
-            WatchConnectivityManager.shared.startWorkout(activity: "run", location: "outdoor")
+        
+        if !isStartingFromWatch {
+            if WatchConnectivityManager.shared.isReachable {
+                WatchConnectivityManager.shared.startWorkout(activity: "run", location: "outdoor")
+            }
+            WatchConnectivityManager.shared.updateApplicationContext()
         }
-        WatchConnectivityManager.shared.updateApplicationContext()
+        isStartingFromWatch = false
+        
         let controller: HealthKitWorkoutController? = shouldUseHealth && !WatchConnectivityManager.shared.isReachable
             ? HealthKitManager.shared.startWorkoutController(activityType: .running, location: .outdoor)
             : nil
@@ -36,8 +42,6 @@ class RunStore {
     
     func endActiveSession() {
         if let session = activeSession {
-            WatchConnectivityManager.shared.endWorkout()
-            WatchConnectivityManager.shared.updateApplicationContext()
             if let workout = session.consumeFinishedWorkout() {
                 HealthKitManager.shared.importWorkoutSample(workout) { _ in }
             } else if !session.isHealthBacked {
@@ -56,6 +60,9 @@ class RunStore {
         HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
         activeSession = nil
         showActiveRun = false
+        
+        WatchConnectivityManager.shared.endWorkout()
+        WatchConnectivityManager.shared.updateApplicationContext()
     }
     
     func discardActiveSession() {

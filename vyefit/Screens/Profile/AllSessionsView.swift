@@ -97,6 +97,9 @@ struct AllSessionsView: View {
         .background(Theme.background)
         .navigationTitle("All Sessions")
         .navigationBarTitleDisplayMode(.large)
+        .refreshable {
+            HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
+        }
     }
 }
 

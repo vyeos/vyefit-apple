@@ -75,9 +75,32 @@ final class HealthKitManager: NSObject, ObservableObject {
             completion?(0)
             return
         }
-        let since = force ? nil : UserDefaults.standard.object(forKey: lastSyncKey) as? Date
+        
+        // For force refresh or first sync, fetch from start of today to ensure we get all today's sessions
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        
+        let since: Date?
+        if force {
+            since = startOfToday
+        } else if let lastSync = UserDefaults.standard.object(forKey: lastSyncKey) as? Date {
+            // Use the earlier of lastSync or startOfToday to ensure we don't miss today's sessions
+            since = min(lastSync, startOfToday)
+        } else {
+            since = startOfToday
+        }
+        
         importWorkouts(since: since) { [weak self] count in
             UserDefaults.standard.set(Date(), forKey: self?.lastSyncKey ?? "")
+            completion?(count)
+        }
+    }
+    
+    func importTodayWorkouts(completion: ((Int) -> Void)? = nil) {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        
+        importWorkouts(since: startOfToday) { count in
             completion?(count)
         }
     }

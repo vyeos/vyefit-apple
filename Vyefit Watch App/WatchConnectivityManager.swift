@@ -20,6 +20,7 @@ struct WatchScheduleItem: Codable, Identifiable, Equatable {
     let colorHex: String
     let workoutId: String?
     let runType: String?
+    let isCompleted: Bool
 }
 
 struct WatchActivityData: Codable, Equatable {
@@ -29,6 +30,21 @@ struct WatchActivityData: Codable, Equatable {
     let activeSessionName: String?
     let activeSessionWorkoutId: String?
     let activeSessionLocation: String?
+}
+
+struct WatchWeeklySessions: Codable, Equatable {
+    let sessions: [WatchSessionRecord]
+}
+
+struct WatchSessionRecord: Codable, Identifiable, Equatable {
+    let id: String
+    let type: String // "workout" or "run"
+    let name: String
+    let date: Date
+    let duration: Int // seconds
+    let calories: Int
+    let icon: String
+    let colorHex: String
 }
 
 struct WatchWorkoutSummary: Codable, Identifiable, Equatable {
@@ -42,7 +58,7 @@ enum WatchAppState: Equatable {
     case loading
     case noConnection
     case activeSession(SessionType)
-    case chooseActivity(WatchScheduleData, WatchActivityData)
+    case chooseActivity(WatchScheduleData, WatchActivityData, WatchWeeklySessions)
 }
 
 enum SessionType: Equatable {
@@ -56,9 +72,10 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published private(set) var isReachable: Bool = false
     @Published private(set) var activationState: WCSessionActivationState = .notActivated
     @Published private(set) var isConnected: Bool = false
-    @Published private(set) var appState: WatchAppState = .loading
+    @Published var appState: WatchAppState = .loading
     @Published private(set) var scheduleData: WatchScheduleData?
     @Published private(set) var activityData: WatchActivityData?
+    @Published private(set) var weeklySessions: WatchWeeklySessions?
     @Published var activeSessionInfo: (type: String, location: String)?
     @Published var receivedStartCommand: (type: String, location: String)?
     
@@ -67,6 +84,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     
     var onStartCommand: ((String, String) -> Void)?
     var onEndCommand: (() -> Void)?
+    var onPauseCommand: (() -> Void)?
+    var onResumeCommand: (() -> Void)?
     
     private override init() {
         super.init()
@@ -182,7 +201,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     
     private func showActivityChooserWithCachedData() {
         if let schedule = scheduleData, let activities = activityData {
-            appState = .chooseActivity(schedule, activities)
+            let weekly = weeklySessions ?? WatchWeeklySessions(sessions: [])
+            appState = .chooseActivity(schedule, activities, weekly)
         } else {
             // Create empty data to show the UI
             let emptySchedule = WatchScheduleData(todayItems: [], dayName: "Today")
@@ -194,7 +214,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                 activeSessionWorkoutId: nil,
                 activeSessionLocation: nil
             )
-            appState = .chooseActivity(emptySchedule, emptyActivities)
+            let emptyWeekly = WatchWeeklySessions(sessions: [])
+            appState = .chooseActivity(emptySchedule, emptyActivities, emptyWeekly)
         }
     }
     
@@ -216,7 +237,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                     DispatchQueue.main.async {
                         self.scheduleData = schedule
                         if let activities = self.activityData {
-                            self.appState = .chooseActivity(schedule, activities)
+                            let weekly = self.weeklySessions ?? WatchWeeklySessions(sessions: [])
+                            self.appState = .chooseActivity(schedule, activities, weekly)
                         } else {
                             self.showActivityChooserWithCachedData()
                         }
@@ -256,13 +278,9 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             message["workoutId"] = workoutId
         }
         
-        // Always try to send, queue if not reachable
+        // Send to phone but don't query for active session - the watch is managing its own state
         if session.isReachable {
-            session.sendMessage(message, replyHandler: { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.checkForActiveSession()
-                }
-            }, errorHandler: { error in
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
                 print("[WatchConnectivity] Start activity error: \(error.localizedDescription)")
             })
         }
@@ -271,7 +289,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         session.transferUserInfo(message)
     }
     
-    func sendMetrics(activity: String, heartRate: Double, distanceMeters: Double, activeEnergyKcal: Double, cadenceSpm: Double, elapsedSeconds: Int) {
+    func sendMetrics(activity: String, heartRate: Double, distanceMeters: Double, activeEnergyKcal: Double, cadenceSpm: Double, elapsedSeconds: Int, isPaused: Bool = false) {
         let session = WCSession.default
         let message: [String: Any] = [
             "activity": activity,
@@ -279,7 +297,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "distanceMeters": distanceMeters,
             "activeEnergyKcal": activeEnergyKcal,
             "cadenceSpm": cadenceSpm,
-            "elapsedSeconds": elapsedSeconds
+            "elapsedSeconds": elapsedSeconds,
+            "isPaused": isPaused
         ]
         
         // Try immediate message if reachable
@@ -307,6 +326,30 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         }
         
         // Always send via userInfo for reliability
+        session.transferUserInfo(message)
+    }
+    
+    func sendPause() {
+        let session = WCSession.default
+        let message = ["event": "pause"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Send pause error: \(error.localizedDescription)")
+            })
+        }
+        session.transferUserInfo(message)
+    }
+    
+    func sendResume() {
+        let session = WCSession.default
+        let message = ["event": "resume"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Send resume error: \(error.localizedDescription)")
+            })
+        }
         session.transferUserInfo(message)
     }
     
@@ -370,6 +413,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
             DispatchQueue.main.async {
                 self.onEndCommand?()
             }
+        } else if let command = message["command"] as? String, command == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseCommand?()
+            }
+        } else if let command = message["command"] as? String, command == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeCommand?()
+            }
         }
     }
     
@@ -380,6 +431,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
             DispatchQueue.main.async {
                 self.receivedStartCommand = (type: activity, location: location)
                 self.onStartCommand?(activity, location)
+            }
+        } else if let command = userInfo["command"] as? String, command == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseCommand?()
+            }
+        } else if let command = userInfo["command"] as? String, command == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeCommand?()
             }
         } else if let event = userInfo["event"] as? String, event == "ended" {
             DispatchQueue.main.async {
@@ -417,6 +476,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
            let schedule = try? JSONDecoder().decode(WatchScheduleData.self, from: data) {
             DispatchQueue.main.async {
                 self.scheduleData = schedule
+            }
+        }
+        
+        if let weeklyData = applicationContext["weeklySessions"] as? [String: Any],
+           let data = try? JSONSerialization.data(withJSONObject: weeklyData),
+           let weekly = try? JSONDecoder().decode(WatchWeeklySessions.self, from: data) {
+            DispatchQueue.main.async {
+                self.weeklySessions = weekly
             }
         }
     }

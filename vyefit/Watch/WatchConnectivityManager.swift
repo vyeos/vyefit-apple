@@ -16,6 +16,7 @@ struct WatchMetrics {
     let activeEnergyKcal: Double
     let cadenceSpm: Double
     let elapsedSeconds: Int
+    let isPaused: Bool
 }
 
 struct WatchScheduleData: Codable {
@@ -25,12 +26,13 @@ struct WatchScheduleData: Codable {
 
 struct WatchScheduleItem: Codable {
     let id: String
-    let type: String // "workout", "run", "rest", "busy"
+    let type: String
     let name: String
     let icon: String
     let colorHex: String
     let workoutId: String?
     let runType: String?
+    let isCompleted: Bool
 }
 
 struct WatchActivityData: Codable {
@@ -40,6 +42,21 @@ struct WatchActivityData: Codable {
     let activeSessionName: String?
     let activeSessionWorkoutId: String?
     let activeSessionLocation: String?
+}
+
+struct WatchWeeklySessions: Codable {
+    let sessions: [WatchSessionRecord]
+}
+
+struct WatchSessionRecord: Codable, Identifiable {
+    let id: String
+    let type: String // "workout" or "run"
+    let name: String
+    let date: Date
+    let duration: Int // seconds
+    let calories: Int
+    let icon: String
+    let colorHex: String
 }
 
 struct WatchWorkoutSummary: Codable {
@@ -60,6 +77,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     var onMetrics: ((WatchMetrics) -> Void)?
     var onWorkoutEnded: ((UUID?) -> Void)?
     var onStartFromWatch: ((String, String, String?) -> Void)? // activity, location, workoutId
+    var onPauseFromWatch: (() -> Void)?
+    var onResumeFromWatch: (() -> Void)?
     
     private var activationCompletion: ((Bool) -> Void)?
     
@@ -100,6 +119,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         
         let activityData = getActivityData()
         let scheduleData = getScheduleData()
+        let weeklySessions = getWeeklySessions()
         
         var context: [String: Any] = [:]
         
@@ -111,6 +131,11 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         if let data = try? JSONEncoder().encode(scheduleData),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             context["schedule"] = json
+        }
+        
+        if let data = try? JSONEncoder().encode(weeklySessions),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            context["weeklySessions"] = json
         }
         
         do {
@@ -145,6 +170,30 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             })
         }
         
+        session.transferUserInfo(message)
+    }
+    
+    func pauseWorkout() {
+        let session = WCSession.default
+        let message = ["command": "pause"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Pause workout error: \(error.localizedDescription)")
+            })
+        }
+        session.transferUserInfo(message)
+    }
+    
+    func resumeWorkout() {
+        let session = WCSession.default
+        let message = ["command": "resume"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Resume workout error: \(error.localizedDescription)")
+            })
+        }
         session.transferUserInfo(message)
     }
 }
@@ -229,6 +278,20 @@ extension WatchConnectivityManager: WCSessionDelegate {
             return
         }
         
+        if let event = message["event"] as? String, event == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseFromWatch?()
+            }
+            return
+        }
+        
+        if let event = message["event"] as? String, event == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeFromWatch?()
+            }
+            return
+        }
+        
         guard let activity = message["activity"] as? String else { return }
         let metrics = WatchMetrics(
             activity: activity,
@@ -236,7 +299,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
             distanceMeters: message["distanceMeters"] as? Double ?? 0,
             activeEnergyKcal: message["activeEnergyKcal"] as? Double ?? 0,
             cadenceSpm: message["cadenceSpm"] as? Double ?? 0,
-            elapsedSeconds: message["elapsedSeconds"] as? Int ?? 0
+            elapsedSeconds: message["elapsedSeconds"] as? Int ?? 0,
+            isPaused: message["isPaused"] as? Bool ?? false
         )
         DispatchQueue.main.async {
             self.latestMetrics = metrics
@@ -258,6 +322,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
             DispatchQueue.main.async {
                 self.onWorkoutEnded?(uuid)
             }
+        } else if let event = userInfo["event"] as? String, event == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseFromWatch?()
+            }
+        } else if let event = userInfo["event"] as? String, event == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeFromWatch?()
+            }
         } else if let activity = userInfo["activity"] as? String {
             let metrics = WatchMetrics(
                 activity: activity,
@@ -265,7 +337,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 distanceMeters: userInfo["distanceMeters"] as? Double ?? 0,
                 activeEnergyKcal: userInfo["activeEnergyKcal"] as? Double ?? 0,
                 cadenceSpm: userInfo["cadenceSpm"] as? Double ?? 0,
-                elapsedSeconds: userInfo["elapsedSeconds"] as? Int ?? 0
+                elapsedSeconds: userInfo["elapsedSeconds"] as? Int ?? 0,
+                isPaused: userInfo["isPaused"] as? Bool ?? false
             )
             DispatchQueue.main.async {
                 self.latestMetrics = metrics
@@ -287,6 +360,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
         let dayName = formatter.string(from: scheduleStore.selectedDate)
         
         let workoutStore = WorkoutStore.shared
+        let historyStore = HistoryStore.shared
+        let calendar = Calendar.current
+        let today = Date()
+        let startOfDay = calendar.startOfDay(for: today)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? today
+        
+        let todayWorkouts = historyStore.workoutSessionRecords.filter { $0.date >= startOfDay && $0.date < endOfDay }
+        let todayRuns = historyStore.runSessionRecords.filter { $0.date >= startOfDay && $0.date < endOfDay }
         
         let watchItems = todayItems.map { item -> WatchScheduleItem in
             let name: String
@@ -294,6 +375,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
             let colorHex: String
             let workoutId: String?
             let runType: String?
+            var isCompleted = false
             
             switch item.type {
             case .workout:
@@ -301,34 +383,39 @@ extension WatchConnectivityManager: WCSessionDelegate {
                    let workout = workoutStore.workouts.first(where: { $0.id == id }) {
                     name = workout.name
                     icon = workout.icon
-                    colorHex = "CC7359" // terracotta
+                    colorHex = "CC7359"
                     workoutId = id.uuidString
                     runType = nil
+                    isCompleted = todayWorkouts.contains { $0.workoutTemplateName == workout.name }
                 } else {
                     name = "Workout"
                     icon = "dumbbell.fill"
                     colorHex = "CC7359"
                     workoutId = item.workoutId?.uuidString
                     runType = nil
+                    isCompleted = !todayWorkouts.isEmpty
                 }
             case .run:
                 name = item.runType?.rawValue ?? "Run"
                 icon = item.runType?.icon ?? "figure.run"
-                colorHex = "8CA680" // sage
+                colorHex = "8CA680"
                 workoutId = nil
                 runType = item.runType?.rawValue
+                isCompleted = todayRuns.contains { $0.type.rawValue == item.runType?.rawValue }
             case .rest:
                 name = "Rest Day"
                 icon = "bed.double.fill"
-                colorHex = "C0B8A8" // stone
+                colorHex = "C0B8A8"
                 workoutId = nil
                 runType = nil
+                isCompleted = true
             case .busy:
                 name = "Busy"
                 icon = "briefcase.fill"
-                colorHex = "A66858" // clay
+                colorHex = "A66858"
                 workoutId = nil
                 runType = nil
+                isCompleted = true
             }
             
             return WatchScheduleItem(
@@ -338,11 +425,61 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 icon: icon,
                 colorHex: colorHex,
                 workoutId: workoutId,
-                runType: runType
+                runType: runType,
+                isCompleted: isCompleted
             )
         }
         
         return WatchScheduleData(todayItems: watchItems, dayName: dayName)
+    }
+    
+    private func getWeeklySessions() -> WatchWeeklySessions {
+        let historyStore = HistoryStore.shared
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Get start of this week (Monday)
+        let weekday = calendar.component(.weekday, from: today)
+        let daysFromMonday = (weekday + 5) % 7
+        let startOfWeek = calendar.date(byAdding: .day, value: -daysFromMonday, to: calendar.startOfDay(for: today)) ?? today
+        let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfWeek) ?? today
+        
+        var sessions: [WatchSessionRecord] = []
+        
+        // Add workouts
+        for workout in historyStore.workoutSessionRecords {
+            guard workout.date >= startOfWeek && workout.date < endOfWeek else { continue }
+            sessions.append(WatchSessionRecord(
+                id: workout.id.uuidString,
+                type: "workout",
+                name: workout.name,
+                date: workout.date,
+                duration: Int(workout.duration),
+                calories: workout.calories,
+                icon: "dumbbell.fill",
+                colorHex: "CC7359"
+            ))
+        }
+        
+        // Add runs
+        for run in historyStore.runSessionRecords {
+            guard run.date >= startOfWeek && run.date < endOfWeek else { continue }
+            sessions.append(WatchSessionRecord(
+                id: run.id.uuidString,
+                type: "run",
+                name: run.name,
+                date: run.date,
+                duration: Int(run.duration),
+                calories: run.calories,
+                icon: "figure.run",
+                colorHex: "8CA680"
+            ))
+        }
+        
+        // Sort by date descending
+        sessions.sort { $0.date > $1.date }
+        
+        return WatchWeeklySessions(sessions: sessions)
     }
     
     private func getActivityData() -> WatchActivityData {

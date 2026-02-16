@@ -221,6 +221,10 @@ struct DashboardView: View {
             }
             .background(Theme.background)
             .navigationBarHidden(true)
+            .refreshable {
+                HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
+                watchConnectivity.updateApplicationContext()
+            }
         }
     }
 }
