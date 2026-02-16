@@ -10,6 +10,8 @@ struct ContentView: View {
     @StateObject private var workoutManager = WatchWorkoutManager()
     @StateObject private var connectivityManager = WatchConnectivityManager.shared
     
+    @State private var isEndingSession = false
+    
     var body: some View {
         ZStack {
             LinearGradient(
@@ -55,23 +57,28 @@ struct ContentView: View {
             }
         }
         .onReceive(connectivityManager.$activeSessionInfo) { info in
-            if let info = info, !workoutManager.isRunning {
+            if let info = info, !workoutManager.isRunning, !isEndingSession {
                 startLocalWorkout(type: info.type, location: info.location)
             }
         }
         .onReceive(connectivityManager.$receivedStartCommand) { command in
             if let cmd = command {
                 connectivityManager.receivedStartCommand = nil
-                startLocalWorkout(type: cmd.type, location: cmd.location)
+                if !workoutManager.isRunning {
+                    startLocalWorkout(type: cmd.type, location: cmd.location)
+                }
             }
         }
         .onChange(of: workoutManager.isRunning) { _, isRunning in
             if isRunning {
+                isEndingSession = false
                 let activity = workoutManager.currentActivityType == .running ? "run" : "workout"
                 connectivityManager.appState = .activeSession(
                     activity == "run" ? .run(name: "Run") : .workout(name: "Workout")
                 )
             } else {
+                isEndingSession = true
+                connectivityManager.activeSessionInfo = nil
                 connectivityManager.appState = .loading
                 connectivityManager.checkForActiveSession()
             }

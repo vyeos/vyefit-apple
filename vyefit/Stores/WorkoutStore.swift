@@ -123,8 +123,6 @@ class WorkoutStore {
     
     func endActiveSession() {
         if let session = activeSession {
-            WatchConnectivityManager.shared.endWorkout()
-            WatchConnectivityManager.shared.updateApplicationContext()
             if let workout = session.consumeFinishedWorkout() {
                 HealthKitManager.shared.importWorkoutSample(workout) { _ in }
             } else if !session.isHealthBacked {
@@ -144,6 +142,9 @@ class WorkoutStore {
         HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
         activeSession = nil
         showActiveWorkout = false
+        
+        WatchConnectivityManager.shared.endWorkout()
+        WatchConnectivityManager.shared.updateApplicationContext()
     }
     
     func discardActiveSession() {

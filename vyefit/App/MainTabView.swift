@@ -110,6 +110,10 @@ struct HomeView: View {
                     RunStore.shared.endActiveSession()
                 }
                 
+                // Clear the flag to prevent re-starting
+                WorkoutStore.shared.isStartingFromWatch = false
+                RunStore.shared.isStartingFromWatch = false
+                
                 // Import the workout from HealthKit
                 if let uuid {
                     HealthKitManager.shared.importWorkout(uuid: uuid) { _ in }
