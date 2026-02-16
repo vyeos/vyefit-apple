@@ -78,12 +78,12 @@ struct RunConfigSheet: View {
     }
     
     private var quickStartView: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "figure.run.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(Theme.terracotta)
-            
-            VStack(spacing: 8) {
+//        VStack(spacing: 24) {
+//            Image(systemName: "figure.run.circle.fill")
+//                .font(.system(size: 64))
+//                .foregroundStyle(Theme.terracotta)
+					
+					VStack(spacing: 8) {
                 Text("Ready to run?")
                     .font(.system(size: 22, weight: .semibold, design: .serif))
                     .foregroundStyle(Theme.textPrimary)
@@ -91,7 +91,7 @@ struct RunConfigSheet: View {
                     .font(.system(size: 16))
                     .foregroundStyle(Theme.textSecondary)
             }
-        }
+//        }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
     }

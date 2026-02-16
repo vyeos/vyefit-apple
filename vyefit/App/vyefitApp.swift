@@ -22,9 +22,16 @@ struct vyefitApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // Setup WatchConnectivity callback for starting workouts from watch
         WatchConnectivityManager.shared.onStartFromWatch = { [weak self] activity, location, workoutId in
             self?.handleStartFromWatch(activity: activity, location: location, workoutId: workoutId)
         }
+        
+        // Ensure WatchConnectivity is activated
+        WatchConnectivityManager.shared.activate { success in
+            print("[AppDelegate] WatchConnectivity activation: \(success ? "success" : "failed")")
+        }
+        
         return true
     }
     

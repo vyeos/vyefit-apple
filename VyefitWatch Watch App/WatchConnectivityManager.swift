@@ -70,6 +70,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         super.init()
         guard WCSession.isSupported() else {
             appState = .noConnection
+            print("[WatchConnectivity] WCSession not supported")
             return
         }
         let session = WCSession.default
@@ -77,15 +78,32 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         session.activate()
         activationState = session.activationState
         isReachable = session.isReachable
+        print("[WatchConnectivity] Initializing - state: \(activationState.rawValue), reachable: \(isReachable)")
     }
     
     func checkForActiveSession() {
-        guard isReachable else {
+        let session = WCSession.default
+        
+        // Check if session is activated first
+        guard session.activationState == .activated else {
+            print("[WatchConnectivity] Session not activated yet, delaying check")
+            // Wait and retry after activation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                if WCSession.default.activationState == .activated {
+                    self?.checkForActiveSession()
+                } else {
+                    self?.appState = .noConnection
+                }
+            }
+            return
+        }
+        
+        guard session.isReachable else {
+            print("[WatchConnectivity] iPhone not reachable")
             appState = .noConnection
             return
         }
         
-        let session = WCSession.default
         session.sendMessage(["request": "activities"], replyHandler: { [weak self] response in
             guard let self = self else { return }
             
@@ -114,7 +132,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                     self.appState = .noConnection
                 }
             }
-        }, errorHandler: { [weak self] _ in
+        }, errorHandler: { [weak self] error in
+            print("[WatchConnectivity] Error checking active session: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 self?.appState = .noConnection
             }
@@ -122,12 +141,20 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     }
     
     func fetchSchedule() {
-        guard isReachable else {
+        let session = WCSession.default
+        
+        guard session.activationState == .activated else {
+            print("[WatchConnectivity] Session not activated, cannot fetch schedule")
             appState = .noConnection
             return
         }
         
-        let session = WCSession.default
+        guard session.isReachable else {
+            print("[WatchConnectivity] iPhone not reachable, cannot fetch schedule")
+            appState = .noConnection
+            return
+        }
+        
         session.sendMessage(["request": "schedule"], replyHandler: { [weak self] response in
             guard let self = self else { return }
             
@@ -147,7 +174,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                     self.appState = .noConnection
                 }
             }
-        }, errorHandler: { [weak self] _ in
+        }, errorHandler: { [weak self] error in
+            print("[WatchConnectivity] Error fetching schedule: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 self?.appState = .noConnection
             }
@@ -155,7 +183,12 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     }
     
     func startActivity(type: String, location: String, workoutId: String? = nil) {
-        guard isReachable else { return }
+        let session = WCSession.default
+        
+        guard session.activationState == .activated, session.isReachable else {
+            print("[WatchConnectivity] Cannot start activity - session not ready")
+            return
+        }
         
         var message: [String: Any] = [
             "request": "startActivity",
@@ -167,83 +200,86 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             message["workoutId"] = workoutId
         }
         
-        let session = WCSession.default
         session.sendMessage(message, replyHandler: { [weak self] _ in
             DispatchQueue.main.async {
                 self?.checkForActiveSession()
             }
-        }, errorHandler: nil)
+        }, errorHandler: { error in
+            print("[WatchConnectivity] Start activity error: \(error.localizedDescription)")
+        })
     }
     
     func sendMetrics(activity: String, heartRate: Double, distanceMeters: Double, activeEnergyKcal: Double, cadenceSpm: Double, elapsedSeconds: Int) {
         let session = WCSession.default
+        let message: [String: Any] = [
+            "activity": activity,
+            "heartRate": heartRate,
+            "distanceMeters": distanceMeters,
+            "activeEnergyKcal": activeEnergyKcal,
+            "cadenceSpm": cadenceSpm,
+            "elapsedSeconds": elapsedSeconds
+        ]
+        
         if session.activationState != .activated {
+            print("[WatchConnectivity] Session not activated, queueing metrics")
+            pendingMessages.append(message)
             session.activate()
-            pendingMessages.append([
-                "activity": activity,
-                "heartRate": heartRate,
-                "distanceMeters": distanceMeters,
-                "activeEnergyKcal": activeEnergyKcal,
-                "cadenceSpm": cadenceSpm,
-                "elapsedSeconds": elapsedSeconds
-            ])
             return
         }
+        
         guard session.isReachable else {
-            pendingMessages.append([
-                "activity": activity,
-                "heartRate": heartRate,
-                "distanceMeters": distanceMeters,
-                "activeEnergyKcal": activeEnergyKcal,
-                "cadenceSpm": cadenceSpm,
-                "elapsedSeconds": elapsedSeconds
-            ])
+            print("[WatchConnectivity] iPhone not reachable, queueing metrics")
+            pendingMessages.append(message)
             return
         }
-        session.sendMessage(
-            [
-                "activity": activity,
-                "heartRate": heartRate,
-                "distanceMeters": distanceMeters,
-                "activeEnergyKcal": activeEnergyKcal,
-                "cadenceSpm": cadenceSpm,
-                "elapsedSeconds": elapsedSeconds
-            ],
-            replyHandler: nil,
-            errorHandler: nil
-        )
+        
+        session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+            print("[WatchConnectivity] Send metrics error: \(error.localizedDescription)")
+        })
     }
     
     func sendEnded(uuid: UUID?) {
         let session = WCSession.default
-        if session.activationState != .activated {
-            session.activate()
-            var message: [String: Any] = ["event": "ended"]
-            if let uuid { message["uuid"] = uuid.uuidString }
-            pendingMessages.append(message)
-            return
-        }
-        guard session.isReachable else {
-            var message: [String: Any] = ["event": "ended"]
-            if let uuid { message["uuid"] = uuid.uuidString }
-            pendingMessages.append(message)
-            return
-        }
         var message: [String: Any] = ["event": "ended"]
         if let uuid {
             message["uuid"] = uuid.uuidString
         }
-        session.sendMessage(message, replyHandler: nil, errorHandler: nil)
+        
+        if session.activationState != .activated {
+            print("[WatchConnectivity] Session not activated, queueing ended event")
+            pendingMessages.append(message)
+            session.activate()
+            return
+        }
+        
+        guard session.isReachable else {
+            print("[WatchConnectivity] iPhone not reachable, queueing ended event")
+            pendingMessages.append(message)
+            return
+        }
+        
+        session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+            print("[WatchConnectivity] Send ended error: \(error.localizedDescription)")
+        })
     }
     
     private func flushPendingIfPossible() {
         let session = WCSession.default
         guard session.activationState == .activated, session.isReachable else { return }
         guard !pendingMessages.isEmpty else { return }
+        
         let toSend = pendingMessages
         pendingMessages.removeAll()
+        print("[WatchConnectivity] Flushing \(toSend.count) pending messages")
+        
         for message in toSend {
-            session.sendMessage(message, replyHandler: nil, errorHandler: nil)
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Error flushing message: \(error.localizedDescription)")
+                // Re-queue failed messages
+                DispatchQueue.main.async { [weak self] in
+                    self?.pendingMessages.append(message)
+                }
+            })
         }
     }
 }
@@ -253,6 +289,13 @@ extension WatchConnectivityManager: WCSessionDelegate {
         DispatchQueue.main.async {
             self.activationState = activationState
             self.isReachable = session.isReachable
+            
+            if let error = error {
+                print("[WatchConnectivity] Activation error: \(error.localizedDescription)")
+            } else {
+                print("[WatchConnectivity] Activated - state: \(activationState.rawValue), reachable: \(session.isReachable)")
+            }
+            
             self.flushPendingIfPossible()
             if activationState == .activated && self.appState == .loading {
                 self.checkForActiveSession()

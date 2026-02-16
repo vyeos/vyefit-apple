@@ -53,35 +53,70 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     static let shared = WatchConnectivityManager()
     
     @Published private(set) var isReachable: Bool = false
+    @Published private(set) var isActivated: Bool = false
     @Published private(set) var latestMetrics: WatchMetrics?
     
     var onMetrics: ((WatchMetrics) -> Void)?
     var onWorkoutEnded: ((UUID?) -> Void)?
     var onStartFromWatch: ((String, String, String?) -> Void)? // activity, location, workoutId
     
+    private var activationCompletion: ((Bool) -> Void)?
+    
     private override init() {
         super.init()
-        guard WCSession.isSupported() else { return }
+        guard WCSession.isSupported() else { 
+            print("[WatchConnectivity] WCSession not supported on this device")
+            return 
+        }
         let session = WCSession.default
         session.delegate = self
         session.activate()
     }
     
+    func activate(completion: ((Bool) -> Void)? = nil) {
+        guard WCSession.isSupported() else {
+            completion?(false)
+            return
+        }
+        
+        let session = WCSession.default
+        if session.activationState == .activated {
+            isActivated = true
+            isReachable = session.isReachable
+            completion?(true)
+        } else {
+            activationCompletion = completion
+            session.activate()
+        }
+    }
+    
     func startWorkout(activity: String, location: String) {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isReachable else { 
+            print("[WatchConnectivity] Cannot start workout - session not ready")
+            return 
+        }
+        session.sendMessage(
             ["command": "start", "activity": activity, "location": location],
             replyHandler: nil,
-            errorHandler: nil
+            errorHandler: { error in
+                print("[WatchConnectivity] Start workout error: \(error.localizedDescription)")
+            }
         )
     }
     
     func endWorkout() {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isReachable else { 
+            print("[WatchConnectivity] Cannot end workout - session not ready")
+            return 
+        }
+        session.sendMessage(
             ["command": "end"],
             replyHandler: nil,
-            errorHandler: nil
+            errorHandler: { error in
+                print("[WatchConnectivity] End workout error: \(error.localizedDescription)")
+            }
         )
     }
 }
@@ -89,7 +124,15 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 extension WatchConnectivityManager: WCSessionDelegate {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async {
+            self.isActivated = (activationState == .activated)
             self.isReachable = session.isReachable
+            
+            if let error = error {
+                print("[WatchConnectivity] Activation error: \(error.localizedDescription)")
+            }
+            
+            self.activationCompletion?(activationState == .activated)
+            self.activationCompletion = nil
         }
     }
     

@@ -96,11 +96,23 @@ struct HomeView: View {
         }
         .onAppear {
             HealthKitManager.shared.importLatestWorkoutsIfNeeded()
-            WatchConnectivityManager.shared.onWorkoutEnded = { uuid in
+            
+            // Setup WatchConnectivity callbacks
+            let watchManager = WatchConnectivityManager.shared
+            watchManager.onWorkoutEnded = { uuid in
                 if let uuid {
                     HealthKitManager.shared.importWorkout(uuid: uuid) { _ in }
                 } else {
                     HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
+                }
+            }
+            
+            // Ensure session is activated
+            watchManager.activate { success in
+                if success {
+                    print("[MainTabView] WatchConnectivity activated successfully")
+                } else {
+                    print("[MainTabView] WatchConnectivity activation failed or not supported")
                 }
             }
         }
