@@ -1,6 +1,6 @@
 //
 //  WatchWorkoutManager.swift
-//  VyefitWatch Watch App
+//  Vyefit Watch App
 //
 
 import Foundation

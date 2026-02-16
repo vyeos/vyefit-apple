@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2041EA4B2F41EABB004EE23F /* VyefitWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2041EA2B2F41EAB9004EE23F /* VyefitWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2041EA4B2F41EABB004EE23F /* Vyefit Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2041EA2B2F41EAB9004EE23F /* Vyefit Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,7 +55,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				2041EA4B2F41EABB004EE23F /* VyefitWatch Watch App.app in Embed Watch Content */,
+				2041EA4B2F41EABB004EE23F /* Vyefit Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -63,9 +63,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		2041EA2B2F41EAB9004EE23F /* VyefitWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "VyefitWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		2041EA372F41EABB004EE23F /* VyefitWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "VyefitWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		2041EA412F41EABB004EE23F /* VyefitWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "VyefitWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2041EA2B2F41EAB9004EE23F /* Vyefit Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Vyefit Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2041EA372F41EABB004EE23F /* Vyefit Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Vyefit Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2041EA412F41EABB004EE23F /* Vyefit Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Vyefit Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		204C85632F3B7FE800AB6C92 /* Vyefit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vyefit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		204C85752F3B7FEA00AB6C92 /* VyefitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VyefitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		204C857F2F3B7FEA00AB6C92 /* VyefitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VyefitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -169,9 +169,9 @@
 				204C85632F3B7FE800AB6C92 /* Vyefit.app */,
 				204C85752F3B7FEA00AB6C92 /* VyefitTests.xctest */,
 				204C857F2F3B7FEA00AB6C92 /* VyefitUITests.xctest */,
-				2041EA2B2F41EAB9004EE23F /* VyefitWatch Watch App.app */,
-				2041EA372F41EABB004EE23F /* VyefitWatch Watch AppTests.xctest */,
-				2041EA412F41EABB004EE23F /* VyefitWatch Watch AppUITests.xctest */,
+				2041EA2B2F41EAB9004EE23F /* Vyefit Watch App.app */,
+				2041EA372F41EABB004EE23F /* Vyefit Watch AppTests.xctest */,
+				2041EA412F41EABB004EE23F /* Vyefit Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -179,9 +179,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2041EA2A2F41EAB9004EE23F /* VyefitWatch Watch App */ = {
+		2041EA2A2F41EAB9004EE23F /* Vyefit Watch App */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2041EA532F41EABB004EE23F /* Build configuration list for PBXNativeTarget "VyefitWatch Watch App" */;
+			buildConfigurationList = 2041EA532F41EABB004EE23F /* Build configuration list for PBXNativeTarget "Vyefit Watch App" */;
 			buildPhases = (
 				2041EA272F41EAB9004EE23F /* Sources */,
 				2041EA282F41EAB9004EE23F /* Frameworks */,
@@ -194,16 +194,16 @@
 			fileSystemSynchronizedGroups = (
 				2041EA2C2F41EAB9004EE23F /* VyefitWatch Watch App */,
 			);
-			name = "VyefitWatch Watch App";
+			name = "Vyefit Watch App";
 			packageProductDependencies = (
 			);
 			productName = "VyefitWatch Watch App";
-			productReference = 2041EA2B2F41EAB9004EE23F /* VyefitWatch Watch App.app */;
+			productReference = 2041EA2B2F41EAB9004EE23F /* Vyefit Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
-		2041EA362F41EABB004EE23F /* VyefitWatch Watch AppTests */ = {
+		2041EA362F41EABB004EE23F /* Vyefit Watch AppTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2041EA542F41EABB004EE23F /* Build configuration list for PBXNativeTarget "VyefitWatch Watch AppTests" */;
+			buildConfigurationList = 2041EA542F41EABB004EE23F /* Build configuration list for PBXNativeTarget "Vyefit Watch AppTests" */;
 			buildPhases = (
 				2041EA332F41EABB004EE23F /* Sources */,
 				2041EA342F41EABB004EE23F /* Frameworks */,
@@ -217,16 +217,16 @@
 			fileSystemSynchronizedGroups = (
 				2041EA3A2F41EABB004EE23F /* VyefitWatch Watch AppTests */,
 			);
-			name = "VyefitWatch Watch AppTests";
+			name = "Vyefit Watch AppTests";
 			packageProductDependencies = (
 			);
 			productName = "VyefitWatch Watch AppTests";
-			productReference = 2041EA372F41EABB004EE23F /* VyefitWatch Watch AppTests.xctest */;
+			productReference = 2041EA372F41EABB004EE23F /* Vyefit Watch AppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		2041EA402F41EABB004EE23F /* VyefitWatch Watch AppUITests */ = {
+		2041EA402F41EABB004EE23F /* Vyefit Watch AppUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2041EA552F41EABB004EE23F /* Build configuration list for PBXNativeTarget "VyefitWatch Watch AppUITests" */;
+			buildConfigurationList = 2041EA552F41EABB004EE23F /* Build configuration list for PBXNativeTarget "Vyefit Watch AppUITests" */;
 			buildPhases = (
 				2041EA3D2F41EABB004EE23F /* Sources */,
 				2041EA3E2F41EABB004EE23F /* Frameworks */,
@@ -240,11 +240,11 @@
 			fileSystemSynchronizedGroups = (
 				2041EA442F41EABB004EE23F /* VyefitWatch Watch AppUITests */,
 			);
-			name = "VyefitWatch Watch AppUITests";
+			name = "Vyefit Watch AppUITests";
 			packageProductDependencies = (
 			);
 			productName = "VyefitWatch Watch AppUITests";
-			productReference = 2041EA412F41EABB004EE23F /* VyefitWatch Watch AppUITests.xctest */;
+			productReference = 2041EA412F41EABB004EE23F /* Vyefit Watch AppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		204C85622F3B7FE800AB6C92 /* Vyefit */ = {
@@ -368,9 +368,9 @@
 				204C85622F3B7FE800AB6C92 /* Vyefit */,
 				204C85742F3B7FEA00AB6C92 /* VyefitTests */,
 				204C857E2F3B7FEA00AB6C92 /* VyefitUITests */,
-				2041EA2A2F41EAB9004EE23F /* VyefitWatch Watch App */,
-				2041EA362F41EABB004EE23F /* VyefitWatch Watch AppTests */,
-				2041EA402F41EABB004EE23F /* VyefitWatch Watch AppUITests */,
+				2041EA2A2F41EAB9004EE23F /* Vyefit Watch App */,
+				2041EA362F41EABB004EE23F /* Vyefit Watch AppTests */,
+				2041EA402F41EABB004EE23F /* Vyefit Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -468,17 +468,17 @@
 /* Begin PBXTargetDependency section */
 		2041EA392F41EABB004EE23F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 2041EA2A2F41EAB9004EE23F /* VyefitWatch Watch App */;
+			target = 2041EA2A2F41EAB9004EE23F /* Vyefit Watch App */;
 			targetProxy = 2041EA382F41EABB004EE23F /* PBXContainerItemProxy */;
 		};
 		2041EA432F41EABB004EE23F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 2041EA2A2F41EAB9004EE23F /* VyefitWatch Watch App */;
+			target = 2041EA2A2F41EAB9004EE23F /* Vyefit Watch App */;
 			targetProxy = 2041EA422F41EABB004EE23F /* PBXContainerItemProxy */;
 		};
 		2041EA4A2F41EABB004EE23F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 2041EA2A2F41EAB9004EE23F /* VyefitWatch Watch App */;
+			target = 2041EA2A2F41EAB9004EE23F /* Vyefit Watch App */;
 			targetProxy = 2041EA492F41EABB004EE23F /* PBXContainerItemProxy */;
 		};
 		204C85772F3B7FEA00AB6C92 /* PBXTargetDependency */ = {
@@ -928,7 +928,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2041EA532F41EABB004EE23F /* Build configuration list for PBXNativeTarget "VyefitWatch Watch App" */ = {
+		2041EA532F41EABB004EE23F /* Build configuration list for PBXNativeTarget "Vyefit Watch App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2041EA4D2F41EABB004EE23F /* Debug */,
@@ -937,7 +937,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2041EA542F41EABB004EE23F /* Build configuration list for PBXNativeTarget "VyefitWatch Watch AppTests" */ = {
+		2041EA542F41EABB004EE23F /* Build configuration list for PBXNativeTarget "Vyefit Watch AppTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2041EA4F2F41EABB004EE23F /* Debug */,
@@ -946,7 +946,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2041EA552F41EABB004EE23F /* Build configuration list for PBXNativeTarget "VyefitWatch Watch AppUITests" */ = {
+		2041EA552F41EABB004EE23F /* Build configuration list for PBXNativeTarget "Vyefit Watch AppUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2041EA512F41EABB004EE23F /* Debug */,

@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Vyefit reads workouts, heart rate, and activity data to show your sessions.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Vyefit saves your workouts to Apple Health so your activity stays in sync.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Vyefit uses your location to record routes for outdoor runs and workouts.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -19,19 +25,11 @@
 			</array>
 		</dict>
 	</dict>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Vyefit reads workouts, heart rate, and activity data to show your sessions.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Vyefit saves your workouts to Apple Health so your activity stays in sync.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Vyefit uses your location to record routes for outdoor runs and workouts.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIImageName</key>
 		<string></string>
 	</dict>
-	<key>UIRequiresFullScreen</key>
-	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

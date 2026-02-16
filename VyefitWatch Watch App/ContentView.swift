@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  VyefitWatch Watch App
+//  Vyefit Watch App
 //
 
 import SwiftUI

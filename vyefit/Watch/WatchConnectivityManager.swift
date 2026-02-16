@@ -55,6 +55,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published private(set) var isReachable: Bool = false
     @Published private(set) var isActivated: Bool = false
     @Published private(set) var latestMetrics: WatchMetrics?
+    @Published private(set) var isConnected: Bool = false
     
     var onMetrics: ((WatchMetrics) -> Void)?
     var onWorkoutEnded: ((UUID?) -> Void)?
@@ -71,6 +72,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         let session = WCSession.default
         session.delegate = self
         session.activate()
+        isConnected = session.activationState == .activated
+        isReachable = session.isReachable
     }
     
     func activate(completion: ((Bool) -> Void)? = nil) {
@@ -82,6 +85,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         let session = WCSession.default
         if session.activationState == .activated {
             isActivated = true
+            isConnected = true
             isReachable = session.isReachable
             completion?(true)
         } else {
@@ -90,34 +94,58 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         }
     }
     
+    func updateApplicationContext() {
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        
+        let activityData = getActivityData()
+        let scheduleData = getScheduleData()
+        
+        var context: [String: Any] = [:]
+        
+        if let data = try? JSONEncoder().encode(activityData),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            context["activities"] = json
+        }
+        
+        if let data = try? JSONEncoder().encode(scheduleData),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            context["schedule"] = json
+        }
+        
+        do {
+            try session.updateApplicationContext(context)
+            print("[WatchConnectivity] Updated application context")
+        } catch {
+            print("[WatchConnectivity] Failed to update context: \(error.localizedDescription)")
+        }
+    }
+    
     func startWorkout(activity: String, location: String) {
         let session = WCSession.default
-        guard session.activationState == .activated, session.isReachable else { 
-            print("[WatchConnectivity] Cannot start workout - session not ready")
-            return 
-        }
-        session.sendMessage(
-            ["command": "start", "activity": activity, "location": location],
-            replyHandler: nil,
-            errorHandler: { error in
+        let message = ["command": "start", "activity": activity, "location": location]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
                 print("[WatchConnectivity] Start workout error: \(error.localizedDescription)")
-            }
-        )
+            })
+        }
+        
+        // Also send via userInfo for reliability
+        session.transferUserInfo(message)
     }
     
     func endWorkout() {
         let session = WCSession.default
-        guard session.activationState == .activated, session.isReachable else { 
-            print("[WatchConnectivity] Cannot end workout - session not ready")
-            return 
-        }
-        session.sendMessage(
-            ["command": "end"],
-            replyHandler: nil,
-            errorHandler: { error in
+        let message = ["command": "end"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
                 print("[WatchConnectivity] End workout error: \(error.localizedDescription)")
-            }
-        )
+            })
+        }
+        
+        session.transferUserInfo(message)
     }
 }
 
@@ -126,24 +154,35 @@ extension WatchConnectivityManager: WCSessionDelegate {
         DispatchQueue.main.async {
             self.isActivated = (activationState == .activated)
             self.isReachable = session.isReachable
+            self.isConnected = activationState == .activated
             
             if let error = error {
                 print("[WatchConnectivity] Activation error: \(error.localizedDescription)")
+            } else {
+                print("[WatchConnectivity] Activated - reachable: \(session.isReachable)")
             }
             
             self.activationCompletion?(activationState == .activated)
             self.activationCompletion = nil
+            
+            if activationState == .activated {
+                self.updateApplicationContext()
+            }
         }
     }
     
     func sessionReachabilityDidChange(_ session: WCSession) {
         DispatchQueue.main.async {
             self.isReachable = session.isReachable
+            print("[WatchConnectivity] Reachability changed: \(session.isReachable)")
+            
+            if session.isReachable {
+                self.updateApplicationContext()
+            }
         }
     }
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
-        // Handle requests from watch
         if let request = message["request"] as? String {
             switch request {
             case "schedule":
@@ -182,7 +221,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
             }
         }
         
-        // Handle workout ended event
         if let event = message["event"] as? String, event == "ended" {
             let uuid = (message["uuid"] as? String).flatMap { UUID(uuidString: $0) }
             DispatchQueue.main.async {
@@ -191,7 +229,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
             return
         }
         
-        // Handle metrics
         guard let activity = message["activity"] as? String else { return }
         let metrics = WatchMetrics(
             activity: activity,
@@ -205,6 +242,41 @@ extension WatchConnectivityManager: WCSessionDelegate {
             self.latestMetrics = metrics
             self.onMetrics?(metrics)
         }
+    }
+    
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
+        if let request = userInfo["request"] as? String, request == "startActivity" {
+            if let activity = userInfo["activity"] as? String,
+               let location = userInfo["location"] as? String {
+                let workoutId = userInfo["workoutId"] as? String
+                DispatchQueue.main.async {
+                    self.onStartFromWatch?(activity, location, workoutId)
+                }
+            }
+        } else if let event = userInfo["event"] as? String, event == "ended" {
+            let uuid = (userInfo["uuid"] as? String).flatMap { UUID(uuidString: $0) }
+            DispatchQueue.main.async {
+                self.onWorkoutEnded?(uuid)
+            }
+        } else if let activity = userInfo["activity"] as? String {
+            let metrics = WatchMetrics(
+                activity: activity,
+                heartRate: userInfo["heartRate"] as? Double ?? 0,
+                distanceMeters: userInfo["distanceMeters"] as? Double ?? 0,
+                activeEnergyKcal: userInfo["activeEnergyKcal"] as? Double ?? 0,
+                cadenceSpm: userInfo["cadenceSpm"] as? Double ?? 0,
+                elapsedSeconds: userInfo["elapsedSeconds"] as? Int ?? 0
+            )
+            DispatchQueue.main.async {
+                self.latestMetrics = metrics
+                self.onMetrics?(metrics)
+            }
+        }
+    }
+    
+    func sessionDidBecomeInactive(_ session: WCSession) { }
+    func sessionDidDeactivate(_ session: WCSession) {
+        session.activate()
     }
     
     private func getScheduleData() -> WatchScheduleData {
@@ -303,10 +375,5 @@ extension WatchConnectivityManager: WCSessionDelegate {
             activeSessionWorkoutId: activeSessionWorkoutId,
             activeSessionLocation: activeSessionLocation
         )
-    }
-    
-    func sessionDidBecomeInactive(_ session: WCSession) { }
-    func sessionDidDeactivate(_ session: WCSession) {
-        session.activate()
     }
 }

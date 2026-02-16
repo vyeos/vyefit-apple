@@ -107,6 +107,7 @@ class WorkoutStore {
         if WatchConnectivityManager.shared.isReachable {
             WatchConnectivityManager.shared.startWorkout(activity: "workout", location: location == .outdoor ? "outdoor" : "indoor")
         }
+        WatchConnectivityManager.shared.updateApplicationContext()
         let controller: HealthKitWorkoutController? = shouldUseHealth && !WatchConnectivityManager.shared.isReachable
             ? HealthKitManager.shared.startWorkoutController(activityType: workout.workoutType.hkActivityType, location: location)
             : nil
@@ -117,6 +118,7 @@ class WorkoutStore {
     func endActiveSession() {
         if let session = activeSession {
             WatchConnectivityManager.shared.endWorkout()
+            WatchConnectivityManager.shared.updateApplicationContext()
             if let workout = session.consumeFinishedWorkout() {
                 HealthKitManager.shared.importWorkoutSample(workout) { _ in }
             } else if !session.isHealthBacked {

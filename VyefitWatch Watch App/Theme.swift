@@ -1,6 +1,6 @@
 //
 //  Theme.swift
-//  VyefitWatch Watch App
+//  Vyefit Watch App
 //
 //  Color palette for the Soft Natural aesthetic - WatchOS version.
 //

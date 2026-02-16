@@ -143,13 +143,13 @@ struct DashboardView: View {
                             Circle()
                                 .fill(.white)
                                 .frame(width: 6, height: 6)
-                            Text(watchConnectivity.isReachable ? "Watch Connected" : "Watch Disconnected")
+                            Text(watchConnectivity.isConnected ? "Watch Connected" : "Watch Disconnected")
                                 .font(.system(size: 11, weight: .semibold))
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(watchConnectivity.isReachable ? Theme.sage : Theme.terracotta)
+                        .background(watchConnectivity.isConnected ? Theme.sage : Theme.terracotta)
                         .clipShape(Capsule())
                     }
                     .padding(.horizontal, 20)

@@ -1,6 +1,6 @@
 //
 //  WatchConnectivityManager.swift
-//  VyefitWatch Watch App
+//  Vyefit Watch App
 //
 
 import Foundation
@@ -55,6 +55,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     
     @Published private(set) var isReachable: Bool = false
     @Published private(set) var activationState: WCSessionActivationState = .notActivated
+    @Published private(set) var isConnected: Bool = false
     @Published private(set) var appState: WatchAppState = .loading
     @Published private(set) var scheduleData: WatchScheduleData?
     @Published private(set) var activityData: WatchActivityData?
@@ -62,6 +63,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published var receivedStartCommand: (type: String, location: String)?
     
     private var pendingMessages: [[String: Any]] = []
+    private var retryTimer: Timer?
     
     var onStartCommand: ((String, String) -> Void)?
     var onEndCommand: (() -> Void)?
@@ -78,32 +80,37 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         session.activate()
         activationState = session.activationState
         isReachable = session.isReachable
-        print("[WatchConnectivity] Initializing - state: \(activationState.rawValue), reachable: \(isReachable)")
+        isConnected = session.activationState == .activated
+        print("[WatchConnectivity] Initializing - state: \(activationState.rawValue), reachable: \(isReachable), connected: \(isConnected)")
     }
     
     func checkForActiveSession() {
         let session = WCSession.default
         
-        // Check if session is activated first
         guard session.activationState == .activated else {
-            print("[WatchConnectivity] Session not activated yet, delaying check")
-            // Wait and retry after activation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                if WCSession.default.activationState == .activated {
-                    self?.checkForActiveSession()
-                } else {
-                    self?.appState = .noConnection
-                }
-            }
+            print("[WatchConnectivity] Session not activated yet, scheduling retry")
+            scheduleRetry()
             return
         }
         
-        guard session.isReachable else {
-            print("[WatchConnectivity] iPhone not reachable")
-            appState = .noConnection
-            return
+        // Try immediate message if reachable, otherwise use context
+        if session.isReachable {
+            requestActivitiesViaMessage()
+        } else {
+            // Check for last known context
+            checkApplicationContext()
         }
-        
+    }
+    
+    private func scheduleRetry() {
+        retryTimer?.invalidate()
+        retryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+            self?.checkForActiveSession()
+        }
+    }
+    
+    private func requestActivitiesViaMessage() {
+        let session = WCSession.default
         session.sendMessage(["request": "activities"], replyHandler: { [weak self] response in
             guard let self = self else { return }
             
@@ -129,15 +136,66 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                 }
             } else {
                 DispatchQueue.main.async {
-                    self.appState = .noConnection
+                    // If message fails to decode, still try to show activity chooser with cached data
+                    self.showActivityChooserWithCachedData()
                 }
             }
         }, errorHandler: { [weak self] error in
-            print("[WatchConnectivity] Error checking active session: \(error.localizedDescription)")
+            print("[WatchConnectivity] Message error: \(error.localizedDescription)")
             DispatchQueue.main.async {
-                self?.appState = .noConnection
+                self?.checkApplicationContext()
             }
         })
+    }
+    
+    private func checkApplicationContext() {
+        let session = WCSession.default
+        let context = session.receivedApplicationContext
+        
+        print("[WatchConnectivity] Checking application context: \(context)")
+        
+        if let activitiesData = context["activities"] as? [String: Any],
+           let data = try? JSONSerialization.data(withJSONObject: activitiesData),
+           let activities = try? JSONDecoder().decode(WatchActivityData.self, from: data) {
+            DispatchQueue.main.async {
+                self.activityData = activities
+                
+                if activities.hasActiveSession,
+                   let type = activities.activeSessionType,
+                   let name = activities.activeSessionName {
+                    if type == "workout" {
+                        self.appState = .activeSession(.workout(name: name))
+                    } else {
+                        self.appState = .activeSession(.run(name: name))
+                    }
+                    if let location = activities.activeSessionLocation {
+                        self.activeSessionInfo = (type: type, location: location)
+                    }
+                } else {
+                    self.showActivityChooserWithCachedData()
+                }
+            }
+        } else {
+            showActivityChooserWithCachedData()
+        }
+    }
+    
+    private func showActivityChooserWithCachedData() {
+        if let schedule = scheduleData, let activities = activityData {
+            appState = .chooseActivity(schedule, activities)
+        } else {
+            // Create empty data to show the UI
+            let emptySchedule = WatchScheduleData(todayItems: [], dayName: "Today")
+            let emptyActivities = WatchActivityData(
+                workouts: [],
+                hasActiveSession: false,
+                activeSessionType: nil,
+                activeSessionName: nil,
+                activeSessionWorkoutId: nil,
+                activeSessionLocation: nil
+            )
+            appState = .chooseActivity(emptySchedule, emptyActivities)
+        }
     }
     
     func fetchSchedule() {
@@ -145,50 +203,48 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         
         guard session.activationState == .activated else {
             print("[WatchConnectivity] Session not activated, cannot fetch schedule")
-            appState = .noConnection
+            showActivityChooserWithCachedData()
             return
         }
         
-        guard session.isReachable else {
-            print("[WatchConnectivity] iPhone not reachable, cannot fetch schedule")
-            appState = .noConnection
-            return
-        }
-        
-        session.sendMessage(["request": "schedule"], replyHandler: { [weak self] response in
-            guard let self = self else { return }
-            
-            if let data = try? JSONSerialization.data(withJSONObject: response),
-               let schedule = try? JSONDecoder().decode(WatchScheduleData.self, from: data) {
-                DispatchQueue.main.async {
-                    self.scheduleData = schedule
-                    if let activities = self.activityData {
-                        self.appState = .chooseActivity(schedule, activities)
-                    } else {
-                        // Fetch activities if not already loaded
-                        self.checkForActiveSession()
+        if session.isReachable {
+            session.sendMessage(["request": "schedule"], replyHandler: { [weak self] response in
+                guard let self = self else { return }
+                
+                if let data = try? JSONSerialization.data(withJSONObject: response),
+                   let schedule = try? JSONDecoder().decode(WatchScheduleData.self, from: data) {
+                    DispatchQueue.main.async {
+                        self.scheduleData = schedule
+                        if let activities = self.activityData {
+                            self.appState = .chooseActivity(schedule, activities)
+                        } else {
+                            self.showActivityChooserWithCachedData()
+                        }
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        self?.showActivityChooserWithCachedData()
                     }
                 }
-            } else {
+            }, errorHandler: { [weak self] error in
+                print("[WatchConnectivity] Error fetching schedule: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    self.appState = .noConnection
+                    self?.showActivityChooserWithCachedData()
                 }
+            })
+        } else {
+            // Use cached schedule from context
+            if let context = session.receivedApplicationContext["schedule"] as? [String: Any],
+               let data = try? JSONSerialization.data(withJSONObject: context),
+               let schedule = try? JSONDecoder().decode(WatchScheduleData.self, from: data) {
+                scheduleData = schedule
             }
-        }, errorHandler: { [weak self] error in
-            print("[WatchConnectivity] Error fetching schedule: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                self?.appState = .noConnection
-            }
-        })
+            showActivityChooserWithCachedData()
+        }
     }
     
     func startActivity(type: String, location: String, workoutId: String? = nil) {
         let session = WCSession.default
-        
-        guard session.activationState == .activated, session.isReachable else {
-            print("[WatchConnectivity] Cannot start activity - session not ready")
-            return
-        }
         
         var message: [String: Any] = [
             "request": "startActivity",
@@ -200,13 +256,19 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             message["workoutId"] = workoutId
         }
         
-        session.sendMessage(message, replyHandler: { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.checkForActiveSession()
-            }
-        }, errorHandler: { error in
-            print("[WatchConnectivity] Start activity error: \(error.localizedDescription)")
-        })
+        // Always try to send, queue if not reachable
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.checkForActiveSession()
+                }
+            }, errorHandler: { error in
+                print("[WatchConnectivity] Start activity error: \(error.localizedDescription)")
+            })
+        }
+        
+        // Also send via userInfo for reliability
+        session.transferUserInfo(message)
     }
     
     func sendMetrics(activity: String, heartRate: Double, distanceMeters: Double, activeEnergyKcal: Double, cadenceSpm: Double, elapsedSeconds: Int) {
@@ -220,22 +282,15 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "elapsedSeconds": elapsedSeconds
         ]
         
-        if session.activationState != .activated {
-            print("[WatchConnectivity] Session not activated, queueing metrics")
-            pendingMessages.append(message)
-            session.activate()
-            return
+        // Try immediate message if reachable
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Send metrics error: \(error.localizedDescription)")
+            })
         }
         
-        guard session.isReachable else {
-            print("[WatchConnectivity] iPhone not reachable, queueing metrics")
-            pendingMessages.append(message)
-            return
-        }
-        
-        session.sendMessage(message, replyHandler: nil, errorHandler: { error in
-            print("[WatchConnectivity] Send metrics error: \(error.localizedDescription)")
-        })
+        // Always also send via transferUserInfo for reliability
+        session.transferUserInfo(message)
     }
     
     func sendEnded(uuid: UUID?) {
@@ -245,22 +300,14 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             message["uuid"] = uuid.uuidString
         }
         
-        if session.activationState != .activated {
-            print("[WatchConnectivity] Session not activated, queueing ended event")
-            pendingMessages.append(message)
-            session.activate()
-            return
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Send ended error: \(error.localizedDescription)")
+            })
         }
         
-        guard session.isReachable else {
-            print("[WatchConnectivity] iPhone not reachable, queueing ended event")
-            pendingMessages.append(message)
-            return
-        }
-        
-        session.sendMessage(message, replyHandler: nil, errorHandler: { error in
-            print("[WatchConnectivity] Send ended error: \(error.localizedDescription)")
-        })
+        // Always send via userInfo for reliability
+        session.transferUserInfo(message)
     }
     
     private func flushPendingIfPossible() {
@@ -275,10 +322,6 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         for message in toSend {
             session.sendMessage(message, replyHandler: nil, errorHandler: { error in
                 print("[WatchConnectivity] Error flushing message: \(error.localizedDescription)")
-                // Re-queue failed messages
-                DispatchQueue.main.async { [weak self] in
-                    self?.pendingMessages.append(message)
-                }
             })
         }
     }
@@ -289,6 +332,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
         DispatchQueue.main.async {
             self.activationState = activationState
             self.isReachable = session.isReachable
+            self.isConnected = activationState == .activated
             
             if let error = error {
                 print("[WatchConnectivity] Activation error: \(error.localizedDescription)")
@@ -297,7 +341,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
             }
             
             self.flushPendingIfPossible()
-            if activationState == .activated && self.appState == .loading {
+            if activationState == .activated {
                 self.checkForActiveSession()
             }
         }
@@ -306,7 +350,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
     func sessionReachabilityDidChange(_ session: WCSession) {
         DispatchQueue.main.async {
             self.isReachable = session.isReachable
+            print("[WatchConnectivity] Reachability changed: \(session.isReachable)")
             self.flushPendingIfPossible()
+            if session.isReachable {
+                self.checkForActiveSession()
+            }
         }
     }
     
@@ -321,6 +369,54 @@ extension WatchConnectivityManager: WCSessionDelegate {
         } else if let command = message["command"] as? String, command == "end" {
             DispatchQueue.main.async {
                 self.onEndCommand?()
+            }
+        }
+    }
+    
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
+        if let request = userInfo["request"] as? String, request == "startActivity" {
+            let activity = userInfo["activity"] as? String ?? "workout"
+            let location = userInfo["location"] as? String ?? "indoor"
+            DispatchQueue.main.async {
+                self.receivedStartCommand = (type: activity, location: location)
+                self.onStartCommand?(activity, location)
+            }
+        } else if let event = userInfo["event"] as? String, event == "ended" {
+            DispatchQueue.main.async {
+                self.onEndCommand?()
+            }
+        }
+    }
+    
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
+        print("[WatchConnectivity] Received application context: \(applicationContext)")
+        
+        if let activitiesData = applicationContext["activities"] as? [String: Any],
+           let data = try? JSONSerialization.data(withJSONObject: activitiesData),
+           let activities = try? JSONDecoder().decode(WatchActivityData.self, from: data) {
+            DispatchQueue.main.async {
+                self.activityData = activities
+                
+                if activities.hasActiveSession,
+                   let type = activities.activeSessionType,
+                   let name = activities.activeSessionName {
+                    if type == "workout" {
+                        self.appState = .activeSession(.workout(name: name))
+                    } else {
+                        self.appState = .activeSession(.run(name: name))
+                    }
+                    if let location = activities.activeSessionLocation {
+                        self.activeSessionInfo = (type: type, location: location)
+                    }
+                }
+            }
+        }
+        
+        if let scheduleData = applicationContext["schedule"] as? [String: Any],
+           let data = try? JSONSerialization.data(withJSONObject: scheduleData),
+           let schedule = try? JSONDecoder().decode(WatchScheduleData.self, from: data) {
+            DispatchQueue.main.async {
+                self.scheduleData = schedule
             }
         }
     }

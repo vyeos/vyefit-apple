@@ -1,14 +1,14 @@
 //
-//  VyefitWatch_Watch_AppTests.swift
-//  VyefitWatch Watch AppTests
+//  Vyefit_Watch_AppTests.swift
+//  Vyefit Watch AppTests
 //
 //  Created by Rudra Patel on 15/02/26.
 //
 
 import XCTest
-@testable import VyefitWatch_Watch_App
+@testable import Vyefit_Watch_App
 
-final class VyefitWatch_Watch_AppTests: XCTestCase {
+final class Vyefit_Watch_AppTests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

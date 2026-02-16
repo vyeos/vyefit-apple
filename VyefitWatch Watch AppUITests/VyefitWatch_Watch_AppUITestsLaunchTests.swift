@@ -1,13 +1,13 @@
 //
-//  VyefitWatch_Watch_AppUITestsLaunchTests.swift
-//  VyefitWatch Watch AppUITests
+//  Vyefit_Watch_AppUITestsLaunchTests.swift
+//  Vyefit Watch AppUITests
 //
 //  Created by Rudra Patel on 15/02/26.
 //
 
 import XCTest
 
-final class VyefitWatch_Watch_AppUITestsLaunchTests: XCTestCase {
+final class Vyefit_Watch_AppUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
