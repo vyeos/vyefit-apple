@@ -37,7 +37,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     private func handleStartFromWatch(activity: String, location: String, workoutId: String?) {
         DispatchQueue.main.async {
-            if activity == "run" {
+            if activity.lowercased() == "run" {
                 RunStore.shared.isStartingFromWatch = true
                 let config = RunConfiguration(type: .quickStart)
                 RunStore.shared.startSession(configuration: config)
@@ -50,11 +50,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 } else if let firstWorkout = WorkoutStore.shared.workouts.first {
                     WorkoutStore.shared.startSession(for: firstWorkout)
                 } else {
-                    // No workouts available - create a default one
                     let defaultWorkout = UserWorkout(
                         id: UUID(),
                         name: "Quick Workout",
-												workoutType: .traditionalStrengthTraining,
+                        workoutType: .traditionalStrengthTraining,
                         exercises: [],
                         icon: "dumbbell.fill",
                         createdAt: Date()

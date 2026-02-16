@@ -92,10 +92,15 @@ import HealthKit
         let builder = self.builder
         let routeBuilder = self.routeBuilder
         let locationManager = self.locationManager
-        let session = self.session
+        let hkSession = self.session
 
-        // End the HealthKit session first
-        session?.end()
+        // Stop timer and location immediately
+        self.ticker?.invalidate()
+        self.ticker = nil
+        locationManager?.stopUpdatingLocation()
+        
+        // End the HealthKit session first - this tells watchOS to stop the workout
+        hkSession?.end()
 
         // End collection using async alternative via continuation
         if let builder {
@@ -124,11 +129,6 @@ import HealthKit
         } else {
             WatchConnectivityManager.shared.sendEnded(uuid: nil)
         }
-
-        // Perform UI/state updates on the main actor
-        self.ticker?.invalidate()
-        self.ticker = nil
-        locationManager?.stopUpdatingLocation()
         
         // Reset all state
         self.isRunning = false
@@ -143,6 +143,7 @@ import HealthKit
         self.routeBuilder = nil
         self.locationManager = nil
         self.startDate = nil
+        self.lastMetricsSend = nil
     }
     
     func pause() {

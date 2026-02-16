@@ -362,14 +362,16 @@ struct ActivityChooserView: View {
     }
     
     private func startScheduleItem(_ item: WatchScheduleItem) {
-        let location: String = item.type == "run" ? "outdoor" : "indoor"
-        connectivityManager.startActivity(type: item.type, location: location, workoutId: item.workoutId)
-        startLocalWorkout(type: item.type, location: location)
+        let isRun = item.type.lowercased() == "run"
+        let location: String = isRun ? "outdoor" : "indoor"
+        connectivityManager.startActivity(type: isRun ? "run" : "workout", location: location, workoutId: item.workoutId)
+        startLocalWorkout(type: isRun ? "run" : "workout", location: location)
     }
     
     private func startLocalWorkout(type: String, location: String) {
         guard !workoutManager.isRunning else { return }
-        let activity: HKWorkoutActivityType = type == "run" ? .running : .traditionalStrengthTraining
+        let isRun = type.lowercased() == "run"
+        let activity: HKWorkoutActivityType = isRun ? .running : .traditionalStrengthTraining
         let locationType: HKWorkoutSessionLocationType = location == "outdoor" ? .outdoor : .indoor
         workoutManager.start(activity: activity, location: locationType)
     }
