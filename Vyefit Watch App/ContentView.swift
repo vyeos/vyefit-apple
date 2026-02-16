@@ -55,6 +55,14 @@ struct ContentView: View {
                 startLocalWorkout(type: cmd.type, location: cmd.location)
             }
         }
+        .onChange(of: workoutManager.isRunning) { _, isRunning in
+            if isRunning {
+                let activity = workoutManager.currentActivityType == .running ? "run" : "workout"
+                connectivityManager.appState = .activeSession(
+                    activity == "run" ? .run(name: "Run") : .workout(name: "Workout")
+                )
+            }
+        }
     }
     
     private func startLocalWorkout(type: String, location: String) {
@@ -64,7 +72,6 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Loading View
 struct LoadingView: View {
     var body: some View {
         VStack(spacing: 12) {
@@ -77,7 +84,6 @@ struct LoadingView: View {
     }
 }
 
-// MARK: - No Connection View
 struct NoConnectionView: View {
     var body: some View {
         VStack(spacing: 12) {
@@ -96,7 +102,6 @@ struct NoConnectionView: View {
     }
 }
 
-// MARK: - Active Session View
 struct ActiveSessionView: View {
     @ObservedObject var workoutManager: WatchWorkoutManager
     let sessionType: SessionType
@@ -104,7 +109,6 @@ struct ActiveSessionView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
-                // Header
                 HStack {
                     Image(systemName: sessionIcon)
                         .font(.caption)
@@ -125,7 +129,6 @@ struct ActiveSessionView: View {
                     }
                 }
                 
-                // Timer
                 VStack(spacing: 4) {
                     Text(formatElapsed(workoutManager.elapsedSeconds))
                         .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -137,7 +140,6 @@ struct ActiveSessionView: View {
                 .background(Theme.watchCardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 
-                // Stats Grid
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
                     MetricTile(
                         title: "HEART RATE",
@@ -168,11 +170,9 @@ struct ActiveSessionView: View {
                     )
                 }
                 
-                // Control Button
                 Button {
-                    if workoutManager.isRunning {
-                        workoutManager.end()
-                    }
+                    workoutManager.end()
+                    WatchConnectivityManager.shared.sendEnded(uuid: nil)
                 } label: {
                     HStack {
                         Image(systemName: "stop.fill")
@@ -185,6 +185,7 @@ struct ActiveSessionView: View {
                     .background(Theme.watchStop)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
+                .buttonStyle(.plain)
             }
             .padding(10)
         }
@@ -217,15 +218,11 @@ struct ActiveSessionView: View {
     }
 }
 
-// MARK: - Activity Chooser View
 struct ActivityChooserView: View {
     @ObservedObject var connectivityManager: WatchConnectivityManager
     @ObservedObject var workoutManager: WatchWorkoutManager
     let schedule: WatchScheduleData
     let activities: WatchActivityData
-    @State private var selectedActivity: String = "run"
-    @State private var selectedLocation: String = "outdoor"
-    @State private var showAllWorkouts = false
     
     var body: some View {
         ScrollView {
@@ -245,7 +242,17 @@ struct ActivityChooserView: View {
                     }
                 }
                 
-                if !schedule.todayItems.isEmpty {
+                if schedule.todayItems.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "calendar.badge.exclamationmark")
+                            .font(.system(size: 24))
+                            .foregroundStyle(Theme.watchTextTertiary)
+                        Text("No activities scheduled")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.watchTextSecondary)
+                    }
+                    .padding()
+                } else {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text(schedule.dayName)
@@ -255,86 +262,11 @@ struct ActivityChooserView: View {
                             Spacer()
                         }
                         
-                        ForEach(schedule.todayItems.prefix(3)) { item in
+                        ForEach(schedule.todayItems) { item in
                             ScheduleItemRow(item: item) {
-                                startScheduleItem(item)
-                            }
-                        }
-                    }
-                    .padding(8)
-                    .background(Theme.watchCardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("Quick Start")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Theme.watchTextSecondary)
-                            .textCase(.uppercase)
-                        Spacer()
-                    }
-                    
-                    Picker("Activity", selection: $selectedActivity) {
-                        Text("Run").tag("run")
-                        Text("Workout").tag("workout")
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-                    .background(Theme.watchCardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    
-                    Picker("Location", selection: $selectedLocation) {
-                        Text("Outdoor").tag("outdoor")
-                        Text("Indoor").tag("indoor")
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-                    .background(Theme.watchCardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    
-                    Button {
-                        startQuickActivity()
-                    } label: {
-                        HStack {
-                            Image(systemName: "play.fill")
-                            Text("Start \(selectedActivity == "run" ? "Run" : "Workout")")
-                        }
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.watchTextPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Theme.watchSuccess)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                }
-                .padding(8)
-                .background(Theme.watchCardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                if !activities.workouts.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Workouts")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Theme.watchTextSecondary)
-                                .textCase(.uppercase)
-                            Spacer()
-                        }
-                        
-                        ForEach(activities.workouts.prefix(3)) { workout in
-                            WorkoutRow(workout: workout) {
-                                startWorkout(workout)
-                            }
-                        }
-                        
-                        if activities.workouts.count > 3 {
-                            Button {
-                                showAllWorkouts = true
-                            } label: {
-                                Text("View All (\(activities.workouts.count))")
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.watchAccent)
+                                if !item.isCompleted {
+                                    startScheduleItem(item)
+                                }
                             }
                         }
                     }
@@ -345,31 +277,12 @@ struct ActivityChooserView: View {
             }
             .padding(10)
         }
-        .sheet(isPresented: $showAllWorkouts) {
-            AllWorkoutsSheet(
-                workouts: activities.workouts,
-                onSelect: { workout in
-                    showAllWorkouts = false
-                    startWorkout(workout)
-                }
-            )
-        }
     }
     
     private func startScheduleItem(_ item: WatchScheduleItem) {
         let location: String = item.type == "run" ? "outdoor" : "indoor"
         startLocalWorkout(type: item.type, location: location)
         connectivityManager.startActivity(type: item.type, location: location, workoutId: item.workoutId)
-    }
-    
-    private func startQuickActivity() {
-        startLocalWorkout(type: selectedActivity, location: selectedLocation)
-        connectivityManager.startActivity(type: selectedActivity, location: selectedLocation)
-    }
-    
-    private func startWorkout(_ workout: WatchWorkoutSummary) {
-        startLocalWorkout(type: "workout", location: "indoor")
-        connectivityManager.startActivity(type: "workout", location: "indoor", workoutId: workout.id)
     }
     
     private func startLocalWorkout(type: String, location: String) {
@@ -380,7 +293,6 @@ struct ActivityChooserView: View {
     }
 }
 
-// MARK: - Schedule Item Row
 struct ScheduleItemRow: View {
     let item: WatchScheduleItem
     let onTap: () -> Void
@@ -404,7 +316,11 @@ struct ScheduleItemRow: View {
                 
                 Spacer()
                 
-                if item.type == "workout" || item.type == "run" {
+                if item.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Theme.watchSuccess)
+                } else if item.type == "workout" || item.type == "run" {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 16))
                         .foregroundStyle(Theme.watchSuccess)
@@ -412,6 +328,8 @@ struct ScheduleItemRow: View {
             }
         }
         .buttonStyle(.plain)
+        .disabled(item.isCompleted)
+        .opacity(item.isCompleted ? 0.6 : 1.0)
     }
     
     private func colorFromHex(_ hex: String) -> Color {
@@ -425,84 +343,6 @@ struct ScheduleItemRow: View {
     }
 }
 
-// MARK: - Workout Row
-struct WorkoutRow: View {
-    let workout: WatchWorkoutSummary
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 8) {
-                Image(systemName: workout.icon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.watchAccent)
-                    .frame(width: 28, height: 28)
-                    .background(Theme.watchAccent.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(workout.name)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Theme.watchTextPrimary)
-                        .lineLimit(1)
-                    Text("\(workout.exerciseCount) exercises")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.watchTextTertiary)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Theme.watchSuccess)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - All Workouts Sheet
-struct AllWorkoutsSheet: View {
-    let workouts: [WatchWorkoutSummary]
-    let onSelect: (WatchWorkoutSummary) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            List(workouts) { workout in
-                Button {
-                    onSelect(workout)
-                } label: {
-                    HStack {
-                        Image(systemName: workout.icon)
-                            .foregroundStyle(Theme.watchAccent)
-                        VStack(alignment: .leading) {
-                            Text(workout.name)
-                                .font(.system(size: 14, weight: .medium))
-                            Text("\(workout.exerciseCount) exercises")
-                                .font(.caption2)
-                                .foregroundStyle(Theme.watchTextSecondary)
-                        }
-                        Spacer()
-                        Image(systemName: "play.fill")
-                            .foregroundStyle(Theme.watchSuccess)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .navigationTitle("Choose Workout")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Metric Tile
 struct MetricTile: View {
     let title: String
     let value: String

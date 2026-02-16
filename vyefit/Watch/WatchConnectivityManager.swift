@@ -25,12 +25,13 @@ struct WatchScheduleData: Codable {
 
 struct WatchScheduleItem: Codable {
     let id: String
-    let type: String // "workout", "run", "rest", "busy"
+    let type: String
     let name: String
     let icon: String
     let colorHex: String
     let workoutId: String?
     let runType: String?
+    let isCompleted: Bool
 }
 
 struct WatchActivityData: Codable {
@@ -287,6 +288,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
         let dayName = formatter.string(from: scheduleStore.selectedDate)
         
         let workoutStore = WorkoutStore.shared
+        let historyStore = HistoryStore.shared
+        let calendar = Calendar.current
+        let today = Date()
+        let startOfDay = calendar.startOfDay(for: today)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? today
+        
+        let todayWorkouts = historyStore.workoutSessionRecords.filter { $0.date >= startOfDay && $0.date < endOfDay }
+        let todayRuns = historyStore.runSessionRecords.filter { $0.date >= startOfDay && $0.date < endOfDay }
         
         let watchItems = todayItems.map { item -> WatchScheduleItem in
             let name: String
@@ -294,6 +303,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
             let colorHex: String
             let workoutId: String?
             let runType: String?
+            var isCompleted = false
             
             switch item.type {
             case .workout:
@@ -301,34 +311,39 @@ extension WatchConnectivityManager: WCSessionDelegate {
                    let workout = workoutStore.workouts.first(where: { $0.id == id }) {
                     name = workout.name
                     icon = workout.icon
-                    colorHex = "CC7359" // terracotta
+                    colorHex = "CC7359"
                     workoutId = id.uuidString
                     runType = nil
+                    isCompleted = todayWorkouts.contains { $0.workoutTemplateName == workout.name }
                 } else {
                     name = "Workout"
                     icon = "dumbbell.fill"
                     colorHex = "CC7359"
                     workoutId = item.workoutId?.uuidString
                     runType = nil
+                    isCompleted = !todayWorkouts.isEmpty
                 }
             case .run:
                 name = item.runType?.rawValue ?? "Run"
                 icon = item.runType?.icon ?? "figure.run"
-                colorHex = "8CA680" // sage
+                colorHex = "8CA680"
                 workoutId = nil
                 runType = item.runType?.rawValue
+                isCompleted = todayRuns.contains { $0.type.rawValue == item.runType?.rawValue }
             case .rest:
                 name = "Rest Day"
                 icon = "bed.double.fill"
-                colorHex = "C0B8A8" // stone
+                colorHex = "C0B8A8"
                 workoutId = nil
                 runType = nil
+                isCompleted = true
             case .busy:
                 name = "Busy"
                 icon = "briefcase.fill"
-                colorHex = "A66858" // clay
+                colorHex = "A66858"
                 workoutId = nil
                 runType = nil
+                isCompleted = true
             }
             
             return WatchScheduleItem(
@@ -338,7 +353,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 icon: icon,
                 colorHex: colorHex,
                 workoutId: workoutId,
-                runType: runType
+                runType: runType,
+                isCompleted: isCompleted
             )
         }
         

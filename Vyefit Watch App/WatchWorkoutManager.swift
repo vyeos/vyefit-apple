@@ -16,6 +16,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published var distanceMeters: Double = 0
     @Published var cadenceSpm: Double = 0
     @Published var elapsedSeconds: Int = 0
+    @Published var currentActivityType: HKWorkoutActivityType = .traditionalStrengthTraining
+    @Published var currentLocationType: HKWorkoutSessionLocationType = .indoor
     
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -62,6 +64,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             session.delegate = self
             builder.delegate = self
             isRunning = true
+            currentActivityType = activity
+            currentLocationType = location
             startDate = Date()
             session.startActivity(with: startDate!)
             builder.beginCollection(withStart: startDate!) { _, _ in }

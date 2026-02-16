@@ -20,6 +20,7 @@ struct WatchScheduleItem: Codable, Identifiable, Equatable {
     let colorHex: String
     let workoutId: String?
     let runType: String?
+    let isCompleted: Bool
 }
 
 struct WatchActivityData: Codable, Equatable {
@@ -56,7 +57,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published private(set) var isReachable: Bool = false
     @Published private(set) var activationState: WCSessionActivationState = .notActivated
     @Published private(set) var isConnected: Bool = false
-    @Published private(set) var appState: WatchAppState = .loading
+    @Published var appState: WatchAppState = .loading
     @Published private(set) var scheduleData: WatchScheduleData?
     @Published private(set) var activityData: WatchActivityData?
     @Published var activeSessionInfo: (type: String, location: String)?
