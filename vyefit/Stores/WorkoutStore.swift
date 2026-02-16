@@ -35,6 +35,7 @@ class WorkoutStore {
     // Active Session State
     var activeSession: WorkoutSession?
     var showActiveWorkout: Bool = false
+    var isStartingFromWatch: Bool = false
 
     
     init() {
@@ -104,10 +105,15 @@ class WorkoutStore {
         let vitalsStored = UserDefaults.standard.object(forKey: "healthReadVitals")
         let vitalsEnabled = vitalsStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadVitals")
         let shouldUseHealth = HealthKitManager.shared.isAuthorized && (writeEnabled || readEnabled || vitalsEnabled)
-        if WatchConnectivityManager.shared.isReachable {
-            WatchConnectivityManager.shared.startWorkout(activity: "workout", location: location == .outdoor ? "outdoor" : "indoor")
+        
+        if !isStartingFromWatch {
+            if WatchConnectivityManager.shared.isReachable {
+                WatchConnectivityManager.shared.startWorkout(activity: "workout", location: location == .outdoor ? "outdoor" : "indoor")
+            }
+            WatchConnectivityManager.shared.updateApplicationContext()
         }
-        WatchConnectivityManager.shared.updateApplicationContext()
+        isStartingFromWatch = false
+        
         let controller: HealthKitWorkoutController? = shouldUseHealth && !WatchConnectivityManager.shared.isReachable
             ? HealthKitManager.shared.startWorkoutController(activityType: workout.workoutType.hkActivityType, location: location)
             : nil

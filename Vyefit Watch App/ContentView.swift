@@ -224,6 +224,9 @@ struct ActivityChooserView: View {
     let schedule: WatchScheduleData
     let activities: WatchActivityData
     
+    @State private var showingConfirmation = false
+    @State private var pendingItem: WatchScheduleItem?
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -265,7 +268,8 @@ struct ActivityChooserView: View {
                         ForEach(schedule.todayItems) { item in
                             ScheduleItemRow(item: item) {
                                 if !item.isCompleted {
-                                    startScheduleItem(item)
+                                    pendingItem = item
+                                    showingConfirmation = true
                                 }
                             }
                         }
@@ -276,6 +280,19 @@ struct ActivityChooserView: View {
                 }
             }
             .padding(10)
+        }
+        .confirmationDialog("Start \(pendingItem?.name ?? "Activity")?", isPresented: $showingConfirmation, titleVisibility: .visible) {
+            Button("Start") {
+                if let item = pendingItem {
+                    startScheduleItem(item)
+                }
+                pendingItem = nil
+            }
+            Button("Cancel", role: .cancel) {
+                pendingItem = nil
+            }
+        } message: {
+            Text("This will begin your \(pendingItem?.type == "run" ? "run" : "workout") session.")
         }
     }
     

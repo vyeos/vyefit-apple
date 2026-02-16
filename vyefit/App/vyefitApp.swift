@@ -38,9 +38,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     private func handleStartFromWatch(activity: String, location: String, workoutId: String?) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if activity == "run" {
+                RunStore.shared.isStartingFromWatch = true
                 let config = RunConfiguration(type: .quickStart)
                 RunStore.shared.startSession(configuration: config)
             } else {
+                WorkoutStore.shared.isStartingFromWatch = true
                 if let workoutIdString = workoutId,
                    let uuid = UUID(uuidString: workoutIdString),
                    let workout = WorkoutStore.shared.workouts.first(where: { $0.id == uuid }) {
