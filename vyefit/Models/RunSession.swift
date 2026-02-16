@@ -226,6 +226,7 @@ class RunSession {
             state = .paused
             pauseStartDate = Date()
             healthController?.pause()
+            WatchConnectivityManager.shared.pauseWorkout()
         } else if state == .paused {
             state = .active
             if let pauseStartDate {
@@ -233,6 +234,7 @@ class RunSession {
                 self.pauseStartDate = nil
             }
             healthController?.resume()
+            WatchConnectivityManager.shared.resumeWorkout()
         }
     }
     
@@ -243,6 +245,7 @@ class RunSession {
             state = .paused
             pauseStartDate = Date()
             healthController?.pause()
+            WatchConnectivityManager.shared.pauseWorkout()
         } else if state == .paused {
             state = .active
             if let pauseStartDate {
@@ -250,6 +253,7 @@ class RunSession {
                 self.pauseStartDate = nil
             }
             healthController?.resume()
+            WatchConnectivityManager.shared.resumeWorkout()
         }
         // Placeholder for any heavy work to be done off-main if needed
         await Task.yield()
@@ -487,6 +491,25 @@ class RunSession {
         WatchConnectivityManager.shared.onWorkoutEnded = { [weak self] _ in
             guard let self else { return }
             self.state = .completed
+        }
+        
+        WatchConnectivityManager.shared.onPauseFromWatch = { [weak self] in
+            guard let self else { return }
+            if self.state == .active {
+                self.state = .paused
+                self.pauseStartDate = Date()
+            }
+        }
+        
+        WatchConnectivityManager.shared.onResumeFromWatch = { [weak self] in
+            guard let self else { return }
+            if self.state == .paused {
+                self.state = .active
+                if let pauseStartDate = self.pauseStartDate {
+                    self.totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
+                    self.pauseStartDate = nil
+                }
+            }
         }
     }
 }

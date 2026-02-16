@@ -37,6 +37,7 @@ enum Theme {
     static let watchTextTertiary = Color.white.opacity(0.5)
     static let watchAccent = terracotta
     static let watchSuccess = sage
+    static let watchWarning = clay
     static let watchStop = clay
     
     // MARK: - Shared Colors (Watch uses dark mode values)

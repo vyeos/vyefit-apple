@@ -9,8 +9,9 @@ import HealthKit
 @preconcurrency import CoreLocation
 
 @MainActor
-final class WatchWorkoutManager: NSObject, ObservableObject {
+    final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published var isRunning: Bool = false
+    @Published var isPaused: Bool = false
     @Published var heartRate: Double = 0
     @Published var activeEnergy: Double = 0
     @Published var distanceMeters: Double = 0
@@ -110,6 +111,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
         // Perform UI/state updates on the main actor
         self.isRunning = false
+        self.isPaused = false
         self.ticker?.invalidate()
         self.ticker = nil
         locationManager?.stopUpdatingLocation()
@@ -125,6 +127,20 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         } else {
             WatchConnectivityManager.shared.sendEnded(uuid: nil)
         }
+    }
+    
+    func pause() {
+        guard isRunning, !isPaused else { return }
+        session?.pause()
+        isPaused = true
+        WatchConnectivityManager.shared.sendPause()
+    }
+    
+    func resume() {
+        guard isRunning, isPaused else { return }
+        session?.resume()
+        isPaused = false
+        WatchConnectivityManager.shared.sendResume()
     }
     
     private func startRouteTrackingIfNeeded(location: HKWorkoutSessionLocationType) {

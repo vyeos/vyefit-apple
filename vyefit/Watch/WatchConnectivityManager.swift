@@ -61,6 +61,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     var onMetrics: ((WatchMetrics) -> Void)?
     var onWorkoutEnded: ((UUID?) -> Void)?
     var onStartFromWatch: ((String, String, String?) -> Void)? // activity, location, workoutId
+    var onPauseFromWatch: (() -> Void)?
+    var onResumeFromWatch: (() -> Void)?
     
     private var activationCompletion: ((Bool) -> Void)?
     
@@ -148,6 +150,30 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         
         session.transferUserInfo(message)
     }
+    
+    func pauseWorkout() {
+        let session = WCSession.default
+        let message = ["command": "pause"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Pause workout error: \(error.localizedDescription)")
+            })
+        }
+        session.transferUserInfo(message)
+    }
+    
+    func resumeWorkout() {
+        let session = WCSession.default
+        let message = ["command": "resume"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Resume workout error: \(error.localizedDescription)")
+            })
+        }
+        session.transferUserInfo(message)
+    }
 }
 
 extension WatchConnectivityManager: WCSessionDelegate {
@@ -230,6 +256,20 @@ extension WatchConnectivityManager: WCSessionDelegate {
             return
         }
         
+        if let event = message["event"] as? String, event == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseFromWatch?()
+            }
+            return
+        }
+        
+        if let event = message["event"] as? String, event == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeFromWatch?()
+            }
+            return
+        }
+        
         guard let activity = message["activity"] as? String else { return }
         let metrics = WatchMetrics(
             activity: activity,
@@ -258,6 +298,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
             let uuid = (userInfo["uuid"] as? String).flatMap { UUID(uuidString: $0) }
             DispatchQueue.main.async {
                 self.onWorkoutEnded?(uuid)
+            }
+        } else if let event = userInfo["event"] as? String, event == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseFromWatch?()
+            }
+        } else if let event = userInfo["event"] as? String, event == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeFromWatch?()
             }
         } else if let activity = userInfo["activity"] as? String {
             let metrics = WatchMetrics(

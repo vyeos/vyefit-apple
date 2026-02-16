@@ -43,6 +43,16 @@ struct ContentView: View {
         .onAppear {
             workoutManager.requestAuthorization()
             connectivityManager.checkForActiveSession()
+            
+            connectivityManager.onPauseCommand = { [weak workoutManager] in
+                workoutManager?.pause()
+            }
+            connectivityManager.onResumeCommand = { [weak workoutManager] in
+                workoutManager?.resume()
+            }
+            connectivityManager.onEndCommand = { [weak workoutManager] in
+                workoutManager?.end()
+            }
         }
         .onReceive(connectivityManager.$activeSessionInfo) { info in
             if let info = info, !workoutManager.isRunning {
@@ -106,6 +116,8 @@ struct ActiveSessionView: View {
     @ObservedObject var workoutManager: WatchWorkoutManager
     let sessionType: SessionType
     
+    @State private var showingEndConfirmation = false
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -120,11 +132,11 @@ struct ActiveSessionView: View {
                     if workoutManager.isRunning {
                         HStack(spacing: 2) {
                             Circle()
-                                .fill(Theme.watchSuccess)
+                                .fill(workoutManager.isPaused ? Theme.watchWarning : Theme.watchSuccess)
                                 .frame(width: 6, height: 6)
-                            Text("LIVE")
+                            Text(workoutManager.isPaused ? "PAUSED" : "LIVE")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Theme.watchSuccess)
+                                .foregroundStyle(workoutManager.isPaused ? Theme.watchWarning : Theme.watchSuccess)
                         }
                     }
                 }
@@ -170,24 +182,60 @@ struct ActiveSessionView: View {
                     )
                 }
                 
-                Button {
-                    workoutManager.end()
-                    WatchConnectivityManager.shared.sendEnded(uuid: nil)
-                } label: {
-                    HStack {
-                        Image(systemName: "stop.fill")
-                        Text("End Session")
+                HStack(spacing: 8) {
+                    Button {
+                        if workoutManager.isPaused {
+                            workoutManager.resume()
+                        } else {
+                            workoutManager.pause()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: workoutManager.isPaused ? "play.fill" : "pause.fill")
+                            Text(workoutManager.isPaused ? "Resume" : "Pause")
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.watchTextPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(workoutManager.isPaused ? Theme.watchSuccess : Theme.watchAccent)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.watchTextPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Theme.watchStop)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        showingEndConfirmation = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "stop.fill")
+                            Text("End")
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.watchTextPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Theme.watchStop)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(10)
+        }
+        .confirmationDialog("End Session?", isPresented: $showingEndConfirmation, titleVisibility: .visible) {
+            Button("End Session", role: .destructive) {
+                workoutManager.end()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to end this \(sessionTypeName)?")
+        }
+    }
+    
+    private var sessionTypeName: String {
+        switch sessionType {
+        case .run: return "run"
+        case .workout: return "workout"
         }
     }
     
@@ -226,6 +274,7 @@ struct ActivityChooserView: View {
     
     @State private var showingConfirmation = false
     @State private var pendingItem: WatchScheduleItem?
+    @State private var isRefreshing = false
     
     var body: some View {
         ScrollView {
@@ -280,6 +329,12 @@ struct ActivityChooserView: View {
                 }
             }
             .padding(10)
+        }
+        .refreshable {
+            isRefreshing = true
+            connectivityManager.checkForActiveSession()
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            isRefreshing = false
         }
         .confirmationDialog("Start \(pendingItem?.name ?? "Activity")?", isPresented: $showingConfirmation, titleVisibility: .visible) {
             Button("Start") {

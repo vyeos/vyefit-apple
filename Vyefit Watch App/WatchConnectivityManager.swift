@@ -68,6 +68,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     
     var onStartCommand: ((String, String) -> Void)?
     var onEndCommand: (() -> Void)?
+    var onPauseCommand: (() -> Void)?
+    var onResumeCommand: (() -> Void)?
     
     private override init() {
         super.init()
@@ -311,6 +313,30 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         session.transferUserInfo(message)
     }
     
+    func sendPause() {
+        let session = WCSession.default
+        let message = ["event": "pause"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Send pause error: \(error.localizedDescription)")
+            })
+        }
+        session.transferUserInfo(message)
+    }
+    
+    func sendResume() {
+        let session = WCSession.default
+        let message = ["event": "resume"]
+        
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+                print("[WatchConnectivity] Send resume error: \(error.localizedDescription)")
+            })
+        }
+        session.transferUserInfo(message)
+    }
+    
     private func flushPendingIfPossible() {
         let session = WCSession.default
         guard session.activationState == .activated, session.isReachable else { return }
@@ -371,6 +397,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
             DispatchQueue.main.async {
                 self.onEndCommand?()
             }
+        } else if let command = message["command"] as? String, command == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseCommand?()
+            }
+        } else if let command = message["command"] as? String, command == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeCommand?()
+            }
         }
     }
     
@@ -381,6 +415,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
             DispatchQueue.main.async {
                 self.receivedStartCommand = (type: activity, location: location)
                 self.onStartCommand?(activity, location)
+            }
+        } else if let command = userInfo["command"] as? String, command == "pause" {
+            DispatchQueue.main.async {
+                self.onPauseCommand?()
+            }
+        } else if let command = userInfo["command"] as? String, command == "resume" {
+            DispatchQueue.main.async {
+                self.onResumeCommand?()
             }
         } else if let event = userInfo["event"] as? String, event == "ended" {
             DispatchQueue.main.async {
