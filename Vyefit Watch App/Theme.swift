@@ -1,15 +1,11 @@
 //
 //  Theme.swift
-//  vyefit
+//  Vyefit Watch App
 //
-//  Color palette for the Soft Natural aesthetic.
+//  Color palette for the Soft Natural aesthetic - WatchOS version.
 //
 
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
-import Combine
 
 enum Theme {
     // MARK: - Base Colors
@@ -43,47 +39,7 @@ enum Theme {
     static let watchSuccess = sage
     static let watchStop = clay
     
-    #if canImport(UIKit)
-    private static let sandLight = UIColor(red: 0.96, green: 0.93, blue: 0.88, alpha: 1)
-    private static let creamLight = UIColor(red: 0.99, green: 0.97, blue: 0.94, alpha: 1)
-    private static let darkBackground = UIColor(red: 0.10, green: 0.09, blue: 0.08, alpha: 1)
-    private static let darkSurface = UIColor(red: 0.17, green: 0.16, blue: 0.15, alpha: 1)
-    private static let lightTextPrimary = UIColor(red: 0.20, green: 0.18, blue: 0.15, alpha: 1)
-    private static let lightTextSecondary = UIColor(red: 0.50, green: 0.47, blue: 0.42, alpha: 1)
-    private static let darkTextPrimary = UIColor(red: 0.95, green: 0.93, blue: 0.90, alpha: 1)
-    private static let darkTextSecondary = UIColor(red: 0.72, green: 0.69, blue: 0.63, alpha: 1)
-
-    static var sand: Color {
-        dynamicColor(light: sandLight, dark: darkSurface)
-    }
-
-    static var cream: Color {
-        dynamicColor(light: creamLight, dark: darkSurface)
-    }
-
-    static var textPrimary: Color {
-        dynamicColor(light: lightTextPrimary, dark: darkTextPrimary)
-    }
-
-    static var textSecondary: Color {
-        dynamicColor(light: lightTextSecondary, dark: darkTextSecondary)
-    }
-
-    static var background: Color {
-        dynamicColor(light: UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1), dark: darkBackground)
-    }
-
-    static var cardBackground: Color {
-        dynamicColor(light: UIColor(red: 0.99, green: 0.97, blue: 0.94, alpha: 1), dark: darkSurface)
-    }
-
-    private static func dynamicColor(light: UIColor, dark: UIColor) -> Color {
-        Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark ? dark : light
-        })
-    }
-    #else
-    // WatchOS fallback colors
+    // MARK: - Shared Colors (Watch uses dark mode values)
     static var sand: Color {
         Color(red: 0.96, green: 0.93, blue: 0.88)
     }
@@ -107,5 +63,4 @@ enum Theme {
     static var cardBackground: Color {
         Color(red: 0.17, green: 0.16, blue: 0.15)
     }
-    #endif
 }

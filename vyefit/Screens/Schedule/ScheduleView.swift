@@ -100,7 +100,7 @@ struct ScheduleView: View {
                     Text("Create Your First Schedule")
                 }
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.cream)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 14)
                 .background(Theme.terracotta)
@@ -141,7 +141,7 @@ struct ScheduleView: View {
                             
                             Label("\(schedule.restDays)", systemImage: "bed.double.fill")
                                 .font(.system(size: 12))
-                                .foregroundStyle(Color.blue.opacity(0.6))
+                                .foregroundStyle(Theme.restDay)
                         }
                         .padding(.top, 4)
                     }
@@ -280,7 +280,7 @@ struct DayRow: View {
             VStack(spacing: 4) {
                 Text(day.day.shortName)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(isToday ? .white : Theme.textPrimary)
+                    .foregroundStyle(isToday ? Theme.cream : Theme.textPrimary)
                     .frame(width: 36, height: 36)
                     .background(isToday ? Theme.terracotta : Color.clear)
                     .clipShape(Circle())
@@ -361,7 +361,7 @@ struct ScheduleCard: View {
                         if isActive {
                             Text(repeatMode == .cyclic ? "In Cycle" : "Active")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Theme.cream)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(Theme.sage)

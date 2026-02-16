@@ -91,15 +91,15 @@ struct RunView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(hasActiveSession ? "Session in Progress" : "Quick Run")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.cream)
                         Text(hasActiveSession ? "Finish current session first" : "Just run, open ended")
                             .font(.system(size: 13))
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(Theme.cream.opacity(0.8))
                     }
                     Spacer()
                     Image(systemName: hasActiveSession ? "lock.fill" : "figure.run")
                         .font(.system(size: 24))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.cream)
                 }
                 .padding(20)
                 .background(hasActiveSession ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)

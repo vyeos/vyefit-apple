@@ -9,10 +9,48 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>VyefitWatch Watch App.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>vyefit.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>2041EA2A2F41EAB9004EE23F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>2041EA362F41EABB004EE23F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>2041EA402F41EABB004EE23F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>204C85622F3B7FE800AB6C92</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>204C85742F3B7FEA00AB6C92</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>204C857E2F3B7FEA00AB6C92</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

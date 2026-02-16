@@ -6,11 +6,13 @@
 //
 
 import SwiftUI
+import Combine
 
 struct DashboardView: View {
     @State private var scheduleStore = ScheduleStore()
     @State private var workoutStore = WorkoutStore()
     @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
+    @ObservedObject private var watchConnectivity = WatchConnectivityManager.shared
     
     // MARK: - Computed Properties
     
@@ -136,6 +138,19 @@ struct DashboardView: View {
                             .foregroundStyle(Theme.textPrimary)
                         
                         Spacer()
+                        
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(.white)
+                                .frame(width: 6, height: 6)
+                            Text(watchConnectivity.isConnected ? "Watch Connected" : "Watch Disconnected")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(watchConnectivity.isConnected ? Theme.sage : Theme.terracotta)
+                        .clipShape(Capsule())
                     }
                     .padding(.horizontal, 20)
                     

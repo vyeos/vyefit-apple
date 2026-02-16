@@ -25,6 +25,9 @@ struct ActiveRunView: View {
                     primaryMetricView
                     
                     secondaryMetricsGrid
+                    if !session.healthWarnings.isEmpty {
+                        healthWarningView
+                    }
                     
                     Spacer()
                     
@@ -47,34 +50,26 @@ struct ActiveRunView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button(role: .destructive) {
-                            showEndConfirmation = true
-                        } label: {
-                            Label("End", systemImage: "stop.circle")
-                        }
-                        Divider()
-                        Button {
-                            dismiss()
-                        } label: {
-                            Label("Minimize", systemImage: "arrow.down.right.and.arrow.up.left")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Theme.terracotta)
+                    Button("End") {
+                        showEndConfirmation = true
                     }
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.terracotta)
                 }
             }
             .alert("End Run?", isPresented: $showEndConfirmation) {
                 Button("End Run", role: .destructive) {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    isPerformingAction = true
-                    Task(priority: TaskPriority.userInitiated) {
-                        defer { isPerformingAction = false }
-                        onEnd()
-                        await session.endRunAsync()
-                        dismiss()
+                    if session.elapsedSeconds < 60 {
+                        showShortSessionAlert = true
+                    } else {
+                        isPerformingAction = true
+                        Task(priority: TaskPriority.userInitiated) {
+                            defer { isPerformingAction = false }
+                            await session.endRunAsync()
+                            onEnd()
+                            dismiss()
+                        }
                     }
                 }
                 Button("Cancel", role: .cancel) { }
@@ -85,8 +80,8 @@ struct ActiveRunView: View {
                     isPerformingAction = true
                     Task(priority: TaskPriority.userInitiated) {
                         defer { isPerformingAction = false }
-                        onDiscard()
                         await session.endRunAsync()
+                        onDiscard()
                         dismiss()
                     }
                 }
@@ -112,7 +107,7 @@ struct ActiveRunView: View {
             
             Text(primaryMetricValue)
                 .font(.system(size: 72, weight: .bold, design: .rounded))
-                .foregroundStyle(session.primaryMetric == .heartRate && session.currentZone != nil ? session.currentZone!.color : Theme.textPrimary)
+                .foregroundStyle(session.primaryMetric == .heartRate && session.currentZone != nil ? (session.currentZone?.color ?? Theme.textPrimary) : Theme.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .accessibilityLabel("Primary metric: \(primaryMetricLabel) \(primaryMetricValue)")
@@ -164,7 +159,7 @@ struct ActiveRunView: View {
                     .font(.system(size: 16, weight: .bold))
                     .tracking(2)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.cream)
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
             .background(session.currentPhaseColor)
@@ -221,14 +216,17 @@ struct ActiveRunView: View {
         switch session.primaryMetric {
         case .distance:
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
+            if session.isHealthBacked && !session.hasDistanceData { return "--" }
             return String(format: "%.2f", dist)
         case .time, .quickStart, .intervals:
             return session.formattedTime
         case .calories:
+            if session.isHealthBacked && !session.hasCaloriesData { return "--" }
             return "\(session.activeCalories)"
         case .pace:
             return session.currentPace
         case .heartRate:
+            if session.isHealthBacked && !session.hasHeartRateData { return "--" }
             return "\(session.currentHeartRate)"
         }
     }
@@ -263,28 +261,57 @@ struct ActiveRunView: View {
             metrics.append(("Pace", session.currentPace, "/\(distanceUnit == "Kilometers" ? "km" : "mi")", "speedometer"))
         case .time, .quickStart:
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
             metrics.append(("Pace", session.currentPace, "/\(distanceUnit == "Kilometers" ? "km" : "mi")", "speedometer"))
         case .calories:
             metrics.append(("Time", session.formattedTime, "", "clock"))
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
         case .pace:
             metrics.append(("Time", session.formattedTime, "", "clock"))
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
         case .heartRate:
             metrics.append(("Time", session.formattedTime, "", "clock"))
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
         case .intervals:
             let dist = distanceUnit == "Kilometers" ? session.currentDistance : session.currentDistance * 0.621371
-            metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            if session.isHealthBacked && !session.hasDistanceData {
+                metrics.append(("Distance", "--", "No GPS", "map"))
+            } else {
+                metrics.append(("Distance", String(format: "%.2f", dist), distanceUnit == "Kilometers" ? "km" : "mi", "map"))
+            }
             metrics.append(("Pace", session.currentPace, "/\(distanceUnit == "Kilometers" ? "km" : "mi")", "speedometer"))
         }
         
-        metrics.append(("Heart Rate", "\(session.currentHeartRate)", "bpm", "heart.fill"))
-        metrics.append(("Calories", "\(session.activeCalories)", "kcal", "flame.fill"))
+        if session.isHealthBacked && !session.hasHeartRateData {
+            metrics.append(("Heart Rate", "--", "No HR", "heart.fill"))
+        } else {
+            metrics.append(("Heart Rate", "\(session.currentHeartRate)", "bpm", "heart.fill"))
+        }
+        
+        if session.isHealthBacked && !session.hasCaloriesData {
+            metrics.append(("Calories", "--", "No data", "flame.fill"))
+        } else {
+            metrics.append(("Calories", "\(session.activeCalories)", "kcal", "flame.fill"))
+        }
         
         return metrics
     }
@@ -304,7 +331,7 @@ struct ActiveRunView: View {
                     Text(session.state == .active ? "Pause Run" : "Resume Run")
                 }
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.cream)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(session.state == .active ? Theme.terracotta : Theme.sage)
@@ -315,6 +342,18 @@ struct ActiveRunView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
+    }
+    
+    private var healthWarningView: some View {
+        VStack(spacing: 6) {
+            ForEach(session.healthWarnings, id: \.self) { warning in
+                Text(warning)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 8)
     }
     
     private var pausedOverlay: some View {
@@ -343,7 +382,7 @@ struct ActiveRunView: View {
                 } label: {
                     Text("Resume")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.cream)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 12)
                         .background(Theme.sage)
@@ -356,7 +395,7 @@ struct ActiveRunView: View {
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(Theme.stone.opacity(0.15), lineWidth: 1))
-            .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+            .shadow(color: Theme.bark.opacity(0.15), radius: 20, x: 0, y: 10)
         }
         .contentShape(Rectangle())
         .onTapGesture { }
@@ -406,4 +445,3 @@ struct SecondaryMetricCard: View {
         onDiscard: {}
     )
 }
-

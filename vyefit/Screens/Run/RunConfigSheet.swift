@@ -78,12 +78,12 @@ struct RunConfigSheet: View {
     }
     
     private var quickStartView: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "figure.run.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(Theme.terracotta)
-            
-            VStack(spacing: 8) {
+//        VStack(spacing: 24) {
+//            Image(systemName: "figure.run.circle.fill")
+//                .font(.system(size: 64))
+//                .foregroundStyle(Theme.terracotta)
+					
+					VStack(spacing: 8) {
                 Text("Ready to run?")
                     .font(.system(size: 22, weight: .semibold, design: .serif))
                     .foregroundStyle(Theme.textPrimary)
@@ -91,7 +91,7 @@ struct RunConfigSheet: View {
                     .font(.system(size: 16))
                     .foregroundStyle(Theme.textSecondary)
             }
-        }
+//        }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
     }
@@ -122,7 +122,7 @@ struct RunConfigSheet: View {
             } label: {
                 Text(runStore.activeSession != nil || workoutStore.activeSession != nil ? "Session in Progress" : "Start Run")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.cream)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(runStore.activeSession != nil || workoutStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
@@ -283,13 +283,13 @@ struct TargetCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(target.name)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(isSelected ? .white : Theme.textPrimary)
+                .foregroundStyle(isSelected ? Theme.cream : Theme.textPrimary)
                 .lineLimit(1)
-            
+
             if target.type != .pace { // Pace usually has name = value description
                 Text(displayValue)
                     .font(.system(size: 12))
-                    .foregroundStyle(isSelected ? .white.opacity(0.8) : Theme.textSecondary)
+                    .foregroundStyle(isSelected ? Theme.cream.opacity(0.8) : Theme.textSecondary)
             }
         }
         .padding(14)
@@ -422,13 +422,13 @@ struct IntervalBuilderView: View {
                     } label: {
                         Label("Add Work", systemImage: "plus")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.cream)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(Theme.terracotta)
                             .clipShape(Capsule())
                     }
-                    
+
                     Button {
                         withAnimation {
                             workout.steps.append(IntervalStep(type: .rest, durationType: .time, value: 60))
@@ -436,7 +436,7 @@ struct IntervalBuilderView: View {
                     } label: {
                         Label("Add Rest", systemImage: "plus")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.cream)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(Theme.sage)
@@ -480,7 +480,7 @@ struct IntervalBuilderView: View {
                             } label: {
                                 Text("Generate \(loopRepeats * 2) Steps")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(Theme.cream)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
                                     .background(Theme.terracotta)

@@ -185,7 +185,7 @@ struct UserWorkoutCard: View {
             } label: {
                 Text("Start")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.cream)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(Theme.terracotta)

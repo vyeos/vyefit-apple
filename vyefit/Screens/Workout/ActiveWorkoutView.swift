@@ -6,14 +6,16 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 struct ActiveWorkoutView: View {
     @Bindable var session: WorkoutSession
     @Environment(\.dismiss) private var dismiss
     @State private var showEndConfirmation = false
     @State private var showShortSessionAlert = false
-    @State private var showAppleWatchPrompt = false
+    @State private var showHealthConnectPrompt = false
     var onEnd: () -> Void
     var onDiscard: () -> Void
     
@@ -72,33 +74,45 @@ struct ActiveWorkoutView: View {
                     if session.elapsedSeconds < 60 {
                         showShortSessionAlert = true
                     } else {
-                        onEnd()
-                        dismiss()
+                        Task(priority: TaskPriority.userInitiated) {
+                            await session.endWorkoutAsync()
+                            onEnd()
+                            dismiss()
+                        }
                     }
                 }
                 Button("Cancel", role: .cancel) { }
             }
             .alert("Discard Workout?", isPresented: $showShortSessionAlert) {
                 Button("Discard", role: .destructive) {
-                    onDiscard()
-                    dismiss()
+                    Task(priority: TaskPriority.userInitiated) {
+                        await session.endWorkoutAsync()
+                        onDiscard()
+                        dismiss()
+                    }
                 }
                 Button("Keep Going", role: .cancel) { }
             } message: {
                 Text("This workout is less than 1 minute. It might have been started by mistake. Discard it?")
             }
-            .alert("Start on Apple Watch?", isPresented: $showAppleWatchPrompt) {
-                Button("Start \(session.workout.workoutType.rawValue)") {
-                    // Logic to start HKWorkoutSession would go here
+            .alert("Connect Apple Health?", isPresented: $showHealthConnectPrompt) {
+                Button("Enable") {
+                    HealthKitManager.shared.requestAuthorization(
+                        readWorkouts: true,
+                        writeWorkouts: true,
+                        readVitals: true
+                    ) { _, _ in }
                 }
                 Button("Skip", role: .cancel) { }
             } message: {
-                Text("Do you want to track this \(session.workout.workoutType.rawValue) workout on your Apple Watch?")
+                Text("Enable Apple Health to track this workout with real data from Apple Watch.")
             }
             .onAppear {
                 if !session.hasShownWatchPrompt {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showAppleWatchPrompt = true
+                        if !HealthKitManager.shared.isAuthorized {
+                            showHealthConnectPrompt = true
+                        }
                         session.hasShownWatchPrompt = true
                     }
                 }
@@ -125,6 +139,9 @@ struct LogView: View {
         ZStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    if !session.healthWarnings.isEmpty {
+                        HealthWarningBanner(messages: session.healthWarnings)
+                    }
                     if session.state != .paused {
                         if session.isResting {
                             RestTimerBanner(session: session)
@@ -166,7 +183,7 @@ struct LogView: View {
                     } label: {
                         Text("Resume")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.cream)
                             .padding(.horizontal, 32)
                             .padding(.vertical, 12)
                             .background(Theme.sage)
@@ -176,7 +193,7 @@ struct LogView: View {
                 .padding(32)
                 .background(Theme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+                .shadow(color: Theme.bark.opacity(0.15), radius: 20, x: 0, y: 10)
             }
         }
     }
@@ -206,11 +223,11 @@ struct RestTimerBanner: View {
                 }
             }
             .buttonStyle(.bordered)
-            .tint(.white)
+            .tint(Theme.cream)
         }
         .padding()
         .background(Theme.terracotta)
-        .foregroundStyle(.white)
+        .foregroundStyle(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
@@ -239,7 +256,7 @@ struct StartNextSetBanner: View {
         }
         .padding()
         .background(Theme.sage)
-        .foregroundStyle(.white)
+        .foregroundStyle(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
@@ -434,20 +451,23 @@ struct StatsView: View {
     
     var body: some View {
         VStack(spacing: 20) {
+            if !session.healthWarnings.isEmpty {
+                HealthWarningBanner(messages: session.healthWarnings)
+            }
             StatsCard(
                 title: "Heart Rate",
-                value: "\(session.currentHeartRate)",
+                value: session.isHealthBacked && !session.hasHeartRateData ? "--" : "\(session.currentHeartRate)",
                 unit: "BPM",
                 icon: "heart.fill",
-                color: .red
+                color: Theme.heartRate
             )
             
             StatsCard(
                 title: "Active Calories",
-                value: "\(session.activeCalories)",
+                value: session.isHealthBacked && !session.hasCaloriesData ? "--" : "\(session.activeCalories)",
                 unit: "KCAL",
                 icon: "flame.fill",
-                color: .orange
+                color: Theme.calories
             )
             
             StatsCard(
@@ -455,7 +475,7 @@ struct StatsView: View {
                 value: formatDuration(session.elapsedSeconds),
                 unit: "ELAPSED",
                 icon: "clock.fill",
-                color: .blue
+                color: Theme.time
             )
             
             Button {
@@ -468,7 +488,7 @@ struct StatsView: View {
                     Text(session.state == .active ? "Pause Workout" : "Resume Workout")
                 }
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.cream)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(session.state == .active ? Theme.terracotta : Theme.sage)
@@ -531,6 +551,24 @@ struct StatsCard: View {
         .padding()
         .background(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+struct HealthWarningBanner: View {
+    let messages: [String]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(messages, id: \.self) { message in
+                Text(message)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Theme.sand.opacity(0.4))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

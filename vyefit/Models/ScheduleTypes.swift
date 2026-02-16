@@ -38,9 +38,9 @@ enum ScheduleItemType: String, CaseIterable, Codable, Identifiable {
         case .run:
             return Theme.sage
         case .rest:
-            return Color.blue.opacity(0.6)
+            return Theme.restDay
         case .busy:
-            return Color.orange.opacity(0.7)
+            return Theme.busyDay
         }
     }
 }

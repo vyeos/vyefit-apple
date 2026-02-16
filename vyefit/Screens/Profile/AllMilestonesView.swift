@@ -136,7 +136,7 @@ struct AllMilestonesView: View {
                     } label: {
                         Text(filter.rawValue)
                             .font(.system(size: 14, weight: selectedFilter == filter ? .semibold : .medium))
-                            .foregroundStyle(selectedFilter == filter ? .white : Theme.textPrimary)
+                            .foregroundStyle(selectedFilter == filter ? Theme.cream : Theme.textPrimary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(selectedFilter == filter ? Theme.terracotta : Theme.cream)

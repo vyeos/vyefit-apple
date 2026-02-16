@@ -65,7 +65,7 @@ struct DailyFocusCard: View {
                 icon: "bed.double.fill",
                 title: "Rest Day",
                 subtitle: "Take time to recover",
-                color: Color.blue.opacity(0.6),
+                color: Theme.restDay,
                 isRest: true,
                 isCompleted: false
             )
@@ -115,7 +115,7 @@ struct DailyFocusCard: View {
                 icon: "briefcase.fill",
                 title: "Busy",
                 subtitle: "No workout planned",
-                color: Color.orange.opacity(0.7),
+                color: Theme.busyDay,
                 isRest: true,
                 isCompleted: false
             )
@@ -176,7 +176,7 @@ struct DailyFocusCard: View {
                     } label: {
                         Text("Begin")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.cream)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
                             .background(displayInfo.color)
