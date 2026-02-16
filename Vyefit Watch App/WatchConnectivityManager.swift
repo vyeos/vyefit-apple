@@ -223,7 +223,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                     }
                 } else {
                     DispatchQueue.main.async {
-                        self?.showActivityChooserWithCachedData()
+                        self.showActivityChooserWithCachedData()
                     }
                 }
             }, errorHandler: { [weak self] error in
