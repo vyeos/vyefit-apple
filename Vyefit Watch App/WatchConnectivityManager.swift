@@ -32,6 +32,21 @@ struct WatchActivityData: Codable, Equatable {
     let activeSessionLocation: String?
 }
 
+struct WatchWeeklySessions: Codable, Equatable {
+    let sessions: [WatchSessionRecord]
+}
+
+struct WatchSessionRecord: Codable, Identifiable, Equatable {
+    let id: String
+    let type: String // "workout" or "run"
+    let name: String
+    let date: Date
+    let duration: Int // seconds
+    let calories: Int
+    let icon: String
+    let colorHex: String
+}
+
 struct WatchWorkoutSummary: Codable, Identifiable, Equatable {
     let id: String
     let name: String
@@ -43,7 +58,7 @@ enum WatchAppState: Equatable {
     case loading
     case noConnection
     case activeSession(SessionType)
-    case chooseActivity(WatchScheduleData, WatchActivityData)
+    case chooseActivity(WatchScheduleData, WatchActivityData, WatchWeeklySessions)
 }
 
 enum SessionType: Equatable {
@@ -60,6 +75,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published var appState: WatchAppState = .loading
     @Published private(set) var scheduleData: WatchScheduleData?
     @Published private(set) var activityData: WatchActivityData?
+    @Published private(set) var weeklySessions: WatchWeeklySessions?
     @Published var activeSessionInfo: (type: String, location: String)?
     @Published var receivedStartCommand: (type: String, location: String)?
     
@@ -185,7 +201,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     
     private func showActivityChooserWithCachedData() {
         if let schedule = scheduleData, let activities = activityData {
-            appState = .chooseActivity(schedule, activities)
+            let weekly = weeklySessions ?? WatchWeeklySessions(sessions: [])
+            appState = .chooseActivity(schedule, activities, weekly)
         } else {
             // Create empty data to show the UI
             let emptySchedule = WatchScheduleData(todayItems: [], dayName: "Today")
@@ -197,7 +214,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                 activeSessionWorkoutId: nil,
                 activeSessionLocation: nil
             )
-            appState = .chooseActivity(emptySchedule, emptyActivities)
+            let emptyWeekly = WatchWeeklySessions(sessions: [])
+            appState = .chooseActivity(emptySchedule, emptyActivities, emptyWeekly)
         }
     }
     
@@ -219,7 +237,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                     DispatchQueue.main.async {
                         self.scheduleData = schedule
                         if let activities = self.activityData {
-                            self.appState = .chooseActivity(schedule, activities)
+                            let weekly = self.weeklySessions ?? WatchWeeklySessions(sessions: [])
+                            self.appState = .chooseActivity(schedule, activities, weekly)
                         } else {
                             self.showActivityChooserWithCachedData()
                         }
@@ -457,6 +476,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
            let schedule = try? JSONDecoder().decode(WatchScheduleData.self, from: data) {
             DispatchQueue.main.async {
                 self.scheduleData = schedule
+            }
+        }
+        
+        if let weeklyData = applicationContext["weeklySessions"] as? [String: Any],
+           let data = try? JSONSerialization.data(withJSONObject: weeklyData),
+           let weekly = try? JSONDecoder().decode(WatchWeeklySessions.self, from: data) {
+            DispatchQueue.main.async {
+                self.weeklySessions = weekly
             }
         }
     }

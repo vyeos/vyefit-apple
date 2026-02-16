@@ -32,12 +32,13 @@ struct ContentView: View {
                         workoutManager: workoutManager,
                         sessionType: sessionType
                     )
-                case .chooseActivity(let schedule, let activities):
+                case .chooseActivity(let schedule, let activities, let weeklySessions):
                     ActivityChooserView(
                         connectivityManager: connectivityManager,
                         workoutManager: workoutManager,
                         schedule: schedule,
-                        activities: activities
+                        activities: activities,
+                        weeklySessions: weeklySessions
                     )
                 }
             }
@@ -281,6 +282,7 @@ struct ActivityChooserView: View {
     @ObservedObject var workoutManager: WatchWorkoutManager
     let schedule: WatchScheduleData
     let activities: WatchActivityData
+    let weeklySessions: WatchWeeklySessions
     
     @State private var showingConfirmation = false
     @State private var pendingItem: WatchScheduleItem?
@@ -288,7 +290,8 @@ struct ActivityChooserView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
+                // Header
                 HStack {
                     Text("Vyefit")
                         .font(.caption)
@@ -304,33 +307,25 @@ struct ActivityChooserView: View {
                     }
                 }
                 
-                if schedule.todayItems.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "calendar.badge.exclamationmark")
-                            .font(.system(size: 24))
-                            .foregroundStyle(Theme.watchTextTertiary)
-                        Text("No activities scheduled")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.watchTextSecondary)
+                // Today's Focus
+                TodayFocusCard(
+                    schedule: schedule,
+                    onStartActivity: { item in
+                        pendingItem = item
+                        showingConfirmation = true
                     }
-                    .padding()
-                } else {
+                )
+                
+                // This Week's Sessions
+                if !weeklySessions.sessions.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(schedule.dayName)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Theme.watchTextSecondary)
-                                .textCase(.uppercase)
-                            Spacer()
-                        }
+                        Text("This Week")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Theme.watchTextSecondary)
+                            .textCase(.uppercase)
                         
-                        ForEach(schedule.todayItems) { item in
-                            ScheduleItemRow(item: item) {
-                                if !item.isCompleted {
-                                    pendingItem = item
-                                    showingConfirmation = true
-                                }
-                            }
+                        ForEach(weeklySessions.sessions.prefix(5)) { session in
+                            WeeklySessionRow(session: session)
                         }
                     }
                     .padding(8)
@@ -357,7 +352,7 @@ struct ActivityChooserView: View {
                 pendingItem = nil
             }
         } message: {
-            Text("This will begin your \(pendingItem?.type == "run" ? "run" : "workout") session.")
+            Text("This will begin your \(pendingItem?.type.lowercased() == "run" ? "run" : "workout") session.")
         }
     }
     
@@ -377,18 +372,193 @@ struct ActivityChooserView: View {
     }
 }
 
+struct TodayFocusCard: View {
+    let schedule: WatchScheduleData
+    let onStartActivity: (WatchScheduleItem) -> Void
+    
+    private var todayFocus: WatchScheduleItem? {
+        schedule.todayItems.first { $0.type.lowercased() == "workout" || $0.type.lowercased() == "run" }
+    }
+    
+    private var isRestDay: Bool {
+        schedule.todayItems.isEmpty || schedule.todayItems.allSatisfy { $0.type.lowercased() == "rest" }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Today's Focus")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.watchTextTertiary)
+                .textCase(.uppercase)
+            
+            if let item = todayFocus {
+                let itemColor = item.type.lowercased() == "run" ? Theme.watchSuccess : Theme.watchAccent
+                
+                HStack(spacing: 10) {
+                    Image(systemName: item.icon)
+                        .font(.system(size: 20))
+                        .foregroundStyle(itemColor)
+                        .frame(width: 32, height: 32)
+                        .background(itemColor.opacity(0.2))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.watchTextPrimary)
+                        
+                        if item.isCompleted {
+                            Text("Completed")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Theme.watchSuccess)
+                        } else {
+                            Text("Tap to start")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Theme.watchTextSecondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if item.isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Theme.watchSuccess)
+                    } else {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Theme.watchSuccess)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if !item.isCompleted {
+                        onStartActivity(item)
+                    }
+                }
+            } else if isRestDay {
+                HStack(spacing: 10) {
+                    Image(systemName: "bed.double.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Theme.watchWarning)
+                        .frame(width: 32, height: 32)
+                        .background(Theme.watchWarning.opacity(0.2))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Rest Day")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.watchTextPrimary)
+                        Text("Take time to recover")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.watchTextSecondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "moon.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Theme.watchWarning)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "sun.max.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Theme.watchAccent)
+                        .frame(width: 32, height: 32)
+                        .background(Theme.watchAccent.opacity(0.2))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Free Day")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.watchTextPrimary)
+                        Text("No schedule set")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.watchTextSecondary)
+                    }
+                    
+                    Spacer()
+                }
+            }
+        }
+        .padding(10)
+        .background(Theme.watchCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct WeeklySessionRow: View {
+    let session: WatchSessionRecord
+    
+    private var sessionColor: Color {
+        session.type == "run" ? Theme.watchSuccess : Theme.watchAccent
+    }
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: session.icon)
+                .font(.system(size: 12))
+                .foregroundStyle(sessionColor)
+                .frame(width: 24, height: 24)
+                .background(sessionColor.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(session.name)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.watchTextPrimary)
+                    .lineLimit(1)
+                
+                Text(session.date, style: .relative)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.watchTextSecondary)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(formatDuration(session.duration))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Theme.watchTextPrimary)
+                
+                if session.calories > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 8))
+                        Text("\(session.calories)")
+                    }
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.watchAccent)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func formatDuration(_ seconds: Int) -> String {
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%d:%02d", m, s)
+    }
+}
+
 struct ScheduleItemRow: View {
     let item: WatchScheduleItem
     let onTap: () -> Void
+    
+    private var itemColor: Color {
+        item.type.lowercased() == "run" ? Theme.watchSuccess : Theme.watchAccent
+    }
     
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 8) {
                 Image(systemName: item.icon)
                     .font(.system(size: 14))
-                    .foregroundStyle(colorFromHex(item.colorHex))
+                    .foregroundStyle(itemColor)
                     .frame(width: 28, height: 28)
-                    .background(colorFromHex(item.colorHex).opacity(0.2))
+                    .background(itemColor.opacity(0.2))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -404,7 +574,7 @@ struct ScheduleItemRow: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 16))
                         .foregroundStyle(Theme.watchSuccess)
-                } else if item.type == "workout" || item.type == "run" {
+                } else if item.type.lowercased() == "workout" || item.type.lowercased() == "run" {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 16))
                         .foregroundStyle(Theme.watchSuccess)
@@ -414,16 +584,6 @@ struct ScheduleItemRow: View {
         .buttonStyle(.plain)
         .disabled(item.isCompleted)
         .opacity(item.isCompleted ? 0.6 : 1.0)
-    }
-    
-    private func colorFromHex(_ hex: String) -> Color {
-        let scanner = Scanner(string: hex)
-        var rgb: UInt64 = 0
-        scanner.scanHexInt64(&rgb)
-        let r = Double((rgb >> 16) & 0xFF) / 255.0
-        let g = Double((rgb >> 8) & 0xFF) / 255.0
-        let b = Double(rgb & 0xFF) / 255.0
-        return Color(red: r, green: g, blue: b)
     }
 }
 

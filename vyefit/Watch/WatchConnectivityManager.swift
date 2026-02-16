@@ -44,6 +44,21 @@ struct WatchActivityData: Codable {
     let activeSessionLocation: String?
 }
 
+struct WatchWeeklySessions: Codable {
+    let sessions: [WatchSessionRecord]
+}
+
+struct WatchSessionRecord: Codable, Identifiable {
+    let id: String
+    let type: String // "workout" or "run"
+    let name: String
+    let date: Date
+    let duration: Int // seconds
+    let calories: Int
+    let icon: String
+    let colorHex: String
+}
+
 struct WatchWorkoutSummary: Codable {
     let id: String
     let name: String
@@ -104,6 +119,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         
         let activityData = getActivityData()
         let scheduleData = getScheduleData()
+        let weeklySessions = getWeeklySessions()
         
         var context: [String: Any] = [:]
         
@@ -115,6 +131,11 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         if let data = try? JSONEncoder().encode(scheduleData),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             context["schedule"] = json
+        }
+        
+        if let data = try? JSONEncoder().encode(weeklySessions),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            context["weeklySessions"] = json
         }
         
         do {
@@ -410,6 +431,55 @@ extension WatchConnectivityManager: WCSessionDelegate {
         }
         
         return WatchScheduleData(todayItems: watchItems, dayName: dayName)
+    }
+    
+    private func getWeeklySessions() -> WatchWeeklySessions {
+        let historyStore = HistoryStore.shared
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Get start of this week (Monday)
+        let weekday = calendar.component(.weekday, from: today)
+        let daysFromMonday = (weekday + 5) % 7
+        let startOfWeek = calendar.date(byAdding: .day, value: -daysFromMonday, to: calendar.startOfDay(for: today)) ?? today
+        let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfWeek) ?? today
+        
+        var sessions: [WatchSessionRecord] = []
+        
+        // Add workouts
+        for workout in historyStore.workoutSessionRecords {
+            guard workout.date >= startOfWeek && workout.date < endOfWeek else { continue }
+            sessions.append(WatchSessionRecord(
+                id: workout.id.uuidString,
+                type: "workout",
+                name: workout.name,
+                date: workout.date,
+                duration: Int(workout.duration),
+                calories: workout.calories,
+                icon: "dumbbell.fill",
+                colorHex: "CC7359"
+            ))
+        }
+        
+        // Add runs
+        for run in historyStore.runSessionRecords {
+            guard run.date >= startOfWeek && run.date < endOfWeek else { continue }
+            sessions.append(WatchSessionRecord(
+                id: run.id.uuidString,
+                type: "run",
+                name: run.name,
+                date: run.date,
+                duration: Int(run.duration),
+                calories: run.calories,
+                icon: "figure.run",
+                colorHex: "8CA680"
+            ))
+        }
+        
+        // Sort by date descending
+        sessions.sort { $0.date > $1.date }
+        
+        return WatchWeeklySessions(sessions: sessions)
     }
     
     private func getActivityData() -> WatchActivityData {
