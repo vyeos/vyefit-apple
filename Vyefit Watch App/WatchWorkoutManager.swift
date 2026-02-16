@@ -27,6 +27,8 @@ import HealthKit
     private var locationManager: CLLocationManager?
     private var lastLocation: CLLocation?
     private var startDate: Date?
+    private var pauseStartDate: Date?
+    private var totalPausedSeconds: TimeInterval = 0
     private var ticker: Timer?
     private var lastMetricsSend: Date?
     
@@ -143,6 +145,8 @@ import HealthKit
         self.routeBuilder = nil
         self.locationManager = nil
         self.startDate = nil
+        self.pauseStartDate = nil
+        self.totalPausedSeconds = 0
         self.lastMetricsSend = nil
     }
     
@@ -150,6 +154,7 @@ import HealthKit
         guard isRunning, !isPaused else { return }
         session?.pause()
         isPaused = true
+        pauseStartDate = Date()
         WatchConnectivityManager.shared.sendPause()
     }
     
@@ -157,6 +162,10 @@ import HealthKit
         guard isRunning, isPaused else { return }
         session?.resume()
         isPaused = false
+        if let pauseStartDate {
+            totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
+            self.pauseStartDate = nil
+        }
         WatchConnectivityManager.shared.sendResume()
     }
     
@@ -173,9 +182,13 @@ import HealthKit
     }
     
     private func updateElapsed() {
-        if let startDate {
-            elapsedSeconds = max(Int(Date().timeIntervalSince(startDate)), 0)
+        guard let startDate else { return }
+        let now = Date()
+        var elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+        if isPaused, let pauseStartDate {
+            elapsed -= now.timeIntervalSince(pauseStartDate)
         }
+        elapsedSeconds = max(Int(elapsed), 0)
     }
 
     private func startTicker() {
@@ -241,7 +254,8 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDel
             distanceMeters: distanceMeters,
             activeEnergyKcal: activeEnergy,
             cadenceSpm: cadenceSpm,
-            elapsedSeconds: elapsedSeconds
+            elapsedSeconds: elapsedSeconds,
+            isPaused: isPaused
         )
     }
 }

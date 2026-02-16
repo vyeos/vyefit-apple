@@ -16,6 +16,7 @@ struct WatchMetrics {
     let activeEnergyKcal: Double
     let cadenceSpm: Double
     let elapsedSeconds: Int
+    let isPaused: Bool
 }
 
 struct WatchScheduleData: Codable {
@@ -277,7 +278,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
             distanceMeters: message["distanceMeters"] as? Double ?? 0,
             activeEnergyKcal: message["activeEnergyKcal"] as? Double ?? 0,
             cadenceSpm: message["cadenceSpm"] as? Double ?? 0,
-            elapsedSeconds: message["elapsedSeconds"] as? Int ?? 0
+            elapsedSeconds: message["elapsedSeconds"] as? Int ?? 0,
+            isPaused: message["isPaused"] as? Bool ?? false
         )
         DispatchQueue.main.async {
             self.latestMetrics = metrics
@@ -314,7 +316,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 distanceMeters: userInfo["distanceMeters"] as? Double ?? 0,
                 activeEnergyKcal: userInfo["activeEnergyKcal"] as? Double ?? 0,
                 cadenceSpm: userInfo["cadenceSpm"] as? Double ?? 0,
-                elapsedSeconds: userInfo["elapsedSeconds"] as? Int ?? 0
+                elapsedSeconds: userInfo["elapsedSeconds"] as? Int ?? 0,
+                isPaused: userInfo["isPaused"] as? Bool ?? false
             )
             DispatchQueue.main.async {
                 self.latestMetrics = metrics

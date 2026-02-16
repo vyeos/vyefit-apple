@@ -270,7 +270,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         session.transferUserInfo(message)
     }
     
-    func sendMetrics(activity: String, heartRate: Double, distanceMeters: Double, activeEnergyKcal: Double, cadenceSpm: Double, elapsedSeconds: Int) {
+    func sendMetrics(activity: String, heartRate: Double, distanceMeters: Double, activeEnergyKcal: Double, cadenceSpm: Double, elapsedSeconds: Int, isPaused: Bool = false) {
         let session = WCSession.default
         let message: [String: Any] = [
             "activity": activity,
@@ -278,7 +278,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "distanceMeters": distanceMeters,
             "activeEnergyKcal": activeEnergyKcal,
             "cadenceSpm": cadenceSpm,
-            "elapsedSeconds": elapsedSeconds
+            "elapsedSeconds": elapsedSeconds,
+            "isPaused": isPaused
         ]
         
         // Try immediate message if reachable
