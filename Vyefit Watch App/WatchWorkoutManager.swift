@@ -92,6 +92,10 @@ import HealthKit
         let builder = self.builder
         let routeBuilder = self.routeBuilder
         let locationManager = self.locationManager
+        let session = self.session
+
+        // End the HealthKit session first
+        session?.end()
 
         // End collection using async alternative via continuation
         if let builder {
@@ -109,14 +113,7 @@ import HealthKit
             }
         }
 
-        // Perform UI/state updates on the main actor
-        self.isRunning = false
-        self.isPaused = false
-        self.ticker?.invalidate()
-        self.ticker = nil
-        locationManager?.stopUpdatingLocation()
-
-        // Finish route (if any) using async alternative and notify phone
+        // Finish route (if any) before updating UI state
         if let workout, let routeBuilder {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 routeBuilder.finishRoute(with: workout, metadata: nil) { _, _ in
@@ -127,6 +124,25 @@ import HealthKit
         } else {
             WatchConnectivityManager.shared.sendEnded(uuid: nil)
         }
+
+        // Perform UI/state updates on the main actor
+        self.ticker?.invalidate()
+        self.ticker = nil
+        locationManager?.stopUpdatingLocation()
+        
+        // Reset all state
+        self.isRunning = false
+        self.isPaused = false
+        self.heartRate = 0
+        self.activeEnergy = 0
+        self.distanceMeters = 0
+        self.cadenceSpm = 0
+        self.elapsedSeconds = 0
+        self.session = nil
+        self.builder = nil
+        self.routeBuilder = nil
+        self.locationManager = nil
+        self.startDate = nil
     }
     
     func pause() {

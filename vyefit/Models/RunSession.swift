@@ -488,11 +488,6 @@ class RunSession {
             }
         }
         
-        WatchConnectivityManager.shared.onWorkoutEnded = { [weak self] _ in
-            guard let self else { return }
-            self.state = .completed
-        }
-        
         WatchConnectivityManager.shared.onPauseFromWatch = { [weak self] in
             guard let self else { return }
             if self.state == .active {

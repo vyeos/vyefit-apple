@@ -259,13 +259,9 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             message["workoutId"] = workoutId
         }
         
-        // Always try to send, queue if not reachable
+        // Send to phone but don't query for active session - the watch is managing its own state
         if session.isReachable {
-            session.sendMessage(message, replyHandler: { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.checkForActiveSession()
-                }
-            }, errorHandler: { error in
+            session.sendMessage(message, replyHandler: nil, errorHandler: { error in
                 print("[WatchConnectivity] Start activity error: \(error.localizedDescription)")
             })
         }

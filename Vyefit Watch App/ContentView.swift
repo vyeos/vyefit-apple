@@ -71,6 +71,9 @@ struct ContentView: View {
                 connectivityManager.appState = .activeSession(
                     activity == "run" ? .run(name: "Run") : .workout(name: "Workout")
                 )
+            } else {
+                connectivityManager.appState = .loading
+                connectivityManager.checkForActiveSession()
             }
         }
     }
@@ -353,8 +356,8 @@ struct ActivityChooserView: View {
     
     private func startScheduleItem(_ item: WatchScheduleItem) {
         let location: String = item.type == "run" ? "outdoor" : "indoor"
-        startLocalWorkout(type: item.type, location: location)
         connectivityManager.startActivity(type: item.type, location: location, workoutId: item.workoutId)
+        startLocalWorkout(type: item.type, location: location)
     }
     
     private func startLocalWorkout(type: String, location: String) {

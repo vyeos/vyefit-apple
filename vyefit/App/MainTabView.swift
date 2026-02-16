@@ -99,7 +99,18 @@ struct HomeView: View {
             
             // Setup WatchConnectivity callbacks
             let watchManager = WatchConnectivityManager.shared
+            
+            // Handle workout ended from watch
             watchManager.onWorkoutEnded = { uuid in
+                // End the active sessions if any
+                if WorkoutStore.shared.activeSession != nil {
+                    WorkoutStore.shared.endActiveSession()
+                }
+                if RunStore.shared.activeSession != nil {
+                    RunStore.shared.endActiveSession()
+                }
+                
+                // Import the workout from HealthKit
                 if let uuid {
                     HealthKitManager.shared.importWorkout(uuid: uuid) { _ in }
                 } else {
