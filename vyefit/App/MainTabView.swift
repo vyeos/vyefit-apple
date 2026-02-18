@@ -20,34 +20,27 @@ struct HomeView: View {
                 }
                 .tag(0)
 
-            WorkoutsView()
-                .tabItem {
-                    Image(systemName: "dumbbell.fill")
-                    Text("Train")
-                }
-                .tag(1)
+                WorkoutsView()
+                    .tabItem {
+                        Image(systemName: "dumbbell.fill")
+                        Text("Train")
+                    }
+                    .tag(1)
 
-            RunView()
-                .tabItem {
-                    Image(systemName: "figure.run")
-                    Text("Run")
-                }
-                .tag(2)
+                ScheduleView()
+                    .tabItem {
+                        Image(systemName: "calendar")
+                        Text("Schedule")
+                    }
+                    .tag(2)
 
-            ScheduleView()
-                .tabItem {
-                    Image(systemName: "calendar")
-                    Text("Schedule")
-                }
-                .tag(3)
-
-            ProfileView()
-                .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("You")
-                }
-                .tag(4)
-        }
+                ProfileView()
+                    .tabItem {
+                        Image(systemName: "person.fill")
+                        Text("You")
+                    }
+                    .tag(3)
+            }
         .environment(WorkoutStore.shared)
         .environment(RunStore.shared)
         .tint(Theme.terracotta)
