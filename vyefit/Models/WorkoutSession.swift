@@ -129,22 +129,12 @@ class WorkoutSession {
         weightLb: Double,
         recordedUnit: String
     ) {
-        let record = ExerciseRecordStore.shared.addRecord(
+        _ = ExerciseRecordStore.shared.addRecord(
             exerciseName: activeExercises[exerciseIndex].exercise.name,
             reps: reps,
             weightKg: weightKg,
             weightLb: weightLb,
             recordedUnit: recordedUnit
-        )
-        activeExercises[exerciseIndex].sets.append(
-            WorkoutSet(
-                id: record.id,
-                reps: record.reps,
-                weight: record.weightKg,
-                weightLb: record.weightLb,
-                recordedUnit: record.recordedUnit,
-                recordedAt: record.recordedAt
-            )
         )
     }
     
@@ -156,11 +146,6 @@ class WorkoutSession {
         weightLb: Double,
         recordedUnit: String
     ) {
-        guard let idx = activeExercises[exerciseIndex].sets.firstIndex(where: { $0.id == recordID }) else { return }
-        activeExercises[exerciseIndex].sets[idx].reps = reps
-        activeExercises[exerciseIndex].sets[idx].weight = weightKg
-        activeExercises[exerciseIndex].sets[idx].weightLb = weightLb
-        activeExercises[exerciseIndex].sets[idx].recordedUnit = recordedUnit
         ExerciseRecordStore.shared.updateRecord(
             id: recordID,
             reps: reps,
@@ -171,7 +156,6 @@ class WorkoutSession {
     }
     
     func removeRecord(exerciseIndex: Int, recordID: UUID) {
-        activeExercises[exerciseIndex].sets.removeAll { $0.id == recordID }
         ExerciseRecordStore.shared.deleteRecord(id: recordID)
     }
     

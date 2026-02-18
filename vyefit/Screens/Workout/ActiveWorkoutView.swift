@@ -42,7 +42,7 @@ struct ActiveWorkoutView: View {
                 ForEach(Array(session.activeExercises.enumerated()), id: \.element.id) { index, activeExercise in
                     ExerciseRecordsCard(
                         exercise: activeExercise.exercise,
-                        records: activeExercise.sets,
+                        records: latestRecords(for: activeExercise.exercise.name),
                         unit: preferredUnit,
                         onOpenHistory: {
                             selectedExerciseIndex = index
@@ -53,7 +53,7 @@ struct ActiveWorkoutView: View {
                         onDeleteRecord: { set in
                             pendingDelete = PendingDelete(
                                 id: set.id,
-                                mode: .session(exerciseIndex: index, recordID: set.id)
+                                mode: .store(recordID: set.id)
                             )
                         }
                     )
@@ -70,7 +70,6 @@ struct ActiveWorkoutView: View {
         )) { selection in
             ExerciseHistoryView(
                 exercise: session.activeExercises[selection.id].exercise,
-                currentSessionRecords: session.activeExercises[selection.id].sets,
                 refreshToken: historyRefreshToken,
                 onAddRecord: {
                     recordEditorContext = RecordEditorContext(exerciseIndex: selection.id)
@@ -79,17 +78,10 @@ struct ActiveWorkoutView: View {
                     recordEditorContext = RecordEditorContext(exerciseIndex: selection.id, existingRecord: record)
                 },
                 onDeleteRecord: { record in
-                    if session.activeExercises[selection.id].sets.contains(where: { $0.id == record.id }) {
-                        pendingDelete = PendingDelete(
-                            id: record.id,
-                            mode: .session(exerciseIndex: selection.id, recordID: record.id)
-                        )
-                    } else {
-                        pendingDelete = PendingDelete(
-                            id: record.id,
-                            mode: .store(recordID: record.id)
-                        )
-                    }
+                    pendingDelete = PendingDelete(
+                        id: record.id,
+                        mode: .store(recordID: record.id)
+                    )
                 }
             )
         }
@@ -130,8 +122,6 @@ struct ActiveWorkoutView: View {
             Button("Delete", role: .destructive) {
                 guard let pendingDelete else { return }
                 switch pendingDelete.mode {
-                case .session(let exerciseIndex, let recordID):
-                    session.removeRecord(exerciseIndex: exerciseIndex, recordID: recordID)
                 case .store(let recordID):
                     ExerciseRecordStore.shared.deleteRecord(id: recordID)
                 }
@@ -141,6 +131,23 @@ struct ActiveWorkoutView: View {
         } message: {
             Text("This record will be permanently removed.")
         }
+    }
+
+    private func latestRecords(for exerciseName: String) -> [WorkoutSet] {
+        Array(
+            ExerciseRecordStore.shared.records(for: exerciseName)
+                .prefix(3)
+                .map {
+                    WorkoutSet(
+                        id: $0.id,
+                        reps: $0.reps,
+                        weight: $0.weightKg,
+                        weightLb: $0.weightLb,
+                        recordedUnit: $0.recordedUnit,
+                        recordedAt: $0.recordedAt
+                    )
+                }
+        )
     }
 }
 
@@ -262,7 +269,6 @@ private struct ExerciseRecordsCard: View {
 
 private struct ExerciseHistoryView: View {
     let exercise: CatalogExercise
-    let currentSessionRecords: [WorkoutSet]
     let refreshToken: Int
     let onAddRecord: () -> Void
     let onEditRecord: (WorkoutSet) -> Void
@@ -320,32 +326,27 @@ private struct ExerciseHistoryView: View {
                                             .font(.system(size: 15, weight: .semibold))
                                             .foregroundStyle(Theme.sage)
 
-                                        unitText(record: record)
-                                            .frame(width: 120, alignment: .trailing)
+                                    unitText(record: record)
+                                        .frame(width: 120, alignment: .trailing)
 
-                                        Button {
-                                            onEditRecord(record)
-                                        } label: {
-                                            Image(systemName: "pencil")
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .foregroundStyle(Theme.stone)
-                                        }
-                                        .frame(width: 20)
-
-                                        Button(role: .destructive) {
-                                            onDeleteRecord(record)
-                                            loadData()
-                                        } label: {
-                                            Image(systemName: "trash")
+                                    Button(role: .destructive) {
+                                        onDeleteRecord(record)
+                                        loadData()
+                                    } label: {
+                                        Image(systemName: "trash")
                                                 .font(.system(size: 12))
                                         }
                                         .frame(width: 20)
-                                    }
-                                    .padding(.vertical, 10)
+                                }
+                                .padding(.vertical, 10)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    onEditRecord(record)
+                                }
 
-                                    if records.last?.id != record.id {
-                                        Divider().background(Theme.sand)
-                                    }
+                                if records.last?.id != record.id {
+                                    Divider().background(Theme.sand)
+                                }
                                 }
                             }
                             .padding(.horizontal, 12)
@@ -378,7 +379,6 @@ private struct ExerciseHistoryView: View {
             .background(Theme.background.opacity(0.95))
         }
         .onAppear(perform: loadData)
-        .onChange(of: currentSessionRecords.count) { _, _ in loadData() }
         .onChange(of: refreshToken) { _, _ in loadData() }
     }
 
@@ -492,7 +492,7 @@ private struct RecordEditorSheet: View {
                     )
                 }
                 .padding(.vertical, 8)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 12)
                 .background(Theme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
@@ -577,6 +577,7 @@ private struct RecordEditorSheet: View {
                 .multilineTextAlignment(.trailing)
                 .frame(minWidth: 84)
                 .textFieldStyle(.plain)
+                .padding(.horizontal, 8)
             Text(unit)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
@@ -601,7 +602,6 @@ private struct RecordEditorContext: Identifiable {
 }
 
 private enum PendingDeleteMode {
-    case session(exerciseIndex: Int, recordID: UUID)
     case store(recordID: UUID)
 }
 
