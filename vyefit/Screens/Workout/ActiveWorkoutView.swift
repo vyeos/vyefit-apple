@@ -484,6 +484,7 @@ private struct RecordEditorSheet: View {
                             repsText = "\(current + 1)"
                         }
                     )
+                    .padding(.trailing, 14)
 
                     Divider()
                         .frame(height: 66)
@@ -504,6 +505,7 @@ private struct RecordEditorSheet: View {
                             weightText = formatWeight(current + step)
                         }
                     )
+                    .padding(.leading, 14)
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal, 12)
