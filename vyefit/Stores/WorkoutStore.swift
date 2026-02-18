@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct UserWorkout: Identifiable, Hashable, Codable {
     let id: UUID
@@ -33,6 +34,8 @@ class WorkoutStore {
     
     // Active Session State
     var activeSession: WorkoutSession?
+    private let workoutsFileName = "userWorkouts.json"
+    private let customExercisesFileName = "customExercises.json"
     
     init() {
         loadData()
@@ -69,27 +72,44 @@ class WorkoutStore {
     // MARK: - Persistence
     
     private func saveWorkouts() {
-        if let encoded = try? JSONEncoder().encode(workouts) {
-            UserDefaults.standard.set(encoded, forKey: "userWorkouts")
-        }
+        guard let encoded = try? JSONEncoder().encode(workouts) else { return }
+        try? encoded.write(to: fileURL(fileName: workoutsFileName), options: .atomic)
     }
     
     private func saveCustomExercises() {
-        if let encoded = try? JSONEncoder().encode(customExercises) {
-            UserDefaults.standard.set(encoded, forKey: "customExercises")
-        }
+        guard let encoded = try? JSONEncoder().encode(customExercises) else { return }
+        try? encoded.write(to: fileURL(fileName: customExercisesFileName), options: .atomic)
     }
     
     private func loadData() {
-        if let data = UserDefaults.standard.data(forKey: "userWorkouts"),
+        if let data = try? Data(contentsOf: fileURL(fileName: workoutsFileName)),
            let decoded = try? JSONDecoder().decode([UserWorkout].self, from: data) {
             workouts = decoded
+        } else if let legacy = UserDefaults.standard.data(forKey: "userWorkouts"),
+                  let decoded = try? JSONDecoder().decode([UserWorkout].self, from: legacy) {
+            workouts = decoded
+            saveWorkouts()
+            UserDefaults.standard.removeObject(forKey: "userWorkouts")
         }
         
-        if let data = UserDefaults.standard.data(forKey: "customExercises"),
+        if let data = try? Data(contentsOf: fileURL(fileName: customExercisesFileName)),
            let decoded = try? JSONDecoder().decode([CatalogExercise].self, from: data) {
             customExercises = decoded
+        } else if let legacy = UserDefaults.standard.data(forKey: "customExercises"),
+                  let decoded = try? JSONDecoder().decode([CatalogExercise].self, from: legacy) {
+            customExercises = decoded
+            saveCustomExercises()
+            UserDefaults.standard.removeObject(forKey: "customExercises")
         }
+    }
+
+    private func fileURL(fileName: String) -> URL {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        if !FileManager.default.fileExists(atPath: directory.path) {
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+        }
+        return directory.appendingPathComponent(fileName)
     }
     
     func startSession(for workout: UserWorkout) {

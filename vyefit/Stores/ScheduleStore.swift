@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 @Observable
 class ScheduleStore {
@@ -22,6 +23,7 @@ class ScheduleStore {
     var showSettingsSheet: Bool = false
     
     private let lastWeekStartKey = "scheduleLastWeekStart"
+    private let settingsFileName = "scheduleSettings.json"
     
     init() {
         self.selectedDate = Date()
@@ -210,19 +212,30 @@ class ScheduleStore {
             weekStartDay: weekStartDay,
             notificationsEnabled: notificationsEnabled
         )
-        if let encoded = try? JSONEncoder().encode(settings) {
-            UserDefaults.standard.set(encoded, forKey: "scheduleSettings")
-        }
+        guard let encoded = try? JSONEncoder().encode(settings) else { return }
+        try? encoded.write(to: settingsFileURL(), options: .atomic)
     }
     
     private func loadSettings() {
-        guard let data = UserDefaults.standard.data(forKey: "scheduleSettings") else { return }
-        if let decoded = try? JSONDecoder().decode(ScheduleSettings.self, from: data) {
+        if let data = try? Data(contentsOf: settingsFileURL()),
+           let decoded = try? JSONDecoder().decode(ScheduleSettings.self, from: data) {
             schedules = decoded.schedules
             repeatMode = decoded.repeatMode
             currentScheduleIndex = decoded.currentScheduleIndex
             weekStartDay = decoded.weekStartDay
             notificationsEnabled = decoded.notificationsEnabled
+            return
+        }
+
+        if let legacy = UserDefaults.standard.data(forKey: "scheduleSettings"),
+           let decoded = try? JSONDecoder().decode(ScheduleSettings.self, from: legacy) {
+            schedules = decoded.schedules
+            repeatMode = decoded.repeatMode
+            currentScheduleIndex = decoded.currentScheduleIndex
+            weekStartDay = decoded.weekStartDay
+            notificationsEnabled = decoded.notificationsEnabled
+            saveSettings()
+            UserDefaults.standard.removeObject(forKey: "scheduleSettings")
         }
     }
 
@@ -269,6 +282,15 @@ class ScheduleStore {
         weekStartDay = .monday
         notificationsEnabled = true
         saveSettings()
+    }
+
+    private func settingsFileURL() -> URL {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        if !FileManager.default.fileExists(atPath: directory.path) {
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+        }
+        return directory.appendingPathComponent(settingsFileName)
     }
     
     // MARK: - Get Display Info
