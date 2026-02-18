@@ -9,7 +9,6 @@ import SwiftUI
 #if canImport(UIKit)
 import UIKit
 #endif
-import Combine
 
 enum Theme {
     // MARK: - Base Colors
@@ -31,17 +30,6 @@ enum Theme {
     // MARK: - Schedule Type Colors
     static var restDay: Color { stone.opacity(0.6) }
     static var busyDay: Color { clay.opacity(0.7) }
-    
-    // MARK: - Watch App Colors
-    static let watchBackgroundTop = Color(red: 0.15, green: 0.14, blue: 0.12)
-    static let watchBackgroundBottom = Color(red: 0.10, green: 0.09, blue: 0.08)
-    static let watchCardBackground = Color.white.opacity(0.08)
-    static let watchTextPrimary = Color.white
-    static let watchTextSecondary = Color.white.opacity(0.7)
-    static let watchTextTertiary = Color.white.opacity(0.5)
-    static let watchAccent = terracotta
-    static let watchSuccess = sage
-    static let watchStop = clay
     
     #if canImport(UIKit)
     private static let sandLight = UIColor(red: 0.96, green: 0.93, blue: 0.88, alpha: 1)
