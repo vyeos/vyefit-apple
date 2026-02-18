@@ -109,7 +109,7 @@ struct ActiveWorkoutView: View {
                 }
                 historyRefreshToken += 1
             }
-            .presentationDetents([.height(380)])
+            .presentationDetents([.height(320)])
             .presentationDragIndicator(.visible)
         }
         .alert("Delete Record?", isPresented: Binding(
@@ -469,53 +469,53 @@ private struct RecordEditorSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                VStack(spacing: 14) {
-                    HStack(alignment: .center, spacing: 16) {
+                VStack(spacing: 10) {
+                    HStack(alignment: .center, spacing: 12) {
                         HStack(spacing: 6) {
                             TextField("0", text: $repsText)
                                 .keyboardType(.numberPad)
                                 .focused($focusedField, equals: .reps)
-                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .monospacedDigit()
                                 .foregroundStyle(Theme.sage)
                                 .multilineTextAlignment(.trailing)
-                                .frame(width: 84)
+                                .frame(width: 66)
                             Text("rep")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(Theme.textSecondary)
                         }
 
-                        HStack(spacing: 14) {
+                        HStack(spacing: 10) {
                             iconAdjustButton("minus") { adjustReps(by: -1) }
                             iconAdjustButton("plus") { adjustReps(by: 1) }
                         }
 
                         Divider()
-                            .frame(height: 96)
+                            .frame(height: 76)
 
                         HStack(spacing: 6) {
                             TextField("0", text: $weightText)
                                 .keyboardType(.decimalPad)
                                 .focused($focusedField, equals: .weight)
-                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .monospacedDigit()
                                 .foregroundStyle(Theme.terracotta)
                                 .multilineTextAlignment(.trailing)
-                                .frame(width: 96)
+                                .frame(width: 74)
                             Text(selectedUnit.symbol)
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(Theme.textSecondary)
                         }
 
-                        VStack(spacing: 10) {
+                        VStack(spacing: 8) {
                             smallAdjustRow(step: 1)
                             smallAdjustRow(step: selectedUnit == .kilograms ? 2.5 : 5)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
                     .background(Theme.cream)
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
 
                     Picker("Unit", selection: $selectedUnit) {
                         ForEach(TrackerWeightUnit.allCases) { unit in
@@ -529,11 +529,11 @@ private struct RecordEditorSheet: View {
                 .padding(.top, 10)
 
                 Divider()
-                    .padding(.top, 12)
+                    .padding(.top, 8)
 
                 HStack {
                     Text("Add note")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.stone)
                     Spacer()
                     Button {
@@ -545,20 +545,21 @@ private struct RecordEditorSheet: View {
                         dismiss()
                     } label: {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 26, weight: .semibold))
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(Theme.cream)
-                            .frame(width: 120, height: 60)
+                            .frame(width: 96, height: 46)
                             .background(isValid ? Theme.sage : Theme.stone.opacity(0.5))
                             .clipShape(Capsule())
                     }
                     .disabled(!isValid)
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 14)
+                .padding(.vertical, 8)
             }
             .padding(.horizontal, 8)
-            .padding(.bottom, 6)
+            .padding(.vertical, 2)
             .background(Theme.background)
+            .toolbar(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -594,7 +595,7 @@ private struct RecordEditorSheet: View {
     private func iconAdjustButton(_ systemName: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
         }
         .buttonStyle(.plain)
@@ -602,19 +603,19 @@ private struct RecordEditorSheet: View {
 
     @ViewBuilder
     private func smallAdjustRow(step: Double) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Button { adjustWeight(by: -step) } label: {
                 Image(systemName: "minus")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Theme.textSecondary)
             }
             Text(step == floor(step) ? "\(Int(step))" : formatWeight(step))
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
-                .frame(width: 20)
+                .frame(width: 28)
             Button { adjustWeight(by: step) } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Theme.textSecondary)
             }
         }
