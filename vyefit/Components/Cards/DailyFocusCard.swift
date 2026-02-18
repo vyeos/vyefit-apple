@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct DailyFocusCard: View {
-    @Environment(WorkoutStore.self) private var workoutStore
     var scheduleStore: ScheduleStore
+    @State private var showTrainHint = false
     
     private var todayItems: [ScheduleItem] {
         scheduleStore.todaySchedule?.items ?? []
@@ -38,7 +38,7 @@ struct DailyFocusCard: View {
     private var scheduledWorkout: UserWorkout? {
         guard let item = firstWorkoutItem,
               let workoutId = item.workoutId else { return nil }
-        return workoutStore.workouts.first { $0.id == workoutId }
+        return WorkoutStore.shared.workouts.first { $0.id == workoutId }
     }
     
     private var isWorkoutCompleted: Bool {
@@ -161,11 +161,9 @@ struct DailyFocusCard: View {
                     .clipShape(Capsule())
                 } else if !displayInfo.isRest {
                     Button {
-                        if hasWorkout, let workout = scheduledWorkout {
-                            workoutStore.startSession(for: workout)
-                        }
+                        showTrainHint = true
                     } label: {
-                        Text("Begin")
+                        Text("Open Train")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Theme.cream)
                             .padding(.horizontal, 20)
@@ -193,6 +191,11 @@ struct DailyFocusCard: View {
         .background(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal, 20)
+        .alert("Open Train Tab", isPresented: $showTrainHint) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Go to Train to log records for this workout.")
+        }
     }
 }
 
