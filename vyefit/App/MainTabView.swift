@@ -63,12 +63,6 @@ struct HomeView: View {
                 .padding(.bottom, 60)
             }
             
-            if let session = RunStore.shared.activeSession, !RunStore.shared.showActiveRun {
-                MiniRunPlayer(session: session) {
-                    RunStore.shared.showActiveRun = true
-                }
-                .padding(.bottom, WorkoutStore.shared.activeSession != nil ? 130 : 60)
-            }
         }
         .fullScreenCover(isPresented: Binding(
             get: { WorkoutStore.shared.showActiveWorkout },
@@ -82,18 +76,6 @@ struct HomeView: View {
                 )
             }
         }
-        .fullScreenCover(isPresented: Binding(
-            get: { RunStore.shared.showActiveRun },
-            set: { RunStore.shared.showActiveRun = $0 }
-        )) {
-            if let session = RunStore.shared.activeSession {
-                ActiveRunView(
-                    session: session,
-                    onEnd: { RunStore.shared.endActiveSession() },
-                    onDiscard: { RunStore.shared.discardActiveSession() }
-                )
-            }
-        }
         .onAppear {
             HealthKitManager.shared.importLatestWorkoutsIfNeeded()
             
@@ -102,19 +84,7 @@ struct HomeView: View {
             
             // Handle workout ended from watch
             watchManager.onWorkoutEnded = { uuid in
-                // End the active sessions if any
-                if WorkoutStore.shared.activeSession != nil {
-                    WorkoutStore.shared.endActiveSession()
-                }
-                if RunStore.shared.activeSession != nil {
-                    RunStore.shared.endActiveSession()
-                }
-                
-                // Clear the flag to prevent re-starting
-                WorkoutStore.shared.isStartingFromWatch = false
-                RunStore.shared.isStartingFromWatch = false
-                
-                // Import the workout from HealthKit
+                // Import completed workouts from Apple Health/Watch.
                 if let uuid {
                     HealthKitManager.shared.importWorkout(uuid: uuid) { _ in }
                 } else {

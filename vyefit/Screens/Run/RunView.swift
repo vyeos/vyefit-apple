@@ -9,13 +9,12 @@ import SwiftUI
 import os.log
 
 struct RunView: View {
-    @Environment(RunStore.self) private var runStore
     @Environment(WorkoutStore.self) private var workoutStore
     @State private var selectedRunType: RunGoalType?
     @State private var showActiveSessionAlert = false
     
     private var hasActiveSession: Bool {
-        runStore.activeSession != nil || workoutStore.activeSession != nil
+        workoutStore.activeSession != nil
     }
     
     // Stats Calculation
@@ -58,11 +57,7 @@ struct RunView: View {
             .alert("Session in Progress", isPresented: $showActiveSessionAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
-                if runStore.activeSession != nil {
-                    Text("Please finish your current run before starting a new one.")
-                } else {
-                    Text("Please finish your current workout before starting a new run.")
-                }
+                Text("Please finish your current workout before starting a new run setup.")
             }
         }
     }
@@ -287,4 +282,3 @@ struct StatHighlightCard: View {
 #Preview {
     RunView()
 }
-

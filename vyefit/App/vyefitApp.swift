@@ -22,7 +22,7 @@ struct vyefitApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        // Setup WatchConnectivity callback for starting workouts from watch
+        // Ignore start commands from watch: Vyefit handles planning/logging only.
         WatchConnectivityManager.shared.onStartFromWatch = { [weak self] activity, location, workoutId in
             self?.handleStartFromWatch(activity: activity, location: location, workoutId: workoutId)
         }
@@ -36,32 +36,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
     
     private func handleStartFromWatch(activity: String, location: String, workoutId: String?) {
-        DispatchQueue.main.async {
-            if activity.lowercased() == "run" {
-                RunStore.shared.isStartingFromWatch = true
-                let config = RunConfiguration(type: .quickStart)
-                RunStore.shared.startSession(configuration: config)
-            } else {
-                WorkoutStore.shared.isStartingFromWatch = true
-                if let workoutIdString = workoutId,
-                   let uuid = UUID(uuidString: workoutIdString),
-                   let workout = WorkoutStore.shared.workouts.first(where: { $0.id == uuid }) {
-                    WorkoutStore.shared.startSession(for: workout)
-                } else if let firstWorkout = WorkoutStore.shared.workouts.first {
-                    WorkoutStore.shared.startSession(for: firstWorkout)
-                } else {
-                    let defaultWorkout = UserWorkout(
-                        id: UUID(),
-                        name: "Quick Workout",
-                        workoutType: .traditionalStrengthTraining,
-                        exercises: [],
-                        icon: "dumbbell.fill",
-                        createdAt: Date()
-                    )
-                    WorkoutStore.shared.add(defaultWorkout)
-                    WorkoutStore.shared.startSession(for: defaultWorkout)
-                }
-            }
-        }
+        print("[AppDelegate] Ignoring start-from-watch command (\(activity), \(location), \(workoutId ?? "nil"))")
     }
 }

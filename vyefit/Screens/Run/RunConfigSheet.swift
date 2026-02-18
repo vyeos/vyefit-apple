@@ -10,7 +10,6 @@ import SwiftUI
 struct RunConfigSheet: View {
     let type: RunGoalType
     @Environment(\.dismiss) private var dismiss
-    @Environment(RunStore.self) private var runStore
     @Environment(WorkoutStore.self) private var workoutStore
     
     // State
@@ -19,6 +18,7 @@ struct RunConfigSheet: View {
     @State private var showNewTargetSheet = false
     @State private var selectedZone: HeartRateZone?
     @State private var showStartConfirmation = false
+    @State private var showAppleWorkoutPrompt = false
     
     // Interval State
     @State private var intervalWorkout = IntervalWorkout.defaultInterval
@@ -101,17 +101,12 @@ struct RunConfigSheet: View {
         VStack(spacing: 12) {
             Divider()
             
-            if runStore.activeSession != nil || workoutStore.activeSession != nil {
+            if workoutStore.activeSession != nil {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 14))
-                    if runStore.activeSession != nil {
-                        Text("A run is already in progress")
-                            .font(.system(size: 14, weight: .medium))
-                    } else {
-                        Text("A workout is already in progress")
-                            .font(.system(size: 14, weight: .medium))
-                    }
+                    Text("A workout is already in progress")
+                        .font(.system(size: 14, weight: .medium))
                 }
                 .foregroundStyle(Theme.terracotta)
                 .padding(.horizontal, 20)
@@ -120,53 +115,32 @@ struct RunConfigSheet: View {
             Button {
                 showStartConfirmation = true
             } label: {
-                Text(runStore.activeSession != nil || workoutStore.activeSession != nil ? "Session in Progress" : "Start Run")
+                Text(workoutStore.activeSession != nil ? "Session in Progress" : "Track on Apple Workout")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Theme.cream)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(runStore.activeSession != nil || workoutStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
+                    .background(workoutStore.activeSession != nil ? Theme.textSecondary.opacity(0.5) : Theme.terracotta)
                     .clipShape(Capsule())
             }
-            .disabled(runStore.activeSession != nil || workoutStore.activeSession != nil)
+            .disabled(workoutStore.activeSession != nil)
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
         .background(Theme.background)
-        .alert("Start Run?", isPresented: $showStartConfirmation) {
+        .alert("Track Run in Apple Workout?", isPresented: $showStartConfirmation) {
             Button("Cancel", role: .cancel) { }
-            Button("Start") {
-                startRun()
-                dismiss()
+            Button("OK") {
+                showAppleWorkoutPrompt = true
             }
         } message: {
-            Text("Do you want to start this run now?")
+            Text("Vyefit no longer runs live activity tracking. Start the run from Apple Workout on your watch or iPhone.")
         }
-    }
-    
-    private func startRun() {
-        var config: RunConfiguration
-        
-        switch type {
-        case .quickStart:
-            config = RunConfiguration(type: .quickStart)
-        case .distance:
-            config = RunConfiguration(type: .distance, targetValue: selectedTarget?.value)
-        case .time:
-            config = RunConfiguration(type: .time, targetValue: selectedTarget?.value)
-        case .pace:
-            let paceValue = (selectedTarget?.value ?? 0) * 60 + (selectedTarget?.secondaryValue ?? 0)
-            config = RunConfiguration(type: .pace, targetValue: selectedTarget?.value, targetPace: paceValue)
-        case .calories:
-            config = RunConfiguration(type: .calories, targetValue: selectedTarget?.value)
-        case .heartRate:
-            config = RunConfiguration(type: .heartRate, targetZone: selectedZone?.id)
-        case .intervals:
-            // config = RunConfiguration(type: .intervals, intervalWorkout: intervalWorkout)
-            config = RunConfiguration(type: .quickStart) // Fallback
+        .alert("How to Track", isPresented: $showAppleWorkoutPrompt) {
+            Button("Done") { dismiss() }
+        } message: {
+            Text("Open the Workout app on Apple Watch or iPhone, start your run there, then return to Vyefit to review imported sessions.")
         }
-        
-        runStore.startSession(configuration: config)
     }
     
     private var headerView: some View {

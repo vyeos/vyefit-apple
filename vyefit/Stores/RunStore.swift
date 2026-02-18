@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import HealthKit
 
 @Observable
 class RunStore {
@@ -14,30 +13,8 @@ class RunStore {
     
     var activeSession: RunSession?
     var showActiveRun: Bool = false
-    var isStartingFromWatch: Bool = false
-    
     func startSession(configuration: RunConfiguration) {
-        let writeStored = UserDefaults.standard.object(forKey: "healthWriteWorkouts")
-        let writeEnabled = writeStored == nil ? false : UserDefaults.standard.bool(forKey: "healthWriteWorkouts")
-        let readStored = UserDefaults.standard.object(forKey: "healthReadWorkouts")
-        let readEnabled = readStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadWorkouts")
-        let vitalsStored = UserDefaults.standard.object(forKey: "healthReadVitals")
-        let vitalsEnabled = vitalsStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadVitals")
-        let shouldUseHealth = HealthKitManager.shared.isAuthorized && (writeEnabled || readEnabled || vitalsEnabled)
-        
-        if !isStartingFromWatch {
-            if WatchConnectivityManager.shared.isReachable {
-                WatchConnectivityManager.shared.startWorkout(activity: "run", location: "outdoor")
-            }
-            WatchConnectivityManager.shared.updateApplicationContext()
-        }
-        isStartingFromWatch = false
-        
-        let controller: HealthKitWorkoutController? = shouldUseHealth && !WatchConnectivityManager.shared.isReachable
-            ? HealthKitManager.shared.startWorkoutController(activityType: .running, location: .outdoor)
-            : nil
-        activeSession = RunSession(configuration: configuration, healthController: controller)
-        showActiveRun = true
+        print("[RunStore] Live run tracking is disabled. Use Apple Workout for run recording.")
     }
     
     func endActiveSession() {
