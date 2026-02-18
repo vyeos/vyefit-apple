@@ -275,6 +275,7 @@ private struct ExerciseHistoryView: View {
     let onDeleteRecord: (WorkoutSet) -> Void
 
     @State private var allRecords: [WorkoutSet] = []
+    @State private var pendingDeleteRecord: WorkoutSet?
 
     var groupedRecords: [(Date, [WorkoutSet])] {
         let grouped = Dictionary(grouping: allRecords) { Calendar.current.startOfDay(for: $0.recordedAt) }
@@ -330,8 +331,7 @@ private struct ExerciseHistoryView: View {
                                         .frame(width: 120, alignment: .trailing)
 
                                     Button(role: .destructive) {
-                                        onDeleteRecord(record)
-                                        loadData()
+                                        pendingDeleteRecord = record
                                     } label: {
                                         Image(systemName: "trash")
                                                 .font(.system(size: 12))
@@ -377,6 +377,22 @@ private struct ExerciseHistoryView: View {
                 .padding(.bottom, 14)
             }
             .background(Theme.background.opacity(0.95))
+        }
+        .alert("Delete Record?", isPresented: Binding(
+            get: { pendingDeleteRecord != nil },
+            set: { visible in if !visible { pendingDeleteRecord = nil } }
+        )) {
+            Button("Cancel", role: .cancel) {
+                pendingDeleteRecord = nil
+            }
+            Button("Delete", role: .destructive) {
+                guard let record = pendingDeleteRecord else { return }
+                onDeleteRecord(record)
+                loadData()
+                pendingDeleteRecord = nil
+            }
+        } message: {
+            Text("This record will be permanently removed.")
         }
         .onAppear(perform: loadData)
         .onChange(of: refreshToken) { _, _ in loadData() }
