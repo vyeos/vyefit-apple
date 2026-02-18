@@ -78,10 +78,8 @@ struct ActiveWorkoutView: View {
                     recordEditorContext = RecordEditorContext(exerciseIndex: selection.id, existingRecord: record)
                 },
                 onDeleteRecord: { record in
-                    pendingDelete = PendingDelete(
-                        id: record.id,
-                        mode: .store(recordID: record.id)
-                    )
+                    ExerciseRecordStore.shared.deleteRecord(id: record.id)
+                    historyRefreshToken += 1
                 }
             )
         }
