@@ -14,8 +14,6 @@ struct ActiveWorkoutView: View {
     @Bindable var session: WorkoutSession
     @Environment(\.dismiss) private var dismiss
     @State private var showEndConfirmation = false
-    @State private var showShortSessionAlert = false
-    @State private var showHealthConnectPrompt = false
     var onEnd: () -> Void
     var onDiscard: () -> Void
     
@@ -27,31 +25,12 @@ struct ActiveWorkoutView: View {
     
     var body: some View {
         NavigationStack {
-            TabView {
-                LogView(session: session)
-                    .tabItem {
-                        Label("Log", systemImage: "list.bullet.clipboard")
-                    }
-                
-                StatsView(session: session)
-                    .tabItem {
-                        Label("Stats", systemImage: "chart.bar.fill")
-                    }
-            }
-            .tint(Theme.terracotta)
-            .toolbarBackground(Theme.background, for: .bottomBar)
-            .toolbarBackground(.visible, for: .bottomBar)
+            LogView(session: session)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    VStack {
-                        Text(session.workout.name)
-                            .font(.headline)
-                        Text(formatDuration(session.elapsedSeconds))
-                            .font(.caption)
-                            .foregroundStyle(Theme.terracotta)
-                            .monospacedDigit()
-                    }
+                    Text(session.workout.name)
+                        .font(.headline)
                 }
                 
                 ToolbarItem(placement: .topBarLeading) {
@@ -70,20 +49,14 @@ struct ActiveWorkoutView: View {
                 }
             }
             .alert("End Workout?", isPresented: $showEndConfirmation) {
-                Button("End Workout", role: .destructive) {
-                    if session.elapsedSeconds < 60 {
-                        showShortSessionAlert = true
-                    } else {
-                        Task(priority: TaskPriority.userInitiated) {
-                            await session.endWorkoutAsync()
-                            onEnd()
-                            dismiss()
-                        }
+                Button("Save Workout", role: .destructive) {
+                    Task(priority: TaskPriority.userInitiated) {
+                        await session.endWorkoutAsync()
+                        onEnd()
+                        dismiss()
                     }
                 }
                 Button("Cancel", role: .cancel) { }
-            }
-            .alert("Discard Workout?", isPresented: $showShortSessionAlert) {
                 Button("Discard", role: .destructive) {
                     Task(priority: TaskPriority.userInitiated) {
                         await session.endWorkoutAsync()
@@ -91,43 +64,9 @@ struct ActiveWorkoutView: View {
                         dismiss()
                     }
                 }
-                Button("Keep Going", role: .cancel) { }
             } message: {
-                Text("This workout is less than 1 minute. It might have been started by mistake. Discard it?")
+                Text("Save this logged workout or discard it.")
             }
-            .alert("Connect Apple Health?", isPresented: $showHealthConnectPrompt) {
-                Button("Enable") {
-                    HealthKitManager.shared.requestAuthorization(
-                        readWorkouts: true,
-                        writeWorkouts: true,
-                        readVitals: true
-                    ) { _, _ in }
-                }
-                Button("Skip", role: .cancel) { }
-            } message: {
-                Text("Enable Apple Health to track this workout with real data from Apple Watch.")
-            }
-            .onAppear {
-                if !session.hasShownWatchPrompt {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if !HealthKitManager.shared.isAuthorized {
-                            showHealthConnectPrompt = true
-                        }
-                        session.hasShownWatchPrompt = true
-                    }
-                }
-            }
-        }
-    }
-    
-    private func formatDuration(_ seconds: Int) -> String {
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, s)
-        } else {
-            return String(format: "%02d:%02d", m, s)
         }
     }
 }
@@ -139,15 +78,10 @@ struct LogView: View {
         ZStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    if !session.healthWarnings.isEmpty {
-                        HealthWarningBanner(messages: session.healthWarnings)
-                    }
-                    if session.state != .paused {
-                        if session.isResting {
-                            RestTimerBanner(session: session)
-                        } else {
-                            StartNextSetBanner()
-                        }
+                    if session.isResting {
+                        RestTimerBanner(session: session)
+                    } else {
+                        StartNextSetBanner()
                     }
                     
                     ForEach(Array(session.activeExercises.enumerated()), id: \.element.id) { index, activeExercise in
@@ -159,41 +93,6 @@ struct LogView: View {
             .background(Theme.background)
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
-            
-            if session.state == .paused {
-                // Full screen overlay with touch blocking and blur
-                Color.clear
-                    .background(.ultraThinMaterial)
-                    .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture { }
-                
-                VStack(spacing: 16) {
-                    Image(systemName: "pause.circle.fill")
-                        .font(.system(size: 60))
-                        .foregroundStyle(Theme.sage)
-                    Text("Workout Paused")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(Theme.textPrimary)
-                    
-                    Button {
-                        withAnimation { session.togglePause() }
-                    } label: {
-                        Text("Resume")
-                            .font(.headline)
-                            .foregroundStyle(Theme.cream)
-                            .padding(.horizontal, 32)
-                            .padding(.vertical, 12)
-                            .background(Theme.sage)
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(32)
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: Theme.bark.opacity(0.15), radius: 20, x: 0, y: 10)
             }
         }
     }
@@ -443,132 +342,6 @@ struct SetRow: View {
             return String(Int(value))
         }
         return String(format: "%.1f", value)
-    }
-}
-
-struct StatsView: View {
-    var session: WorkoutSession
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            if !session.healthWarnings.isEmpty {
-                HealthWarningBanner(messages: session.healthWarnings)
-            }
-            StatsCard(
-                title: "Heart Rate",
-                value: session.isHealthBacked && !session.hasHeartRateData ? "--" : "\(session.currentHeartRate)",
-                unit: "BPM",
-                icon: "heart.fill",
-                color: Theme.heartRate
-            )
-            
-            StatsCard(
-                title: "Active Calories",
-                value: session.isHealthBacked && !session.hasCaloriesData ? "--" : "\(session.activeCalories)",
-                unit: "KCAL",
-                icon: "flame.fill",
-                color: Theme.calories
-            )
-            
-            StatsCard(
-                title: "Time",
-                value: formatDuration(session.elapsedSeconds),
-                unit: "ELAPSED",
-                icon: "clock.fill",
-                color: Theme.time
-            )
-            
-            Button {
-                withAnimation {
-                    session.togglePause()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: session.state == .active ? "pause.fill" : "play.fill")
-                    Text(session.state == .active ? "Pause Workout" : "Resume Workout")
-                }
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.cream)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(session.state == .active ? Theme.terracotta : Theme.sage)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-            
-            Spacer()
-        }
-        .padding()
-        .background(Theme.background)
-    }
-    
-    private func formatDuration(_ seconds: Int) -> String {
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, s)
-        } else {
-            return String(format: "%02d:%02d", m, s)
-        }
-    }
-}
-
-struct StatsCard: View {
-    let title: String
-    let value: String
-    let unit: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 20) {
-            Image(systemName: icon)
-                .font(.title)
-                .foregroundStyle(color)
-                .frame(width: 60, height: 60)
-                .background(color.opacity(0.1))
-                .clipShape(Circle())
-            
-            VStack(alignment: .leading) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(Theme.textSecondary)
-                    .textCase(.uppercase)
-                
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text(value)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.textPrimary)
-                        .monospacedDigit()
-                    Text(unit)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(Theme.stone)
-                }
-            }
-            Spacer()
-        }
-        .padding()
-        .background(Theme.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-    }
-}
-
-struct HealthWarningBanner: View {
-    let messages: [String]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(messages, id: \.self) { message in
-                Text(message)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Theme.sand.opacity(0.4))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

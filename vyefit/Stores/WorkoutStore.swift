@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import HealthKit
 
 struct UserWorkout: Identifiable, Hashable, Codable {
     let id: UUID
@@ -35,8 +34,6 @@ class WorkoutStore {
     // Active Session State
     var activeSession: WorkoutSession?
     var showActiveWorkout: Bool = false
-    var isStartingFromWatch: Bool = false
-
     
     init() {
         loadData()
@@ -97,54 +94,26 @@ class WorkoutStore {
     }
     
     func startSession(for workout: UserWorkout) {
-        let location: HKWorkoutSessionLocationType = workout.workoutType == .running || workout.workoutType == .walking || workout.workoutType == .cycling ? .outdoor : .indoor
-        let writeStored = UserDefaults.standard.object(forKey: "healthWriteWorkouts")
-        let writeEnabled = writeStored == nil ? false : UserDefaults.standard.bool(forKey: "healthWriteWorkouts")
-        let readStored = UserDefaults.standard.object(forKey: "healthReadWorkouts")
-        let readEnabled = readStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadWorkouts")
-        let vitalsStored = UserDefaults.standard.object(forKey: "healthReadVitals")
-        let vitalsEnabled = vitalsStored == nil ? true : UserDefaults.standard.bool(forKey: "healthReadVitals")
-        let shouldUseHealth = HealthKitManager.shared.isAuthorized && (writeEnabled || readEnabled || vitalsEnabled)
-        
-        if !isStartingFromWatch {
-            if WatchConnectivityManager.shared.isReachable {
-                WatchConnectivityManager.shared.startWorkout(activity: "workout", location: location == .outdoor ? "outdoor" : "indoor")
-            }
-            WatchConnectivityManager.shared.updateApplicationContext()
-        }
-        isStartingFromWatch = false
-        
-        let controller: HealthKitWorkoutController? = shouldUseHealth && !WatchConnectivityManager.shared.isReachable
-            ? HealthKitManager.shared.startWorkoutController(activityType: workout.workoutType.hkActivityType, location: location)
-            : nil
-        activeSession = WorkoutSession(workout: workout, healthController: controller)
+        activeSession = WorkoutSession(workout: workout)
         showActiveWorkout = true
     }
     
     func endActiveSession() {
         if let session = activeSession {
-            if let workout = session.consumeFinishedWorkout() {
-                HealthKitManager.shared.importWorkoutSample(workout) { _ in }
-            } else if !session.isHealthBacked {
-                HistoryStore.shared.saveWorkout(
-                    name: session.workout.name,
-                    duration: TimeInterval(session.elapsedSeconds),
-                    calories: session.activeCalories,
-                    exerciseCount: session.workout.exercises.count,
-                    avgHeartRate: session.currentHeartRate,
-                    workoutType: session.workout.workoutType.rawValue
-                )
-            }
+            HistoryStore.shared.saveWorkout(
+                name: session.workout.name,
+                duration: TimeInterval(session.elapsedSeconds),
+                calories: 0,
+                exerciseCount: session.workout.exercises.count,
+                avgHeartRate: 0,
+                workoutType: session.workout.workoutType.rawValue
+            )
         }
         if let session = activeSession, session.state != .completed {
             session.endWorkout()
         }
-        HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
         activeSession = nil
         showActiveWorkout = false
-        
-        WatchConnectivityManager.shared.endWorkout()
-        WatchConnectivityManager.shared.updateApplicationContext()
     }
     
     func discardActiveSession() {
