@@ -2,7 +2,7 @@
 //  ActiveWorkoutView.swift
 //  vyefit
 //
-//  Exercise records tracker with history, editing, and plate keyboard.
+//  Exercise records tracker with history and editable record entry.
 //
 
 import SwiftUI
@@ -21,14 +21,6 @@ private enum TrackerWeightUnit: String, CaseIterable, Identifiable {
     func toKilograms(_ value: Double) -> Double {
         self == .kilograms ? value : (value / 2.2046226218)
     }
-
-    var plateSizes: [Double] {
-        self == .kilograms ? [25, 20, 15, 10, 5, 2.5] : [45, 35, 25, 10, 5, 2.5]
-    }
-
-    var defaultBarbell: Double {
-        self == .kilograms ? 20 : 45
-    }
 }
 
 struct ActiveWorkoutView: View {
@@ -38,6 +30,7 @@ struct ActiveWorkoutView: View {
     @State private var selectedExerciseIndex: Int?
     @State private var recordEditorContext: RecordEditorContext?
     @State private var historyRefreshToken = 0
+    @State private var pendingDelete: PendingDelete?
 
     private var preferredUnit: TrackerWeightUnit {
         TrackerWeightUnit(rawValue: storedWeightUnit) ?? .kilograms
@@ -58,8 +51,10 @@ struct ActiveWorkoutView: View {
                             recordEditorContext = RecordEditorContext(exerciseIndex: index)
                         },
                         onDeleteRecord: { set in
-                            session.removeRecord(exerciseIndex: index, recordID: set.id)
-                            historyRefreshToken += 1
+                            pendingDelete = PendingDelete(
+                                id: set.id,
+                                mode: .session(exerciseIndex: index, recordID: set.id)
+                            )
                         }
                     )
                 }
@@ -86,11 +81,16 @@ struct ActiveWorkoutView: View {
                 },
                 onDeleteRecord: { record in
                     if session.activeExercises[selection.id].sets.contains(where: { $0.id == record.id }) {
-                        session.removeRecord(exerciseIndex: selection.id, recordID: record.id)
+                        pendingDelete = PendingDelete(
+                            id: record.id,
+                            mode: .session(exerciseIndex: selection.id, recordID: record.id)
+                        )
                     } else {
-                        ExerciseRecordStore.shared.deleteRecord(id: record.id)
+                        pendingDelete = PendingDelete(
+                            id: record.id,
+                            mode: .store(recordID: record.id)
+                        )
                     }
-                    historyRefreshToken += 1
                 }
             )
         }
@@ -116,8 +116,27 @@ struct ActiveWorkoutView: View {
                 }
                 historyRefreshToken += 1
             }
-            .presentationDetents([.height(640)])
+            .presentationDetents([.height(430)])
             .presentationDragIndicator(.visible)
+        }
+        .alert("Delete Record?", isPresented: Binding(
+            get: { pendingDelete != nil },
+            set: { visible in if !visible { pendingDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
+            Button("Delete", role: .destructive) {
+                guard let pendingDelete else { return }
+                switch pendingDelete.mode {
+                case .session(let exerciseIndex, let recordID):
+                    session.removeRecord(exerciseIndex: exerciseIndex, recordID: recordID)
+                case .store(let recordID):
+                    ExerciseRecordStore.shared.deleteRecord(id: recordID)
+                }
+                historyRefreshToken += 1
+                self.pendingDelete = nil
+            }
+        } message: {
+            Text("This record will be permanently removed.")
         }
     }
 }
@@ -260,22 +279,16 @@ private struct ExerciseHistoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                HStack(spacing: 10) {
-                    HistoryModePill(title: "Sets", icon: "list.bullet", isActive: true)
-                    HistoryModePill(title: "Analyze", icon: "chart.line.uptrend.xyaxis", isActive: false)
-                    HistoryModePill(title: "1RM", icon: "gauge.with.needle", isActive: false)
-                }
-
+            VStack(spacing: 16) {
                 ForEach(groupedRecords, id: \.0) { day, records in
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 6) {
                             Text(dayTitle(day))
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .font(.system(size: 16, weight: .semibold, design: .serif))
+                                .foregroundStyle(Theme.textPrimary)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Color.white.opacity(0.4))
+                                .foregroundStyle(Theme.stone)
                         }
 
                         VStack(spacing: 0) {
@@ -283,22 +296,22 @@ private struct ExerciseHistoryView: View {
                                 HStack {
                                     Text("\(index + 1)")
                                         .font(.system(size: 12, weight: .medium))
-                                        .foregroundStyle(Color.white.opacity(0.35))
+                                        .foregroundStyle(Theme.stone)
                                         .frame(width: 18, alignment: .leading)
 
                                     Text(record.recordedAt.formatted(date: .omitted, time: .shortened))
                                         .font(.system(size: 14))
-                                        .foregroundStyle(Color.white.opacity(0.7))
+                                        .foregroundStyle(Theme.textSecondary)
 
                                     Spacer()
 
                                     Text("\(record.reps ?? 0) rep")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(Color(red: 0.12, green: 0.85, blue: 0.46))
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(Theme.sage)
 
                                     Text("\(formatWeight(unit.toDisplay(record.weight ?? 0))) \(unit.symbol)")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(Color(red: 1.0, green: 0.58, blue: 0.20))
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(Theme.terracotta)
                                         .frame(width: 110, alignment: .trailing)
 
                                     Button {
@@ -306,7 +319,7 @@ private struct ExerciseHistoryView: View {
                                     } label: {
                                         Image(systemName: "pencil")
                                             .font(.system(size: 12, weight: .semibold))
-                                            .foregroundStyle(Color.white.opacity(0.5))
+                                            .foregroundStyle(Theme.stone)
                                     }
                                     .frame(width: 20)
 
@@ -322,19 +335,19 @@ private struct ExerciseHistoryView: View {
                                 .padding(.vertical, 10)
 
                                 if records.last?.id != record.id {
-                                    Divider().background(Color.white.opacity(0.08))
+                                    Divider().background(Theme.sand)
                                 }
                             }
                         }
                         .padding(.horizontal, 12)
-                        .background(Color(red: 0.10, green: 0.10, blue: 0.12))
+                        .background(Theme.cream)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                 }
             }
             .padding(16)
         }
-        .background(Color.black)
+        .background(Theme.background)
         .navigationTitle(exercise.name)
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
@@ -343,16 +356,16 @@ private struct ExerciseHistoryView: View {
             } label: {
                 ZStack {
                     Circle()
-                        .fill(Color(red: 0.09, green: 0.86, blue: 0.42))
-                        .frame(width: 84, height: 84)
+                        .fill(Theme.sage)
+                        .frame(width: 76, height: 76)
                     Image(systemName: "plus")
-                        .font(.system(size: 42, weight: .medium))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 36, weight: .medium))
+                        .foregroundStyle(Theme.cream)
                 }
-                .shadow(color: .black.opacity(0.35), radius: 14, x: 0, y: 8)
-                .padding(.top, 6)
+                .shadow(color: Theme.bark.opacity(0.22), radius: 10, x: 0, y: 5)
+                .padding(.bottom, 14)
             }
-            .background(Color.black.opacity(0.95))
+            .background(Theme.background.opacity(0.95))
         }
         .onAppear(perform: loadData)
         .onChange(of: currentSessionRecords.count) { _, _ in
@@ -383,26 +396,6 @@ private struct ExerciseHistoryView: View {
     }
 }
 
-private struct HistoryModePill: View {
-    let title: String
-    let icon: String
-    let isActive: Bool
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-        }
-        .foregroundStyle(isActive ? Color.black : Color.white.opacity(0.85))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(isActive ? Color.white : Color.white.opacity(0.16))
-        .clipShape(Capsule())
-    }
-}
-
 private struct RecordEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -414,33 +407,15 @@ private struct RecordEditorSheet: View {
     @State private var selectedUnit: TrackerWeightUnit = .kilograms
     @State private var repsText: String = ""
     @State private var weightText: String = ""
-    @State private var barbellText: String = ""
-    @State private var noteText: String = ""
-    @State private var plateCounts: [Double: Int] = [:]
     @FocusState private var focusedField: FocusedField?
 
     private enum FocusedField {
         case reps
         case weight
-        case barbell
-        case note
     }
 
-    var parsedReps: Int? {
-        Int(repsText)
-    }
-
-    var parsedWeight: Double? {
-        Double(weightText)
-    }
-
-    var computedTotalInUnit: Double {
-        let bar = Double(barbellText) ?? selectedUnit.defaultBarbell
-        let perSide = selectedUnit.plateSizes.reduce(0.0) { sum, plate in
-            sum + (Double(plateCounts[plate] ?? 0) * plate)
-        }
-        return bar + (2 * perSide)
-    }
+    var parsedReps: Int? { Int(repsText) }
+    var parsedWeight: Double? { Double(weightText) }
 
     var isValid: Bool {
         guard let reps = parsedReps, reps > 0 else { return false }
@@ -450,16 +425,12 @@ private struct RecordEditorSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
-                Capsule()
-                    .fill(Color.white.opacity(0.25))
-                    .frame(width: 46, height: 5)
-
+            VStack(spacing: 14) {
                 HStack(spacing: 18) {
                     metricHeader(
                         value: parsedReps.map(String.init) ?? "0",
                         unit: "rep",
-                        color: Color(red: 0.12, green: 0.85, blue: 0.46),
+                        color: Theme.sage,
                         minusAction: {
                             let current = parsedReps ?? 0
                             repsText = "\(max(current - 1, 0))"
@@ -471,13 +442,13 @@ private struct RecordEditorSheet: View {
                     )
 
                     Rectangle()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(width: 1, height: 70)
+                        .fill(Theme.sand)
+                        .frame(width: 1, height: 58)
 
                     metricHeader(
                         value: formatWeight(parsedWeight ?? 0),
                         unit: selectedUnit.symbol,
-                        color: .white,
+                        color: Theme.terracotta,
                         minusAction: {
                             let step = selectedUnit == .kilograms ? 2.5 : 5.0
                             let current = parsedWeight ?? 0
@@ -490,6 +461,9 @@ private struct RecordEditorSheet: View {
                         }
                     )
                 }
+                .padding(12)
+                .background(Theme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 HStack(spacing: 10) {
                     TextField("Reps", text: $repsText)
@@ -503,105 +477,12 @@ private struct RecordEditorSheet: View {
                         .textFieldStyle(.roundedBorder)
                 }
 
-                HStack(spacing: 8) {
-                    Picker("Unit", selection: $selectedUnit) {
-                        ForEach(TrackerWeightUnit.allCases) { unit in
-                            Text(unit.symbol.uppercased()).tag(unit)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Barbell")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color.white.opacity(0.72))
-                        TextField("", text: $barbellText)
-                            .keyboardType(.decimalPad)
-                            .focused($focusedField, equals: .barbell)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 90)
-                        Text(selectedUnit.symbol.uppercased())
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color.white.opacity(0.55))
-                        Spacer()
-                        Text("Total: \(formatWeight(computedTotalInUnit)) \(selectedUnit.symbol)")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.12, green: 0.85, blue: 0.46))
-                    }
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(selectedUnit.plateSizes, id: \.self) { plate in
-                                VStack(spacing: 10) {
-                                    Button {
-                                        plateCounts[plate] = max((plateCounts[plate] ?? 0) + 1, 0)
-                                    } label: {
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundStyle(Color.white.opacity(0.9))
-                                    }
-
-                                    Text(formatWeight(plate))
-                                        .font(.system(size: 24, weight: .semibold, design: .rounded))
-                                        .foregroundStyle(Color.white.opacity(0.85))
-                                    Text(selectedUnit.symbol.uppercased())
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundStyle(Color.white.opacity(0.45))
-
-                                    Text("\(plateCounts[plate] ?? 0)")
-                                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                        .foregroundStyle(.white)
-                                        .frame(width: 24, height: 24)
-                                        .background(Color.black.opacity(0.35))
-                                        .clipShape(Circle())
-
-                                    Button {
-                                        plateCounts[plate] = max((plateCounts[plate] ?? 0) - 1, 0)
-                                    } label: {
-                                        Image(systemName: "minus")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundStyle(Color.white.opacity(0.9))
-                                    }
-                                }
-                                .frame(width: 72, height: 168)
-                                .background(Color.white.opacity(0.18))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                        }
-                    }
-
-                    HStack(spacing: 8) {
-                        Label("Plates", systemImage: "circle.grid.3x3.fill")
-                        Label(selectedUnit.symbol.uppercased(), systemImage: "scalemass")
-                        Label("Now", systemImage: "calendar")
-                    }
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.72))
-
-                    HStack(spacing: 10) {
-                        TextField("Add note", text: $noteText)
-                            .keyboardType(.default)
-                            .focused($focusedField, equals: .note)
-                            .textFieldStyle(.roundedBorder)
-
-                        Button {
-                            weightText = formatWeight(computedTotalInUnit)
-                            focusedField = nil
-                        } label: {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 78, height: 42)
-                                .background(Color(red: 0.09, green: 0.86, blue: 0.42))
-                                .clipShape(Capsule())
-                        }
+                Picker("Unit", selection: $selectedUnit) {
+                    ForEach(TrackerWeightUnit.allCases) { unit in
+                        Text(unit.symbol.uppercased()).tag(unit)
                     }
                 }
-                .padding(12)
-                .background(Color.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .pickerStyle(.segmented)
 
                 Button {
                     guard let reps = parsedReps, let weightValue = parsedWeight else { return }
@@ -610,10 +491,10 @@ private struct RecordEditorSheet: View {
                 } label: {
                     Text("Save Record")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.cream)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(isValid ? Color(red: 0.09, green: 0.86, blue: 0.42) : Color.white.opacity(0.25))
+                        .background(isValid ? Theme.sage : Theme.stone.opacity(0.5))
                         .clipShape(Capsule())
                 }
                 .disabled(!isValid)
@@ -621,7 +502,7 @@ private struct RecordEditorSheet: View {
                 Spacer(minLength: 0)
             }
             .padding(16)
-            .background(Color.black)
+            .background(Theme.background)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -641,8 +522,6 @@ private struct RecordEditorSheet: View {
                 let weightInKg = initialRecord?.weight ?? initialUnit.toKilograms(20)
                 repsText = "\(reps)"
                 weightText = formatWeight(selectedUnit.toDisplay(weightInKg))
-                barbellText = formatWeight(selectedUnit.defaultBarbell)
-                selectedUnit.plateSizes.forEach { plateCounts[$0] = 0 }
             }
         }
     }
@@ -655,25 +534,25 @@ private struct RecordEditorSheet: View {
         minusAction: @escaping () -> Void,
         plusAction: @escaping () -> Void
     ) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Button(action: minusAction) {
                 Image(systemName: "minus")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.9))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
             }
             Button(action: plusAction) {
                 Image(systemName: "plus")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.9))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
             }
             Text(value)
-                .font(.system(size: 42, weight: .bold, design: .rounded))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .frame(minWidth: 70, alignment: .trailing)
                 .foregroundStyle(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
             Text(unit)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.72))
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
         }
     }
 
@@ -693,6 +572,16 @@ private struct RecordEditorContext: Identifiable {
     let id = UUID()
     let exerciseIndex: Int
     var existingRecord: WorkoutSet? = nil
+}
+
+private enum PendingDeleteMode {
+    case session(exerciseIndex: Int, recordID: UUID)
+    case store(recordID: UUID)
+}
+
+private struct PendingDelete: Identifiable {
+    let id: UUID
+    let mode: PendingDeleteMode
 }
 
 #Preview {
