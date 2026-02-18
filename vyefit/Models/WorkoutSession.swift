@@ -38,7 +38,7 @@ class WorkoutSession {
     var activeExercises: [ActiveExercise]
     var state: WorkoutState = .active
     var elapsedSeconds: Int = 0
-    var currentHeartRate: Int = 75
+    var currentHeartRate: Int = 0
     var activeCalories: Int = 0
     var currentExerciseIndex: Int = 0
     var hasShownWatchPrompt: Bool = false
@@ -58,6 +58,8 @@ class WorkoutSession {
     private var healthController: HealthKitWorkoutController?
     private var finishedWorkout: HKWorkout?
     private var usesWatchMetrics: Bool = false
+    private var watchElapsedBase: Int = 0
+    private var watchElapsedSampleDate: Date?
     
     enum WorkoutState {
         case active
@@ -101,13 +103,17 @@ class WorkoutSession {
     
     private func tick() {
         if state == .active {
-            let now = Date()
-            let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
-            elapsedSeconds = max(Int(elapsed), 0)
-            
-            if healthController == nil && !usesWatchMetrics, elapsedSeconds % 5 == 0 {
-                currentHeartRate = Int.random(in: 80...160)
-                activeCalories += 1
+            if usesWatchMetrics {
+                if let watchElapsedSampleDate {
+                    let delta = Int(Date().timeIntervalSince(watchElapsedSampleDate))
+                    elapsedSeconds = max(watchElapsedBase + max(delta, 0), watchElapsedBase)
+                } else {
+                    elapsedSeconds = watchElapsedBase
+                }
+            } else {
+                let now = Date()
+                let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+                elapsedSeconds = max(Int(elapsed), 0)
             }
         }
         
@@ -231,18 +237,19 @@ class WorkoutSession {
                 self.currentHeartRate = Int(metrics.heartRate)
                 self.hasHeartRateData = true
             }
-            // Sync elapsed time from watch
-            self.elapsedSeconds = metrics.elapsedSeconds
+            self.updateWatchElapsedAnchor(with: metrics.elapsedSeconds)
             // Sync pause state
             if metrics.isPaused && self.state == .active {
                 self.state = .paused
                 self.pauseStartDate = Date()
+                self.watchElapsedSampleDate = nil
             } else if !metrics.isPaused && self.state == .paused {
                 self.state = .active
                 if let pauseStartDate = self.pauseStartDate {
                     self.totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
                     self.pauseStartDate = nil
                 }
+                self.watchElapsedSampleDate = Date()
             }
         }
         
@@ -251,6 +258,7 @@ class WorkoutSession {
             if self.state == .active {
                 self.state = .paused
                 self.pauseStartDate = Date()
+                self.watchElapsedSampleDate = nil
             }
         }
         
@@ -262,7 +270,14 @@ class WorkoutSession {
                     self.totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
                     self.pauseStartDate = nil
                 }
+                self.watchElapsedSampleDate = Date()
             }
         }
+    }
+
+    private func updateWatchElapsedAnchor(with elapsed: Int) {
+        watchElapsedBase = elapsed
+        elapsedSeconds = elapsed
+        watchElapsedSampleDate = Date()
     }
 }

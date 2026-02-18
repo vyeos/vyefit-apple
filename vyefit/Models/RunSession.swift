@@ -16,7 +16,7 @@ class RunSession {
     var elapsedSeconds: Int = 0
     
     var currentDistance: Double = 0
-    var currentHeartRate: Int = 75
+    var currentHeartRate: Int = 0
     var activeCalories: Int = 0
     
     var hasHeartRateData: Bool = false
@@ -42,10 +42,10 @@ class RunSession {
     private var healthController: HealthKitWorkoutController?
     private var finishedWorkout: HKWorkout?
     private var usesWatchMetrics: Bool = false
-    
-    // Previous distance/calories for per-step delta tracking
-    private var prevTickDistance: Double = 0
-    private var prevTickCalories: Int = 0
+    private var watchElapsedBase: Int = 0
+    private var watchElapsedSampleDate: Date?
+    private var previousDistanceKm: Double = 0
+    private var previousCalories: Int = 0
     
     enum RunState {
         case active
@@ -123,31 +123,22 @@ class RunSession {
     private func tick() {
         guard state == .active else { return }
         
-        let now = Date()
-        let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
-        elapsedSeconds = max(Int(elapsed), 0)
-        
-        // If not HealthKit-backed, keep lightweight simulation
-        var distDelta: Double = 0
-        var calDelta: Int = 0
-        if healthController == nil && !usesWatchMetrics {
-            if elapsedSeconds % 3 == 0 {
-                distDelta = 0.002 + Double.random(in: 0...0.003)
-                currentDistance += distDelta
+        if usesWatchMetrics {
+            if let watchElapsedSampleDate {
+                let delta = Int(Date().timeIntervalSince(watchElapsedSampleDate))
+                elapsedSeconds = max(watchElapsedBase + max(delta, 0), watchElapsedBase)
+            } else {
+                elapsedSeconds = watchElapsedBase
             }
-            if elapsedSeconds % 5 == 0 {
-                currentHeartRate = Int.random(in: 100...170)
-                activeCalories += 1
-                calDelta = 1
-            }
+        } else {
+            let now = Date()
+            let elapsed = now.timeIntervalSince(startDate) - totalPausedSeconds
+            elapsedSeconds = max(Int(elapsed), 0)
         }
         
         // Interval logic
         if isIntervalRun && currentPhase != .completed {
             stepElapsedSeconds += 1
-            stepDistance += distDelta
-            stepCalories += calDelta
-            
             checkStepAdvance()
         }
     }
@@ -445,12 +436,15 @@ class RunSession {
     private func wireHealthController(_ controller: HealthKitWorkoutController) {
         controller.onMetrics = { [weak self] metrics in
             guard let self else { return }
+            let latestDistanceKm = max(metrics.distanceMeters / 1000.0, 0)
+            let latestCalories = max(Int(metrics.activeEnergyKcal), 0)
+            self.applyLiveMetricDeltas(distanceKm: latestDistanceKm, calories: latestCalories)
             if metrics.distanceMeters > 0 {
-                self.currentDistance = metrics.distanceMeters / 1000.0
+                self.currentDistance = latestDistanceKm
                 self.hasDistanceData = true
             }
             if metrics.activeEnergyKcal > 0 {
-                self.activeCalories = Int(metrics.activeEnergyKcal)
+                self.activeCalories = latestCalories
                 self.hasCaloriesData = true
             }
             if metrics.heartRateBpm > 0 {
@@ -474,30 +468,34 @@ class RunSession {
             guard let self else { return }
             guard metrics.activity == "run" else { return }
             self.usesWatchMetrics = true
+            let latestDistanceKm = max(metrics.distanceMeters / 1000.0, 0)
+            let latestCalories = max(Int(metrics.activeEnergyKcal), 0)
+            self.applyLiveMetricDeltas(distanceKm: latestDistanceKm, calories: latestCalories)
             if metrics.distanceMeters > 0 {
-                self.currentDistance = metrics.distanceMeters / 1000.0
+                self.currentDistance = latestDistanceKm
                 self.hasDistanceData = true
             }
             if metrics.activeEnergyKcal > 0 {
-                self.activeCalories = Int(metrics.activeEnergyKcal)
+                self.activeCalories = latestCalories
                 self.hasCaloriesData = true
             }
             if metrics.heartRate > 0 {
                 self.currentHeartRate = Int(metrics.heartRate)
                 self.hasHeartRateData = true
             }
-            // Sync elapsed time from watch
-            self.elapsedSeconds = metrics.elapsedSeconds
+            self.updateWatchElapsedAnchor(with: metrics.elapsedSeconds)
             // Sync pause state
             if metrics.isPaused && self.state == .active {
                 self.state = .paused
                 self.pauseStartDate = Date()
+                self.watchElapsedSampleDate = nil
             } else if !metrics.isPaused && self.state == .paused {
                 self.state = .active
                 if let pauseStartDate = self.pauseStartDate {
                     self.totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
                     self.pauseStartDate = nil
                 }
+                self.watchElapsedSampleDate = Date()
             }
         }
         
@@ -506,6 +504,7 @@ class RunSession {
             if self.state == .active {
                 self.state = .paused
                 self.pauseStartDate = Date()
+                self.watchElapsedSampleDate = nil
             }
         }
         
@@ -517,7 +516,26 @@ class RunSession {
                     self.totalPausedSeconds += Date().timeIntervalSince(pauseStartDate)
                     self.pauseStartDate = nil
                 }
+                self.watchElapsedSampleDate = Date()
             }
         }
+    }
+
+    private func updateWatchElapsedAnchor(with elapsed: Int) {
+        watchElapsedBase = elapsed
+        elapsedSeconds = elapsed
+        watchElapsedSampleDate = Date()
+    }
+
+    private func applyLiveMetricDeltas(distanceKm: Double, calories: Int) {
+        let distanceDelta = max(distanceKm - previousDistanceKm, 0)
+        let caloriesDelta = max(calories - previousCalories, 0)
+
+        previousDistanceKm = distanceKm
+        previousCalories = calories
+
+        guard isIntervalRun, currentPhase != .completed else { return }
+        stepDistance += distanceDelta
+        stepCalories += caloriesDelta
     }
 }
