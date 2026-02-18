@@ -9,7 +9,10 @@ import SwiftUI
 
 struct DailyFocusCard: View {
     @Environment(WorkoutStore.self) private var workoutStore
+    @Environment(RunStore.self) private var runStore
     var scheduleStore: ScheduleStore
+    @State private var workoutToConfirmStart: UserWorkout?
+    @State private var showActiveSessionAlert = false
     
     private var todayItems: [ScheduleItem] {
         scheduleStore.todaySchedule?.items ?? []
@@ -110,15 +113,6 @@ struct DailyFocusCard: View {
                     isCompleted: false
                 )
             }
-        } else if todayItems.first(where: { $0.type == .busy }) != nil {
-            return (
-                icon: "briefcase.fill",
-                title: "Busy",
-                subtitle: "No workout planned",
-                color: Theme.busyDay,
-                isRest: true,
-                isCompleted: false
-            )
         } else {
             return (
                 icon: "sun.max.fill",
@@ -171,7 +165,11 @@ struct DailyFocusCard: View {
                 } else if !displayInfo.isRest {
                     Button {
                         if hasWorkout, let workout = scheduledWorkout {
-                            workoutStore.startSession(for: workout)
+                            if workoutStore.activeSession != nil || runStore.activeSession != nil {
+                                showActiveSessionAlert = true
+                            } else {
+                                workoutToConfirmStart = workout
+                            }
                         }
                     } label: {
                         Text("Begin")
@@ -202,6 +200,35 @@ struct DailyFocusCard: View {
         .background(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal, 20)
+        .alert("Session in Progress", isPresented: $showActiveSessionAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if runStore.activeSession != nil {
+                Text("Please finish your current run before starting a new workout.")
+            } else {
+                Text("Please finish your current workout before starting a new one.")
+            }
+        }
+        .alert(
+            "Start Workout?",
+            isPresented: Binding(
+                get: { workoutToConfirmStart != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        workoutToConfirmStart = nil
+                    }
+                }
+            ),
+            presenting: workoutToConfirmStart
+        ) { workout in
+            Button("Cancel", role: .cancel) { }
+            Button("Start") {
+                workoutStore.startSession(for: workout)
+                workoutToConfirmStart = nil
+            }
+        } message: { workout in
+            Text("Start \(workout.name)?")
+        }
     }
 }
 

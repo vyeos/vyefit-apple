@@ -14,7 +14,6 @@ enum ScheduleItemType: String, CaseIterable, Codable, Identifiable {
     case workout = "Workout"
     case run = "Run"
     case rest = "Rest"
-    case busy = "Busy"
     
     var id: String { rawValue }
     
@@ -26,8 +25,6 @@ enum ScheduleItemType: String, CaseIterable, Codable, Identifiable {
             return "figure.run"
         case .rest:
             return "bed.double.fill"
-        case .busy:
-            return "briefcase.fill"
         }
     }
     
@@ -39,9 +36,28 @@ enum ScheduleItemType: String, CaseIterable, Codable, Identifiable {
             return Theme.sage
         case .rest:
             return Theme.restDay
-        case .busy:
-            return Theme.busyDay
         }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
+        case ScheduleItemType.workout.rawValue:
+            self = .workout
+        case ScheduleItemType.run.rawValue:
+            self = .run
+        case ScheduleItemType.rest.rawValue, "Busy":
+            // Legacy migration: treat old "Busy" values as rest days.
+            self = .rest
+        default:
+            self = .rest
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
@@ -114,9 +130,6 @@ struct ScheduleItem: Identifiable, Codable, Equatable {
         ScheduleItem(type: .rest, workoutId: nil, runType: nil, notes: notes, duration: nil)
     }
     
-    static func busy(notes: String? = nil) -> ScheduleItem {
-        ScheduleItem(type: .busy, workoutId: nil, runType: nil, notes: notes, duration: nil)
-    }
 }
 
 // MARK: - Schedule Day

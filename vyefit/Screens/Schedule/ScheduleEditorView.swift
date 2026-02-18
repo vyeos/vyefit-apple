@@ -193,8 +193,6 @@ struct ScheduleEditorView: View {
             return (icon: "figure.run", title: "Run", color: Theme.sage)
         case .rest:
             return (icon: "bed.double.fill", title: "Rest Day", color: Theme.restDay)
-        case .busy:
-            return (icon: "briefcase.fill", title: "Busy", color: Theme.busyDay)
         }
     }
     
@@ -240,8 +238,8 @@ struct DraftDayEditor: View {
         _items = State(initialValue: items)
     }
     
-    private var hasRestOrBusy: Bool {
-        items.contains { $0.type == .rest || $0.type == .busy }
+    private var hasRestDay: Bool {
+        items.contains { $0.type == .rest }
     }
     
     var body: some View {
@@ -262,7 +260,7 @@ struct DraftDayEditor: View {
                     
                     Spacer()
                     
-                    if !hasRestOrBusy {
+                    if !hasRestDay {
                         Button {
                             showingAddSheet = true
                         } label: {
@@ -342,7 +340,7 @@ struct DraftDayEditor: View {
                 AddDraftItemSheet(
                     items: $items,
                     workouts: workouts,
-                    hasRestOrBusy: hasRestOrBusy
+                    hasRestDay: hasRestDay
                 )
             }
             .sheet(item: $editingItem) { item in
@@ -375,8 +373,6 @@ struct DraftDayItemRow: View {
             return (icon: item.runType?.icon ?? "figure.run", title: item.runType?.rawValue ?? "Run", color: Theme.sage)
         case .rest:
             return (icon: "bed.double.fill", title: "Rest Day", color: Theme.restDay)
-        case .busy:
-            return (icon: "briefcase.fill", title: "Busy", color: Theme.busyDay)
         }
     }
     
@@ -411,7 +407,7 @@ struct AddDraftItemSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var items: [ScheduleItem]
     let workouts: [UserWorkout]
-    let hasRestOrBusy: Bool
+    let hasRestDay: Bool
     
     @State private var selectedType: ScheduleItemType = .workout
     @State private var selectedWorkout: UserWorkout?
@@ -428,7 +424,7 @@ struct AddDraftItemSheet: View {
                                 .tag(type)
                         }
                     }
-                    .pickerStyle(.navigationLink)
+                    .pickerStyle(.menu)
                 }
                 
                 switch selectedType {
@@ -459,7 +455,7 @@ struct AddDraftItemSheet: View {
                         }
                     }
                     
-                case .rest, .busy:
+                case .rest:
                     EmptyView()
                 }
                 
@@ -467,7 +463,7 @@ struct AddDraftItemSheet: View {
                     TextField("Optional notes", text: $notes)
                 }
                 
-                if selectedType == .rest || selectedType == .busy {
+                if selectedType == .rest {
                     Section {
                         Text("Adding \(selectedType.rawValue) will prevent other activities on this day.")
                             .font(.system(size: 13))
@@ -497,7 +493,7 @@ struct AddDraftItemSheet: View {
         switch selectedType {
         case .workout:
             return selectedWorkout != nil
-        case .run, .rest, .busy:
+        case .run, .rest:
             return true
         }
     }
@@ -514,12 +510,10 @@ struct AddDraftItemSheet: View {
             item = ScheduleItem.run(selectedRunType, notes: notesValue)
         case .rest:
             item = ScheduleItem.rest(notes: notesValue)
-        case .busy:
-            item = ScheduleItem.busy(notes: notesValue)
         }
         
-        // If adding rest/busy, clear other items first
-        if selectedType == .rest || selectedType == .busy {
+        // If adding rest, clear other items first
+        if selectedType == .rest {
             items.removeAll()
         }
         
@@ -561,7 +555,7 @@ struct EditDraftItemSheet: View {
                                 .tag(type)
                         }
                     }
-                    .pickerStyle(.navigationLink)
+                    .pickerStyle(.menu)
                 }
                 
                 switch selectedType {
@@ -592,7 +586,7 @@ struct EditDraftItemSheet: View {
                         }
                     }
                     
-                case .rest, .busy:
+                case .rest:
                     EmptyView()
                 }
                 
@@ -600,7 +594,7 @@ struct EditDraftItemSheet: View {
                     TextField("Optional notes", text: $notes)
                 }
                 
-                if selectedType == .rest || selectedType == .busy {
+                if selectedType == .rest {
                     Section {
                         Text("Changing to \(selectedType.rawValue) will remove all other activities from this day.")
                             .font(.system(size: 13))
@@ -630,7 +624,7 @@ struct EditDraftItemSheet: View {
         switch selectedType {
         case .workout:
             return selectedWorkout != nil
-        case .run, .rest, .busy:
+        case .run, .rest:
             return true
         }
     }
@@ -668,19 +662,10 @@ struct EditDraftItemSheet: View {
                 notes: notesValue,
                 duration: nil
             )
-        case .busy:
-            updatedItem = ScheduleItem(
-                id: item.id,
-                type: .busy,
-                workoutId: nil,
-                runType: nil,
-                notes: notesValue,
-                duration: nil
-            )
         }
         
-        // If changing to rest/busy, remove all other items first
-        if selectedType == .rest || selectedType == .busy {
+        // If changing to rest, remove all other items first
+        if selectedType == .rest {
             items.removeAll { $0.id != item.id }
         }
         

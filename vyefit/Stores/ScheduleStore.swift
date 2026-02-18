@@ -300,13 +300,6 @@ class ScheduleStore {
                 title: "Rest Day",
                 color: Theme.restDay
             )
-            
-        case .busy:
-            return (
-                icon: "briefcase.fill",
-                title: "Busy",
-                color: Theme.busyDay
-            )
         }
     }
 }

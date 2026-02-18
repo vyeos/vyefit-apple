@@ -409,13 +409,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 workoutId = nil
                 runType = nil
                 isCompleted = true
-            case .busy:
-                name = "Busy"
-                icon = "briefcase.fill"
-                colorHex = "A66858"
-                workoutId = nil
-                runType = nil
-                isCompleted = true
             }
             
             return WatchScheduleItem(
