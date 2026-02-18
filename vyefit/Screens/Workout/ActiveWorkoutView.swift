@@ -109,7 +109,7 @@ struct ActiveWorkoutView: View {
                 }
                 historyRefreshToken += 1
             }
-            .presentationDetents([.height(320)])
+            .presentationDetents([.height(380)])
             .presentationDragIndicator(.visible)
         }
         .alert("Delete Record?", isPresented: Binding(
@@ -468,85 +468,96 @@ private struct RecordEditorSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 14) {
-                Text(title)
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary)
-                    .padding(.top, 2)
-                    .padding(.bottom, -2)
-
-                HStack(spacing: 0) {
-                    valueEditor(
-                        value: $repsText,
-                        unit: "rep",
-                        color: Theme.sage,
-                        focus: .reps,
-                        minusAction: {
-                            let current = parsedReps ?? 0
-                            repsText = "\(max(current - 1, 0))"
-                        },
-                        plusAction: {
-                            let current = parsedReps ?? 0
-                            repsText = "\(current + 1)"
+            VStack(spacing: 0) {
+                VStack(spacing: 14) {
+                    HStack(alignment: .center, spacing: 16) {
+                        HStack(spacing: 6) {
+                            TextField("0", text: $repsText)
+                                .keyboardType(.numberPad)
+                                .focused($focusedField, equals: .reps)
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(Theme.sage)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 84)
+                            Text("rep")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(Theme.textSecondary)
                         }
-                    )
-                    .padding(.trailing, 14)
 
-                    Divider()
-                        .frame(height: 66)
-
-                    valueEditor(
-                        value: $weightText,
-                        unit: selectedUnit.symbol,
-                        color: Theme.terracotta,
-                        focus: .weight,
-                        minusAction: {
-                            let step = selectedUnit == .kilograms ? 2.5 : 5.0
-                            let current = parsedWeight ?? 0
-                            weightText = formatWeight(max(current - step, 0))
-                        },
-                        plusAction: {
-                            let step = selectedUnit == .kilograms ? 2.5 : 5.0
-                            let current = parsedWeight ?? 0
-                            weightText = formatWeight(current + step)
+                        HStack(spacing: 14) {
+                            iconAdjustButton("minus") { adjustReps(by: -1) }
+                            iconAdjustButton("plus") { adjustReps(by: 1) }
                         }
-                    )
-                    .padding(.leading, 14)
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                Picker("Unit", selection: $selectedUnit) {
-                    ForEach(TrackerWeightUnit.allCases) { unit in
-                        Text(unit.symbol.uppercased()).tag(unit)
+                        Divider()
+                            .frame(height: 96)
+
+                        HStack(spacing: 6) {
+                            TextField("0", text: $weightText)
+                                .keyboardType(.decimalPad)
+                                .focused($focusedField, equals: .weight)
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(Theme.terracotta)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 96)
+                            Text(selectedUnit.symbol)
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+
+                        VStack(spacing: 10) {
+                            smallAdjustRow(step: 1)
+                            smallAdjustRow(step: selectedUnit == .kilograms ? 2.5 : 5)
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+                    .background(Theme.cream)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
 
-                Button {
-                    guard let reps = parsedReps, let value = parsedWeight else { return }
-                    let kg = selectedUnit.toKilograms(value)
-                    let lb = kg * 2.2046226218
-                    let recordedUnit = selectedUnit == .kilograms ? "kilograms" : "pounds"
-                    onSave(reps, kg, lb, recordedUnit)
-                    dismiss()
-                } label: {
-                    Text("Save Record")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.cream)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(isValid ? Theme.sage : Theme.stone.opacity(0.5))
-                        .clipShape(Capsule())
+                    Picker("Unit", selection: $selectedUnit) {
+                        ForEach(TrackerWeightUnit.allCases) { unit in
+                            Text(unit.symbol.uppercased()).tag(unit)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 2)
                 }
-                .disabled(!isValid)
+                .padding(.horizontal, 12)
+                .padding(.top, 10)
+
+                Divider()
+                    .padding(.top, 12)
+
+                HStack {
+                    Text("Add note")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(Theme.stone)
+                    Spacer()
+                    Button {
+                        guard let reps = parsedReps, let value = parsedWeight else { return }
+                        let kg = selectedUnit.toKilograms(value)
+                        let lb = kg * 2.2046226218
+                        let recordedUnit = selectedUnit == .kilograms ? "kilograms" : "pounds"
+                        onSave(reps, kg, lb, recordedUnit)
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(Theme.cream)
+                            .frame(width: 120, height: 60)
+                            .background(isValid ? Theme.sage : Theme.stone.opacity(0.5))
+                            .clipShape(Capsule())
+                    }
+                    .disabled(!isValid)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
             }
-            .padding(.top, 18)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 6)
             .background(Theme.background)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -569,41 +580,44 @@ private struct RecordEditorSheet: View {
         }
     }
 
+    private func adjustReps(by delta: Int) {
+        let current = parsedReps ?? 0
+        repsText = "\(max(current + delta, 0))"
+    }
+
+    private func adjustWeight(by delta: Double) {
+        let current = parsedWeight ?? 0
+        weightText = formatWeight(max(current + delta, 0))
+    }
+
     @ViewBuilder
-    private func valueEditor(
-        value: Binding<String>,
-        unit: String,
-        color: Color,
-        focus: FocusedField,
-        minusAction: @escaping () -> Void,
-        plusAction: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: 8) {
-            Button(action: minusAction) {
-                Image(systemName: "minus")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-            }
-            Button(action: plusAction) {
-                Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-            }
-            TextField("0", text: value)
-                .keyboardType(focus == .reps ? .numberPad : .decimalPad)
-                .focused($focusedField, equals: focus)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(color)
-                .multilineTextAlignment(.trailing)
-                .frame(minWidth: 84)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 8)
-            Text(unit)
-                .font(.system(size: 13, weight: .medium))
+    private func iconAdjustButton(_ systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func smallAdjustRow(step: Double) -> some View {
+        HStack(spacing: 12) {
+            Button { adjustWeight(by: -step) } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            Text(step == floor(step) ? "\(Int(step))" : formatWeight(step))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(width: 20)
+            Button { adjustWeight(by: step) } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
     }
 
     private func formatWeight(_ value: Double) -> String {
