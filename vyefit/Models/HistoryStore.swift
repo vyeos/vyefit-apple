@@ -32,6 +32,7 @@ class HistoryStore {
     static let shared = HistoryStore()
     
     var completedWorkouts: [CompletedWorkout] = []
+    private let workoutsFileName = "completedWorkouts.json"
     
     init() {
         loadHistory()
@@ -80,16 +81,38 @@ class HistoryStore {
     }
     
     private func saveToDisk() {
-        if let encoded = try? JSONEncoder().encode(completedWorkouts) {
-            UserDefaults.standard.set(encoded, forKey: "completedWorkouts")
+        guard let encoded = try? JSONEncoder().encode(completedWorkouts) else { return }
+        do {
+            try encoded.write(to: fileURL(fileName: workoutsFileName), options: .atomic)
+        } catch {
+            // File write failed; avoid falling back to UserDefaults for large payloads.
         }
     }
     
     private func loadHistory() {
-        if let data = UserDefaults.standard.data(forKey: "completedWorkouts"),
+        let fileURL = fileURL(fileName: workoutsFileName)
+        if let data = try? Data(contentsOf: fileURL),
            let decoded = try? JSONDecoder().decode([CompletedWorkout].self, from: data) {
             completedWorkouts = decoded
+            return
         }
+
+        // One-time migration from older UserDefaults storage.
+        if let legacy = UserDefaults.standard.data(forKey: "completedWorkouts"),
+           let decoded = try? JSONDecoder().decode([CompletedWorkout].self, from: legacy) {
+            completedWorkouts = decoded
+            saveToDisk()
+            UserDefaults.standard.removeObject(forKey: "completedWorkouts")
+        }
+    }
+
+    private func fileURL(fileName: String) -> URL {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        if !FileManager.default.fileExists(atPath: directory.path) {
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+        }
+        return directory.appendingPathComponent(fileName)
     }
     
     func toWorkoutSessionRecord(_ completed: CompletedWorkout) -> WorkoutSessionRecord {

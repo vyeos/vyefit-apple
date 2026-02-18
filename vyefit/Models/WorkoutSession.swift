@@ -5,6 +5,7 @@
 //  Manual workout logging session (sets/reps/weights only).
 //
 
+import Foundation
 import SwiftUI
 import Combine
 
@@ -227,6 +228,7 @@ final class ExerciseRecordStore {
     static let shared = ExerciseRecordStore()
     
     private let key = "exerciseRecords.v1"
+    private let fileName = "exerciseRecords.v1.json"
     private var records: [ExerciseRecord] = []
     
     private init() {
@@ -278,15 +280,37 @@ final class ExerciseRecordStore {
     
     private func save() {
         guard let data = try? JSONEncoder().encode(records) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        do {
+            try data.write(to: recordsFileURL(), options: .atomic)
+        } catch {
+            // Avoid UserDefaults fallback for large data blobs.
+        }
     }
     
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let decoded = try? JSONDecoder().decode([ExerciseRecord].self, from: data) else {
-            records = []
+        if let data = try? Data(contentsOf: recordsFileURL()),
+           let decoded = try? JSONDecoder().decode([ExerciseRecord].self, from: data) {
+            records = decoded
             return
         }
-        records = decoded
+
+        // One-time migration from legacy UserDefaults storage.
+        if let legacy = UserDefaults.standard.data(forKey: key),
+           let decoded = try? JSONDecoder().decode([ExerciseRecord].self, from: legacy) {
+            records = decoded
+            save()
+            UserDefaults.standard.removeObject(forKey: key)
+            return
+        }
+        records = []
+    }
+
+    private func recordsFileURL() -> URL {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        if !FileManager.default.fileExists(atPath: directory.path) {
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+        }
+        return directory.appendingPathComponent(fileName)
     }
 }
