@@ -12,7 +12,7 @@ struct WorkoutSet: Identifiable, Equatable {
     let id = UUID()
     var reps: Int?
     var weight: Double?
-    var isCompleted: Bool = false
+    var recordedAt: Date = Date()
 }
 
 struct ActiveExercise: Identifiable {
@@ -22,11 +22,7 @@ struct ActiveExercise: Identifiable {
     
     init(exercise: CatalogExercise) {
         self.exercise = exercise
-        self.sets = [
-            WorkoutSet(),
-            WorkoutSet(),
-            WorkoutSet()
-        ]
+        self.sets = []
     }
 }
 
@@ -80,16 +76,6 @@ class WorkoutSession {
         }
     }
     
-    func completeSet(exerciseIndex: Int, setIndex: Int) {
-        activeExercises[exerciseIndex].sets[setIndex].isCompleted.toggle()
-        
-        if activeExercises[exerciseIndex].sets[setIndex].isCompleted {
-            startRestTimer()
-        } else {
-            cancelRestTimer()
-        }
-    }
-    
     func startRestTimer() {
         cancelRestTimer()
         isResting = true
@@ -116,6 +102,12 @@ class WorkoutSession {
     
     func addSet(to exerciseIndex: Int) {
         activeExercises[exerciseIndex].sets.append(WorkoutSet())
+    }
+    
+    func addRecord(to exerciseIndex: Int, reps: Int, weight: Double) {
+        activeExercises[exerciseIndex].sets.append(
+            WorkoutSet(reps: reps, weight: weight, recordedAt: Date())
+        )
     }
     
     func removeSet(from exerciseIndex: Int, at setIndex: Int) {
