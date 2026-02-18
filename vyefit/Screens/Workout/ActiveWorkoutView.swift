@@ -109,7 +109,7 @@ struct ActiveWorkoutView: View {
                 }
                 historyRefreshToken += 1
             }
-            .presentationDetents([.height(330)])
+            .presentationDetents([.height(320)])
             .presentationDragIndicator(.visible)
         }
         .alert("Delete Record?", isPresented: Binding(
@@ -469,6 +469,12 @@ private struct RecordEditorSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 14) {
+                Text(title)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .padding(.top, 2)
+                    .padding(.bottom, -2)
+
                 HStack(spacing: 0) {
                     valueEditor(
                         value: $repsText,
@@ -540,9 +546,8 @@ private struct RecordEditorSheet: View {
             .padding(.top, 18)
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
+            .padding(.horizontal, 6)
             .background(Theme.background)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
