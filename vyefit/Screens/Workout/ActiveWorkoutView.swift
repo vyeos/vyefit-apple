@@ -280,66 +280,78 @@ private struct ExerciseHistoryView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                ForEach(groupedRecords, id: \.0) { day, records in
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 6) {
-                            Text(dayTitle(day))
-                                .font(.system(size: 16, weight: .semibold, design: .serif))
-                                .foregroundStyle(Theme.textPrimary)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Theme.stone)
-                        }
+                if groupedRecords.isEmpty {
+                    VStack(spacing: 8) {
+                        Text("No history")
+                            .font(.system(size: 24, weight: .semibold, design: .serif))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("Record a set to see here")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 420, alignment: .center)
+                } else {
+                    ForEach(groupedRecords, id: \.0) { day, records in
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 6) {
+                                Text(dayTitle(day))
+                                    .font(.system(size: 16, weight: .semibold, design: .serif))
+                                    .foregroundStyle(Theme.textPrimary)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Theme.stone)
+                            }
 
-                        VStack(spacing: 0) {
-                            ForEach(Array(records.enumerated()), id: \.element.id) { index, record in
-                                HStack {
-                                    Text("\(index + 1)")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundStyle(Theme.stone)
-                                        .frame(width: 18, alignment: .leading)
-
-                                    Text(record.recordedAt.formatted(date: .omitted, time: .shortened))
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(Theme.textSecondary)
-
-                                    Spacer()
-
-                                    Text("\(record.reps ?? 0) rep")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundStyle(Theme.sage)
-
-                                    unitText(record: record)
-                                        .frame(width: 120, alignment: .trailing)
-
-                                    Button {
-                                        onEditRecord(record)
-                                    } label: {
-                                        Image(systemName: "pencil")
-                                            .font(.system(size: 12, weight: .semibold))
+                            VStack(spacing: 0) {
+                                ForEach(Array(records.enumerated()), id: \.element.id) { index, record in
+                                    HStack {
+                                        Text("\(index + 1)")
+                                            .font(.system(size: 12, weight: .medium))
                                             .foregroundStyle(Theme.stone)
-                                    }
-                                    .frame(width: 20)
+                                            .frame(width: 18, alignment: .leading)
 
-                                    Button(role: .destructive) {
-                                        onDeleteRecord(record)
-                                        loadData()
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 12))
-                                    }
-                                    .frame(width: 20)
-                                }
-                                .padding(.vertical, 10)
+                                        Text(record.recordedAt.formatted(date: .omitted, time: .shortened))
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(Theme.textSecondary)
 
-                                if records.last?.id != record.id {
-                                    Divider().background(Theme.sand)
+                                        Spacer()
+
+                                        Text("\(record.reps ?? 0) rep")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(Theme.sage)
+
+                                        unitText(record: record)
+                                            .frame(width: 120, alignment: .trailing)
+
+                                        Button {
+                                            onEditRecord(record)
+                                        } label: {
+                                            Image(systemName: "pencil")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundStyle(Theme.stone)
+                                        }
+                                        .frame(width: 20)
+
+                                        Button(role: .destructive) {
+                                            onDeleteRecord(record)
+                                            loadData()
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .font(.system(size: 12))
+                                        }
+                                        .frame(width: 20)
+                                    }
+                                    .padding(.vertical, 10)
+
+                                    if records.last?.id != record.id {
+                                        Divider().background(Theme.sand)
+                                    }
                                 }
                             }
+                            .padding(.horizontal, 12)
+                            .background(Theme.cream)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
-                        .padding(.horizontal, 12)
-                        .background(Theme.cream)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                 }
             }
