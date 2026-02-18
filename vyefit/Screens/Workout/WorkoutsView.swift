@@ -114,12 +114,12 @@ struct WorkoutsView: View {
             }
             .navigationDestination(isPresented: $showTracker) {
                 if let session = workoutStore.activeSession {
-                    ActiveWorkoutView(
-                        session: session,
-                        onClose: {
-                            workoutStore.endActiveSession()
-                        }
-                    )
+                    ActiveWorkoutView(session: session)
+                }
+            }
+            .onChange(of: showTracker) { _, isVisible in
+                if !isVisible {
+                    workoutStore.endActiveSession()
                 }
             }
         }

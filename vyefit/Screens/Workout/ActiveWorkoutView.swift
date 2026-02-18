@@ -2,17 +2,49 @@
 //  ActiveWorkoutView.swift
 //  vyefit
 //
-//  Exercise records tracker screen (reps + weight).
+//  Exercise records tracker with history, editing, and plate calculator.
 //
 
 import SwiftUI
 
+private enum TrackerWeightUnit: String, CaseIterable, Identifiable {
+    case kilograms = "Kilograms"
+    case pounds = "Pounds"
+    
+    var id: String { rawValue }
+    var symbol: String { self == .kilograms ? "kg" : "lb" }
+    
+    func toDisplay(_ kg: Double) -> Double {
+        self == .kilograms ? kg : (kg * 2.2046226218)
+    }
+    
+    func toKilograms(_ value: Double) -> Double {
+        self == .kilograms ? value : (value / 2.2046226218)
+    }
+    
+    var plateSizes: [Double] {
+        if self == .kilograms {
+            return [25, 20, 15, 10, 5, 2.5, 1.25]
+        }
+        return [55, 45, 35, 25, 10, 5, 2.5]
+    }
+    
+    var defaultBarbell: Double {
+        self == .kilograms ? 20 : 45
+    }
+}
+
 struct ActiveWorkoutView: View {
     @Bindable var session: WorkoutSession
-    var onClose: () -> Void
+    @AppStorage("weightUnit") private var storedWeightUnit = TrackerWeightUnit.kilograms.rawValue
     
     @State private var selectedExerciseIndex: Int?
-    @State private var didFinalize = false
+    @State private var recordEditorContext: RecordEditorContext?
+    @State private var historyRefreshToken = 0
+    
+    private var preferredUnit: TrackerWeightUnit {
+        TrackerWeightUnit(rawValue: storedWeightUnit) ?? .kilograms
+    }
     
     var body: some View {
         ScrollView {
@@ -21,12 +53,16 @@ struct ActiveWorkoutView: View {
                     ExerciseRecordsCard(
                         exercise: activeExercise.exercise,
                         records: activeExercise.sets,
-                        onAddRecord: {
+                        unit: preferredUnit,
+                        onOpenHistory: {
                             selectedExerciseIndex = index
                         },
+                        onAddRecord: {
+                            recordEditorContext = RecordEditorContext(exerciseIndex: index)
+                        },
                         onDeleteRecord: { set in
-                            guard let setIndex = session.activeExercises[index].sets.firstIndex(where: { $0.id == set.id }) else { return }
-                            session.removeSet(from: index, at: setIndex)
+                            session.removeRecord(exerciseIndex: index, recordID: set.id)
+                            historyRefreshToken += 1
                         }
                     )
                 }
@@ -36,35 +72,64 @@ struct ActiveWorkoutView: View {
         .background(Theme.background)
         .navigationTitle(session.workout.name)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: Binding(
-            get: {
-                selectedExerciseIndex.map { ExerciseSelection(id: $0) }
-            },
-            set: { value in
-                selectedExerciseIndex = value?.id
-            }
+        .navigationDestination(item: Binding(
+            get: { selectedExerciseIndex.map { ExerciseSelection(id: $0) } },
+            set: { selectedExerciseIndex = $0?.id }
         )) { selection in
-            AddRecordSheet { reps, weight in
-                session.addRecord(to: selection.id, reps: reps, weight: weight)
+            ExerciseHistoryView(
+                exercise: session.activeExercises[selection.id].exercise,
+                currentSessionRecords: session.activeExercises[selection.id].sets,
+                unit: preferredUnit,
+                refreshToken: historyRefreshToken,
+                onAddRecord: {
+                    recordEditorContext = RecordEditorContext(exerciseIndex: selection.id)
+                },
+                onEditRecord: { record in
+                    recordEditorContext = RecordEditorContext(exerciseIndex: selection.id, existingRecord: record)
+                },
+                onDeleteRecord: { record in
+                    if session.activeExercises[selection.id].sets.contains(where: { $0.id == record.id }) {
+                        session.removeRecord(exerciseIndex: selection.id, recordID: record.id)
+                    } else {
+                        ExerciseRecordStore.shared.deleteRecord(id: record.id)
+                    }
+                    historyRefreshToken += 1
+                }
+            )
+        }
+        .sheet(item: $recordEditorContext) { context in
+            RecordEditorSheet(
+                title: context.existingRecord == nil ? "Add Record" : "Edit Record",
+                initialRecord: context.existingRecord,
+                initialUnit: preferredUnit
+            ) { reps, weightKg in
+                if let existing = context.existingRecord {
+                    session.updateRecord(
+                        exerciseIndex: context.exerciseIndex,
+                        recordID: existing.id,
+                        reps: reps,
+                        weight: weightKg
+                    )
+                } else {
+                    session.addRecord(
+                        to: context.exerciseIndex,
+                        reps: reps,
+                        weight: weightKg
+                    )
+                }
+                historyRefreshToken += 1
             }
-            .presentationDetents([.height(340)])
+            .presentationDetents([.height(520)])
             .presentationDragIndicator(.visible)
         }
-        .onDisappear {
-            finalizeIfNeeded()
-        }
-    }
-    
-    private func finalizeIfNeeded() {
-        guard !didFinalize else { return }
-        didFinalize = true
-        onClose()
     }
 }
 
 private struct ExerciseRecordsCard: View {
     let exercise: CatalogExercise
     let records: [WorkoutSet]
+    let unit: TrackerWeightUnit
+    let onOpenHistory: () -> Void
     let onAddRecord: () -> Void
     let onDeleteRecord: (WorkoutSet) -> Void
     
@@ -89,15 +154,9 @@ private struct ExerciseRecordsCard: View {
                 
                 Spacer()
                 
-                Button("Add Record") {
-                    onAddRecord()
-                }
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.cream)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Theme.terracotta)
-                .clipShape(Capsule())
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.stone)
             }
             
             if records.isEmpty {
@@ -115,7 +174,7 @@ private struct ExerciseRecordsCard: View {
                         Text("Reps")
                             .frame(width: 70, alignment: .trailing)
                         Text("Weight")
-                            .frame(width: 80, alignment: .trailing)
+                            .frame(width: 86, alignment: .trailing)
                         Text("")
                             .frame(width: 24)
                     }
@@ -134,8 +193,8 @@ private struct ExerciseRecordsCard: View {
                             Text("\(set.reps ?? 0)")
                                 .frame(width: 70, alignment: .trailing)
                                 .foregroundStyle(Theme.sage)
-                            Text("\(formatWeight(set.weight ?? 0)) kg")
-                                .frame(width: 80, alignment: .trailing)
+                            Text("\(formatWeight(unit.toDisplay(set.weight ?? 0))) \(unit.symbol)")
+                                .frame(width: 86, alignment: .trailing)
                                 .foregroundStyle(Theme.terracotta)
                             
                             Button(role: .destructive) {
@@ -155,10 +214,25 @@ private struct ExerciseRecordsCard: View {
                     }
                 }
             }
+            
+            Button("Add Record") {
+                onAddRecord()
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Theme.cream)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Theme.terracotta)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .buttonStyle(.plain)
         }
         .padding(16)
         .background(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .contentShape(RoundedRectangle(cornerRadius: 18))
+        .onTapGesture {
+            onOpenHistory()
+        }
     }
     
     private func formatWeight(_ value: Double) -> String {
@@ -169,55 +243,268 @@ private struct ExerciseRecordsCard: View {
     }
 }
 
-private struct AddRecordSheet: View {
+private struct ExerciseHistoryView: View {
+    let exercise: CatalogExercise
+    let currentSessionRecords: [WorkoutSet]
+    let unit: TrackerWeightUnit
+    let refreshToken: Int
+    let onAddRecord: () -> Void
+    let onEditRecord: (WorkoutSet) -> Void
+    let onDeleteRecord: (WorkoutSet) -> Void
+    
+    @State private var allRecords: [WorkoutSet] = []
+    
+    var groupedRecords: [(Date, [WorkoutSet])] {
+        let grouped = Dictionary(grouping: allRecords) { Calendar.current.startOfDay(for: $0.recordedAt) }
+        return grouped
+            .map { ($0.key, $0.value.sorted { $0.recordedAt > $1.recordedAt }) }
+            .sorted { $0.0 > $1.0 }
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                ForEach(groupedRecords, id: \.0) { day, records in
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(dayTitle(day))
+                            .font(.system(size: 15, weight: .semibold, design: .serif))
+                            .foregroundStyle(Theme.textPrimary)
+                        
+                        VStack(spacing: 0) {
+                            ForEach(records) { record in
+                                HStack {
+                                    Text(record.recordedAt.formatted(date: .omitted, time: .shortened))
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Theme.textSecondary)
+                                    
+                                    Spacer()
+                                    
+                                    Text("\(record.reps ?? 0) reps")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Theme.sage)
+                                    
+                                    Text("\(formatWeight(unit.toDisplay(record.weight ?? 0))) \(unit.symbol)")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Theme.terracotta)
+                                        .frame(width: 110, alignment: .trailing)
+                                    
+                                    Button {
+                                        onEditRecord(record)
+                                    } label: {
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(Theme.stone)
+                                    }
+                                    .frame(width: 20)
+                                    
+                                    Button(role: .destructive) {
+                                        onDeleteRecord(record)
+                                        loadData()
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 12))
+                                    }
+                                    .frame(width: 20)
+                                }
+                                .padding(.vertical, 10)
+                                
+                                if records.last?.id != record.id {
+                                    Divider().background(Theme.sand)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .background(Theme.cream)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Theme.background)
+        .navigationTitle(exercise.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Add") {
+                    onAddRecord()
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                onAddRecord()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                    Text("Add Record")
+                }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.cream)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Theme.sage)
+                .clipShape(Capsule())
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+            }
+            .background(Theme.background.opacity(0.95))
+        }
+        .onAppear(perform: loadData)
+        .onChange(of: currentSessionRecords.count) { _, _ in
+            loadData()
+        }
+        .onChange(of: refreshToken) { _, _ in
+            loadData()
+        }
+    }
+    
+    private func loadData() {
+        allRecords = ExerciseRecordStore.shared.records(for: exercise.name).map {
+            WorkoutSet(id: $0.id, reps: $0.reps, weight: $0.weightKg, recordedAt: $0.recordedAt)
+        }
+    }
+    
+    private func dayTitle(_ day: Date) -> String {
+        if Calendar.current.isDateInToday(day) { return "Today" }
+        if Calendar.current.isDateInYesterday(day) { return "Yesterday" }
+        return day.formatted(date: .abbreviated, time: .omitted)
+    }
+    
+    private func formatWeight(_ value: Double) -> String {
+        if value == floor(value) {
+            return String(Int(value))
+        }
+        return String(format: "%.1f", value)
+    }
+}
+
+private struct RecordEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var reps: Int = 10
-    @State private var weight: Double = 20
+    
+    let title: String
+    let initialRecord: WorkoutSet?
+    let initialUnit: TrackerWeightUnit
     let onSave: (Int, Double) -> Void
+    
+    @State private var selectedUnit: TrackerWeightUnit = .kilograms
+    @State private var repsText: String = ""
+    @State private var weightText: String = ""
+    @State private var barbellText: String = ""
+    @State private var plateCounts: [Double: Int] = [:]
+    
+    var parsedReps: Int? {
+        Int(repsText)
+    }
+    
+    var parsedWeight: Double? {
+        Double(weightText)
+    }
+    
+    var computedTotalInUnit: Double {
+        let bar = Double(barbellText) ?? selectedUnit.defaultBarbell
+        let platesTotalPerSide = selectedUnit.plateSizes.reduce(0.0) { total, size in
+            total + (Double(plateCounts[size] ?? 0) * size)
+        }
+        return bar + (2 * platesTotalPerSide)
+    }
+    
+    var isValid: Bool {
+        guard let reps = parsedReps, reps > 0 else { return false }
+        guard let weight = parsedWeight, weight >= 0 else { return false }
+        return true
+    }
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 18) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Reps")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .textCase(.uppercase)
+            VStack(spacing: 14) {
+                Picker("Unit", selection: $selectedUnit) {
+                    ForEach(TrackerWeightUnit.allCases) { unit in
+                        Text(unit.symbol.uppercased()).tag(unit)
+                    }
+                }
+                .pickerStyle(.segmented)
+                
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Reps")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                        TextField("12", text: $repsText)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Weight (\(selectedUnit.symbol))")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                        TextField("20", text: $weightText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Plate Calculator")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
                     
                     HStack {
-                        Stepper("", value: $reps, in: 1...200)
-                            .labelsHidden()
+                        Text("Barbell")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.textSecondary)
+                        TextField("", text: $barbellText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 90)
+                        Text(selectedUnit.symbol)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.stone)
                         Spacer()
-                        Text("\(reps)")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                        Text("Total: \(formatWeight(computedTotalInUnit)) \(selectedUnit.symbol)")
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Theme.sage)
                     }
-                }
-                .padding(14)
-                .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Weight (kg)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .textCase(.uppercase)
                     
-                    HStack {
-                        Stepper("", value: $weight, in: 0...500, step: 2.5)
+                    ForEach(selectedUnit.plateSizes, id: \.self) { plate in
+                        HStack {
+                            Text("\(formatWeight(plate)) \(selectedUnit.symbol) x2")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.textSecondary)
+                            
+                            Spacer()
+                            
+                            Stepper(
+                                "\(plateCounts[plate] ?? 0) / side",
+                                value: Binding(
+                                    get: { plateCounts[plate] ?? 0 },
+                                    set: { plateCounts[plate] = max($0, 0) }
+                                ),
+                                in: 0...8
+                            )
                             .labelsHidden()
-                        Spacer()
-                        Text(weight, format: .number.precision(.fractionLength(0...1)))
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.terracotta)
+                            
+                            Text("\(plateCounts[plate] ?? 0)")
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Theme.textPrimary)
+                                .frame(width: 30)
+                        }
                     }
+                    
+                    Button("Use Calculated Total") {
+                        weightText = formatWeight(computedTotalInUnit)
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.terracotta)
                 }
-                .padding(14)
+                .padding(12)
                 .background(Theme.cream)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 
                 Button {
-                    onSave(reps, weight)
+                    guard let reps = parsedReps, let weightValue = parsedWeight else { return }
+                    onSave(reps, selectedUnit.toKilograms(weightValue))
                     dismiss()
                 } label: {
                     Text("Save Record")
@@ -225,23 +512,45 @@ private struct AddRecordSheet: View {
                         .foregroundStyle(Theme.cream)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Theme.sage)
+                        .background(isValid ? Theme.sage : Theme.stone.opacity(0.5))
                         .clipShape(Capsule())
                 }
-                .padding(.top, 6)
+                .disabled(!isValid)
                 
                 Spacer(minLength: 0)
             }
             .padding(16)
             .background(Theme.background)
-            .navigationTitle("Add Record")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                selectedUnit = initialUnit
+                let reps = initialRecord?.reps ?? 10
+                let weightInKg = initialRecord?.weight ?? initialUnit.toKilograms(20)
+                repsText = "\(reps)"
+                weightText = formatWeight(selectedUnit.toDisplay(weightInKg))
+                barbellText = formatWeight(selectedUnit.defaultBarbell)
+                selectedUnit.plateSizes.forEach { plateCounts[$0] = 0 }
+            }
         }
+    }
+    
+    private func formatWeight(_ value: Double) -> String {
+        if value == floor(value) {
+            return String(Int(value))
+        }
+        return String(format: "%.1f", value)
     }
 }
 
 private struct ExerciseSelection: Identifiable {
     let id: Int
+}
+
+private struct RecordEditorContext: Identifiable {
+    let id = UUID()
+    let exerciseIndex: Int
+    var existingRecord: WorkoutSet? = nil
 }
 
 #Preview {
@@ -256,8 +565,7 @@ private struct ExerciseSelection: Identifiable {
                     icon: "dumbbell.fill",
                     createdAt: Date()
                 )
-            ),
-            onClose: {}
+            )
         )
     }
 }
