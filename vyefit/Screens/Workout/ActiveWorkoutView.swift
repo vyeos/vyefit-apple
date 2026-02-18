@@ -109,7 +109,7 @@ struct ActiveWorkoutView: View {
                 }
                 historyRefreshToken += 1
             }
-            .presentationDetents([.height(390)])
+            .presentationDetents([.height(330)])
             .presentationDragIndicator(.visible)
         }
         .alert("Delete Record?", isPresented: Binding(
@@ -536,10 +536,10 @@ private struct RecordEditorSheet: View {
                         .clipShape(Capsule())
                 }
                 .disabled(!isValid)
-
-                Spacer(minLength: 0)
             }
-            .padding(16)
+            .padding(.top, 18)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
             .background(Theme.background)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
