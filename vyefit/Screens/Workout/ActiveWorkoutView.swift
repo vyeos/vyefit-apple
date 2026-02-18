@@ -543,7 +543,7 @@ private struct RecordEditorSheet: View {
     }
 }
 
-private struct ExerciseSelection: Identifiable {
+private struct ExerciseSelection: Identifiable, Hashable {
     let id: Int
 }
 
