@@ -10,11 +10,6 @@ import SwiftUI
 struct ProfileView: View {
     @AppStorage("userName") private var userName = "Rudra Patel"
     
-    private var currentMonthRuns: [RunSessionRecord] {
-        let calendar = Calendar.current
-        return HistoryStore.shared.runSessionRecords.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
-    }
-    
     private var currentMonthWorkouts: [WorkoutSessionRecord] {
         let calendar = Calendar.current
         return HistoryStore.shared.workoutSessionRecords.filter { calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) }
@@ -133,7 +128,7 @@ struct ProfileView: View {
                             }
                         }
                         
-                        if currentMonthRuns.isEmpty && currentMonthWorkouts.isEmpty {
+                        if currentMonthWorkouts.isEmpty {
                             Text("No sessions this month")
                                 .font(.system(size: 14))
                                 .foregroundStyle(Theme.textSecondary)
@@ -141,11 +136,7 @@ struct ProfileView: View {
                                 .padding(.vertical, 20)
                         } else {
                             VStack(spacing: 8) {
-                                ForEach(currentMonthRuns.prefix(3)) { run in
-                                    SessionRow(run: run)
-																}
-                                
-                                ForEach(currentMonthWorkouts.prefix(2)) { workout in
+                                ForEach(currentMonthWorkouts.prefix(5)) { workout in
                                     WorkoutSessionRow(session: workout)
                                 }
                             }

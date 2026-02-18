@@ -2,7 +2,7 @@
 //  HealthKitManager.swift
 //  vyefit
 //
-//  HealthKit integration for workouts and runs.
+//  HealthKit integration for workout history.
 //
 
 import Foundation
@@ -124,22 +124,12 @@ final class HealthKitManager: NSObject, ObservableObject {
             var importedCount = 0
 
             for workout in workouts {
-                if workout.workoutActivityType == .running {
-                    group.enter()
-                    self.buildCompletedRun(from: workout) { completed in
-                        if HistoryStore.shared.importRun(completed) {
-                            importedCount += 1
-                        }
-                        group.leave()
+                group.enter()
+                self.buildCompletedWorkout(from: workout) { completed in
+                    if HistoryStore.shared.importWorkout(completed) {
+                        importedCount += 1
                     }
-                } else {
-                    group.enter()
-                    self.buildCompletedWorkout(from: workout) { completed in
-                        if HistoryStore.shared.importWorkout(completed) {
-                            importedCount += 1
-                        }
-                        group.leave()
-                    }
+                    group.leave()
                 }
             }
 
@@ -152,14 +142,8 @@ final class HealthKitManager: NSObject, ObservableObject {
     }
 
     func importWorkoutSample(_ workout: HKWorkout, completion: @escaping (Bool) -> Void) {
-        if workout.workoutActivityType == .running {
-            buildCompletedRun(from: workout) { completed in
-                completion(HistoryStore.shared.importRun(completed))
-            }
-        } else {
-            buildCompletedWorkout(from: workout) { completed in
-                completion(HistoryStore.shared.importWorkout(completed))
-            }
+        buildCompletedWorkout(from: workout) { completed in
+            completion(HistoryStore.shared.importWorkout(completed))
         }
     }
 
@@ -270,88 +254,6 @@ final class HealthKitManager: NSObject, ObservableObject {
         }
     }
 
-    private func buildCompletedRun(from workout: HKWorkout, completion: @escaping (CompletedRun) -> Void) {
-        let distanceMeters = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
-        let distanceKm = distanceMeters / 1000.0
-        var calories = 0
-
-        let group = DispatchGroup()
-        var heartRateAvg = 0
-        var heartRateMax = 0
-        var cadenceAvg = 0
-        var route: [MapCoordinate] = []
-        var splits: [RunSplit] = []
-        var elevationGain: Double = 0
-        var elevationLoss: Double = 0
-        var heartRateData: [HeartRateDataPoint] = []
-
-        group.enter()
-        fetchHeartRateStats(for: workout) { avg, max in
-            heartRateAvg = avg
-            heartRateMax = max
-            group.leave()
-        }
-
-        group.enter()
-        fetchHeartRateSeries(for: workout) { data in
-            heartRateData = data
-            group.leave()
-        }
-
-        group.enter()
-        fetchCadenceAverage(for: workout) { avg in
-            cadenceAvg = avg
-            group.leave()
-        }
-
-        group.enter()
-        fetchRoute(for: workout) { coords, gain, loss in
-            route = coords
-            elevationGain = gain
-            elevationLoss = loss
-            group.leave()
-        }
-
-        group.enter()
-        fetchSplits(for: workout) { runSplits in
-            splits = runSplits
-            group.leave()
-        }
-        
-        group.enter()
-        fetchActiveEnergy(for: workout) { kcal in
-            calories = kcal
-            group.leave()
-        }
-
-        group.notify(queue: .main) {
-            let avgPace = distanceKm > 0 ? (workout.duration / 60.0) / distanceKm : 0
-            let completed = CompletedRun(
-                id: workout.uuid,
-                date: workout.startDate,
-                name: RunGoalType.quickStart.rawValue,
-                location: workout.workoutActivityType.locationLabel,
-                distance: distanceKm,
-                duration: workout.duration,
-                calories: calories,
-                avgPace: avgPace,
-                heartRateAvg: heartRateAvg,
-                heartRateMax: heartRateMax,
-                heartRateData: heartRateData,
-                type: RunGoalType.quickStart.rawValue,
-                elevationGain: elevationGain,
-                elevationLoss: elevationLoss,
-                avgCadence: cadenceAvg,
-                splits: splits,
-                route: route,
-                wasPaused: false,
-                totalElapsedTime: workout.duration,
-                workingTime: workout.duration
-            )
-            completion(completed)
-        }
-    }
-
     private func fetchHeartRateStats(for workout: HKWorkout, completion: @escaping (Int, Int) -> Void) {
         guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
             completion(0, 0)
@@ -386,109 +288,6 @@ final class HealthKitManager: NSObject, ObservableObject {
         healthStore.execute(query)
     }
 
-    private func fetchCadenceAverage(for workout: HKWorkout, completion: @escaping (Int) -> Void) {
-        guard let stepsType = HKQuantityType.quantityType(forIdentifier: .stepCount) else {
-            completion(0)
-            return
-        }
-
-        let predicate = HKQuery.predicateForObjects(from: workout)
-        let query = HKStatisticsQuery(quantityType: stepsType, quantitySamplePredicate: predicate, options: [.cumulativeSum]) { _, statistics, _ in
-            let steps = statistics?.sumQuantity()?.doubleValue(for: .count()) ?? 0
-            let minutes = max(workout.duration / 60.0, 1.0)
-            let cadence = Int(steps / minutes)
-            completion(cadence)
-        }
-        healthStore.execute(query)
-    }
-
-    private func fetchRoute(for workout: HKWorkout, completion: @escaping ([MapCoordinate], Double, Double) -> Void) {
-        let routeType = HKSeriesType.workoutRoute()
-
-        let predicate = HKQuery.predicateForObjects(from: workout)
-        let routeQuery = HKSampleQuery(sampleType: routeType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [weak self] _, samples, _ in
-            guard let self else { return }
-            guard let routes = samples as? [HKWorkoutRoute], let route = routes.first else {
-                completion([], 0, 0)
-                return
-            }
-
-            var coords: [MapCoordinate] = []
-            var elevationGain: Double = 0
-            var elevationLoss: Double = 0
-            var lastAltitude: Double?
-
-            let locationQuery = HKWorkoutRouteQuery(route: route) { _, locations, done, _ in
-                let newLocations = locations ?? []
-                for location in newLocations {
-                    coords.append(MapCoordinate(
-                        latitude: location.coordinate.latitude,
-                        longitude: location.coordinate.longitude,
-                        timestamp: location.timestamp.timeIntervalSince1970
-                    ))
-
-                    if location.verticalAccuracy >= 0 {
-                        let altitude = location.altitude
-                        if let last = lastAltitude {
-                            let diff = altitude - last
-                            if diff > 0 { elevationGain += diff }
-                            if diff < 0 { elevationLoss += abs(diff) }
-                        }
-                        lastAltitude = altitude
-                    }
-                }
-
-                if done {
-                    completion(coords, elevationGain, elevationLoss)
-                }
-            }
-
-            self.healthStore.execute(locationQuery)
-        }
-
-        healthStore.execute(routeQuery)
-    }
-
-    private func fetchSplits(for workout: HKWorkout, completion: @escaping ([RunSplit]) -> Void) {
-        guard let distanceType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning) else {
-            completion([])
-            return
-        }
-
-        let predicate = HKQuery.predicateForObjects(from: workout)
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-        let query = HKSampleQuery(sampleType: distanceType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { _, samples, _ in
-            guard let samples = samples as? [HKQuantitySample], !samples.isEmpty else {
-                completion([])
-                return
-            }
-
-            var splits: [RunSplit] = []
-            var cumulative: Double = 0
-            var nextKm: Double = 1000
-            var lastSplitTime: Date = samples.first?.startDate ?? workout.startDate
-
-            for sample in samples {
-                let meters = sample.quantity.doubleValue(for: .meter())
-                cumulative += meters
-
-                while cumulative >= nextKm {
-                    let splitTime = sample.endDate
-                    let splitDuration = splitTime.timeIntervalSince(lastSplitTime)
-                    let pace = splitDuration / 60.0
-                    let kmIndex = Int(nextKm / 1000)
-                    splits.append(RunSplit(kilometer: kmIndex, pace: pace, elevationChange: 0))
-                    lastSplitTime = splitTime
-                    nextKm += 1000
-                }
-            }
-
-            completion(splits)
-        }
-
-        healthStore.execute(query)
-    }
-    
     private func fetchActiveEnergy(for workout: HKWorkout, completion: @escaping (Int) -> Void) {
         guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else {
             completion(0)

@@ -2,46 +2,18 @@
 //  AllSessionsView.swift
 //  vyefit
 //
-//  List of all past sessions (workouts and runs) with filters.
+//  List of all past workout sessions.
 //
 
 import SwiftUI
 
 struct AllSessionsView: View {
-    @State var filter: SessionFilter
-    
-    init(filter: SessionFilter = .all) {
-        _filter = State(initialValue: filter)
-    }
-    
-    private var allRuns: [RunSessionRecord] {
-        HistoryStore.shared.runSessionRecords.sorted { $0.date > $1.date }
-    }
-    
     private var allWorkouts: [WorkoutSessionRecord] {
         HistoryStore.shared.workoutSessionRecords.sorted { $0.date > $1.date }
     }
     
-    private var filteredSessions: [(session: Any, type: SessionType, date: Date)] {
-        var result: [(session: Any, type: SessionType, date: Date)] = []
-        
-        if filter == .all || filter == .run {
-            for run in allRuns {
-                result.append((run, .run, run.date))
-            }
-        }
-        
-        if filter == .all || filter == .workout {
-            for workout in allWorkouts {
-                result.append((workout, .workout, workout.date))
-            }
-        }
-        
-        return result.sorted { $0.date > $1.date }
-    }
-    
-    private var groupedSessions: [(String, [(session: Any, type: SessionType, date: Date)])] {
-        let sessions = filteredSessions
+    private var groupedSessions: [(String, [WorkoutSessionRecord])] {
+        let sessions = allWorkouts
         let uniqueMonths: [Date] = Set(
             sessions.compactMap { item in
                 Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: item.date))
@@ -60,15 +32,6 @@ struct AllSessionsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Picker("Filter", selection: $filter) {
-                    Text("All").tag(SessionFilter.all)
-                    Text("Train").tag(SessionFilter.workout)
-                    Text("Run").tag(SessionFilter.run)
-                }
-                .pickerStyle(.segmented)
-                .tint(Theme.terracotta)
-                .padding(.horizontal, 20)
-                
                 LazyVStack(spacing: 24) {
                     ForEach(groupedSessions, id: \.0) { month, sessions in
                         VStack(alignment: .leading, spacing: 12) {
@@ -78,14 +41,9 @@ struct AllSessionsView: View {
                                 .padding(.horizontal, 20)
                             
                             VStack(spacing: 8) {
-                                ForEach(Array(sessions.enumerated()), id: \.offset) { _, item in
-                                    if item.type == .run, let run = item.session as? RunSessionRecord {
-                                        SessionRow(run: run)
-                                            .padding(.horizontal, 20)
-                                    } else if item.type == .workout, let workout = item.session as? WorkoutSessionRecord {
-                                        WorkoutSessionRow(session: workout)
-                                            .padding(.horizontal, 20)
-                                    }
+                                ForEach(sessions) { workout in
+                                    WorkoutSessionRow(session: workout)
+                                        .padding(.horizontal, 20)
                                 }
                             }
                         }
@@ -101,12 +59,6 @@ struct AllSessionsView: View {
             HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
         }
     }
-}
-
-enum SessionFilter {
-    case all
-    case workout
-    case run
 }
 
 #Preview {

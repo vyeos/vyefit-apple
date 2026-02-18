@@ -2,12 +2,11 @@
 //  SessionRecords.swift
 //  vyefit
 //
-//  Data models for completed workout and run sessions.
+//  Data models for completed workout sessions.
 //
 
 import Foundation
 import SwiftUI
-
 struct HeartRateDataPoint: Identifiable, Codable {
     let id: UUID
     let timestamp: TimeInterval
@@ -18,61 +17,6 @@ struct HeartRateDataPoint: Identifiable, Codable {
         self.timestamp = timestamp
         self.heartRate = heartRate
     }
-}
-
-struct RunSplit: Identifiable, Codable {
-    let id: UUID
-    let kilometer: Int
-    let pace: Double
-    let elevationChange: Double
-    
-    init(id: UUID = UUID(), kilometer: Int, pace: Double, elevationChange: Double) {
-        self.id = id
-        self.kilometer = kilometer
-        self.pace = pace
-        self.elevationChange = elevationChange
-    }
-}
-
-struct MapCoordinate: Identifiable, Codable {
-    let id: UUID
-    let latitude: Double
-    let longitude: Double
-    let timestamp: TimeInterval
-    
-    init(id: UUID = UUID(), latitude: Double, longitude: Double, timestamp: TimeInterval) {
-        self.id = id
-        self.latitude = latitude
-        self.longitude = longitude
-        self.timestamp = timestamp
-    }
-}
-
-struct RunSessionRecord: Identifiable {
-    let id: UUID
-    let date: Date
-    let name: String
-    let location: String
-    let distance: Double
-    let duration: TimeInterval
-    let calories: Int
-    let avgPace: Double
-    let heartRateAvg: Int
-    let heartRateMax: Int
-    let heartRateData: [HeartRateDataPoint]
-    let type: RunGoalType
-    
-    let elevationGain: Double
-    let elevationLoss: Double
-    let avgCadence: Int
-    let splits: [RunSplit]
-    let route: [MapCoordinate]
-    
-    let wasPaused: Bool
-    let totalElapsedTime: TimeInterval?
-    let workingTime: TimeInterval?
-    
-    var sessionType: SessionType { .run }
 }
 
 struct WorkoutSessionRecord: Identifiable, Codable {
@@ -92,13 +36,6 @@ struct WorkoutSessionRecord: Identifiable, Codable {
     let wasPaused: Bool
     let totalElapsedTime: TimeInterval?
     let workingTime: TimeInterval?
-    
-    var sessionType: SessionType { .workout }
-}
-
-enum SessionType {
-    case workout
-    case run
 }
 
 struct Achievement: Identifiable, Codable {
@@ -118,7 +55,7 @@ struct WeekdaySchedule: Identifiable {
     let isToday: Bool
 }
 
-struct WorkoutTemplate: Identifiable, Hashable, Codable {
+struct WorkoutTemplate: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
     var exercises: [ExerciseTemplate]
@@ -126,7 +63,7 @@ struct WorkoutTemplate: Identifiable, Hashable, Codable {
     var icon: String
     var lastPerformed: Date?
     var scheduledDay: String?
-    
+
     var color: Color { Color(hex: colorHex) }
     
     func hash(into hasher: inout Hasher) {
@@ -158,12 +95,6 @@ struct SetTemplate: Identifiable, Codable {
 func formatDuration(_ seconds: TimeInterval) -> String {
     let mins = Int(seconds) / 60
     let secs = Int(seconds) % 60
-    return String(format: "%d:%02d", mins, secs)
-}
-
-func formatPace(_ pace: Double) -> String {
-    let mins = Int(pace)
-    let secs = Int((pace - Double(mins)) * 60)
     return String(format: "%d:%02d", mins, secs)
 }
 

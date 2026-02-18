@@ -6,23 +6,12 @@
 //
 
 import SwiftUI
-import Combine
 
 struct DashboardView: View {
     @State private var scheduleStore = ScheduleStore()
     @State private var workoutStore = WorkoutStore()
-    @AppStorage("distanceUnit") private var distanceUnit = "Kilometers"
-    @ObservedObject private var watchConnectivity = WatchConnectivityManager.shared
     
     // MARK: - Computed Properties
-    
-    private var isMetric: Bool {
-        distanceUnit == "Kilometers"
-    }
-    
-    private var distanceUnitLabel: String {
-        isMetric ? "km" : "mi"
-    }
     
     private var workoutsThisWeek: Int {
         let calendar = Calendar.current
@@ -31,18 +20,8 @@ struct DashboardView: View {
         return workoutsThisWeek.count
     }
     
-    private var distanceThisMonth: Double {
-        let calendar = Calendar.current
-        let monthRuns = HistoryStore.shared.runSessionRecords.filter { 
-            calendar.isDate($0.date, equalTo: Date(), toGranularity: .month) 
-        }
-        let totalKm = monthRuns.reduce(0) { $0 + $1.distance }
-        return isMetric ? totalKm : totalKm * 0.621371
-    }
-    
     private var dayStreak: Int {
-        let allSessions = (HistoryStore.shared.workoutSessionRecords.map { $0.date } + 
-                          HistoryStore.shared.runSessionRecords.map { $0.date })
+        let allSessions = HistoryStore.shared.workoutSessionRecords.map { $0.date }
             .sorted(by: >)
         
         guard !allSessions.isEmpty else { return 0 }
@@ -79,51 +58,18 @@ struct DashboardView: View {
     }
     
     private var avgHeartRate: Int {
-        let allSessions = HistoryStore.shared.workoutSessionRecords + 
-                         HistoryStore.shared.runSessionRecords.map { 
-                             WorkoutSessionRecord(
-                                 id: $0.id,
-                                 date: $0.date,
-                                 name: $0.name,
-                                 location: $0.location,
-                                 duration: $0.duration,
-                                 calories: $0.calories,
-                                 exerciseCount: 0,
-                                 heartRateAvg: $0.heartRateAvg,
-                                 heartRateMax: $0.heartRateMax,
-                                 heartRateData: $0.heartRateData,
-                                 workoutTemplateName: nil,
-                                 wasPaused: $0.wasPaused,
-                                 totalElapsedTime: $0.totalElapsedTime,
-                                 workingTime: $0.workingTime
-                             )
-                         }
-        
-        let sessionsWithHR = allSessions.filter { $0.heartRateAvg > 0 }
+        let sessionsWithHR = HistoryStore.shared.workoutSessionRecords.filter { $0.heartRateAvg > 0 }
         guard !sessionsWithHR.isEmpty else { return 0 }
         
         let totalHR = sessionsWithHR.reduce(0) { $0 + $1.heartRateAvg }
         return totalHR / sessionsWithHR.count
     }
     
-    private var thisWeekSessions: [(session: Any, type: SessionType, date: Date)] {
+    private var thisWeekSessions: [WorkoutSessionRecord] {
         let calendar = Calendar.current
         let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
-        
-        var result: [(session: Any, type: SessionType, date: Date)] = []
-        
-        let weekRuns = HistoryStore.shared.runSessionRecords.filter { $0.date >= startOfWeek }
         let weekWorkouts = HistoryStore.shared.workoutSessionRecords.filter { $0.date >= startOfWeek }
-        
-        for run in weekRuns {
-            result.append((run, .run, run.date))
-        }
-        
-        for workout in weekWorkouts {
-            result.append((workout, .workout, workout.date))
-        }
-        
-        return result.sorted { $0.date > $1.date }
+        return weekWorkouts.sorted { $0.date > $1.date }
     }
     
     var body: some View {
@@ -139,18 +85,7 @@ struct DashboardView: View {
                         
                         Spacer()
                         
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(.white)
-                                .frame(width: 6, height: 6)
-                            Text(watchConnectivity.isConnected ? "Watch Connected" : "Watch Disconnected")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(watchConnectivity.isConnected ? Theme.sage : Theme.terracotta)
-                        .clipShape(Capsule())
+                        EmptyView()
                     }
                     .padding(.horizontal, 20)
                     
@@ -162,13 +97,13 @@ struct DashboardView: View {
                     // Wellness cards
                     HStack(spacing: 14) {
                         WellnessCard(icon: "flame.fill", value: "\(workoutsThisWeek)", label: "Workouts\nthis week", color: Theme.terracotta)
-                        WellnessCard(icon: "figure.run", value: String(format: "%.1f", distanceThisMonth), label: "\(distanceUnitLabel)\nthis month", color: Theme.stone)
+                        WellnessCard(icon: "bolt.fill", value: "\(dayStreak)", label: "Day\nStreak", color: Theme.stone)
                     }
                     .padding(.horizontal, 20)
 
                     HStack(spacing: 14) {
                         WellnessCard(icon: "heart.fill", value: avgHeartRate > 0 ? "\(avgHeartRate)" : "--", label: "Avg Heart\nRate", color: Theme.sage)
-                        WellnessCard(icon: "bolt.fill", value: "\(dayStreak)", label: "Day\nStreak", color: Theme.terracotta)
+                        WellnessCard(icon: "calendar", value: "\(thisWeekSessions.count)", label: "Sessions\nthis week", color: Theme.terracotta)
                     }
                     .padding(.horizontal, 20)
 
@@ -205,13 +140,8 @@ struct DashboardView: View {
                         } else {
                             VStack(spacing: 8) {
                                 ForEach(Array(thisWeekSessions.prefix(5).enumerated()), id: \.offset) { _, item in
-                                    if item.type == .run, let run = item.session as? RunSessionRecord {
-                                        SessionRow(run: run)
-                                            .padding(.horizontal, 20)
-                                    } else if item.type == .workout, let workout = item.session as? WorkoutSessionRecord {
-                                        WorkoutSessionRowDashboard(session: workout)
-                                            .padding(.horizontal, 20)
-                                    }
+                                    WorkoutSessionRowDashboard(session: item)
+                                        .padding(.horizontal, 20)
                                 }
                             }
                         }
@@ -223,7 +153,6 @@ struct DashboardView: View {
             .navigationBarHidden(true)
             .refreshable {
                 HealthKitManager.shared.importLatestWorkoutsIfNeeded(force: true)
-                watchConnectivity.updateApplicationContext()
             }
         }
     }

@@ -23,16 +23,8 @@ struct DailyFocusCard: View {
         todayItems.contains { $0.type == .workout }
     }
     
-    private var hasRun: Bool {
-        todayItems.contains { $0.type == .run }
-    }
-    
     private var firstWorkoutItem: ScheduleItem? {
         todayItems.first { $0.type == .workout }
-    }
-    
-    private var firstRunItem: ScheduleItem? {
-        todayItems.first { $0.type == .run }
     }
     
     private var scheduledWorkout: UserWorkout? {
@@ -48,15 +40,6 @@ struct DailyFocusCard: View {
             calendar.isDate($0.date, inSameDayAs: Date()) && $0.name == workout.name
         }
         return !todayWorkouts.isEmpty
-    }
-    
-    private var isRunCompleted: Bool {
-        guard firstRunItem != nil else { return false }
-        let calendar = Calendar.current
-        let todayRuns = HistoryStore.shared.runSessionRecords.filter {
-            calendar.isDate($0.date, inSameDayAs: Date())
-        }
-        return !todayRuns.isEmpty
     }
     
     private var displayInfo: (icon: String, title: String, subtitle: String, color: Color, isRest: Bool, isCompleted: Bool) {
@@ -90,26 +73,15 @@ struct DailyFocusCard: View {
                     isCompleted: false
                 )
             }
-        } else if hasRun, let runItem = firstRunItem {
-            if isRunCompleted {
-                return (
-                    icon: "checkmark.circle.fill",
-                    title: runItem.runType?.rawValue ?? "Run",
-                    subtitle: "Run completed",
-                    color: Theme.sage,
-                    isRest: false,
-                    isCompleted: true
-                )
-            } else {
-                return (
-                    icon: runItem.runType?.icon ?? "figure.run",
-                    title: runItem.runType?.rawValue ?? "Run",
-                    subtitle: "Run scheduled",
-                    color: Theme.sage,
-                    isRest: false,
-                    isCompleted: false
-                )
-            }
+        } else if let runItem = todayItems.first(where: { $0.type == .run }) {
+            return (
+                icon: runItem.runType?.icon ?? "figure.run",
+                title: runItem.runType?.rawValue ?? "Run",
+                subtitle: "Track in Apple Workout",
+                color: Theme.sage,
+                isRest: false,
+                isCompleted: false
+            )
         } else {
             return (
                 icon: "sun.max.fill",
