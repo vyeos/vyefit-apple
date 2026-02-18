@@ -33,7 +33,6 @@ class WorkoutStore {
     
     // Active Session State
     var activeSession: WorkoutSession?
-    var showActiveWorkout: Bool = false
     
     init() {
         loadData()
@@ -94,8 +93,10 @@ class WorkoutStore {
     }
     
     func startSession(for workout: UserWorkout) {
+        if activeSession != nil {
+            endActiveSession()
+        }
         activeSession = WorkoutSession(workout: workout)
-        showActiveWorkout = true
     }
     
     func endActiveSession() {
@@ -113,12 +114,10 @@ class WorkoutStore {
             session.endWorkout()
         }
         activeSession = nil
-        showActiveWorkout = false
     }
     
     func discardActiveSession() {
         activeSession?.endWorkout()
         activeSession = nil
-        showActiveWorkout = false
     }
 }

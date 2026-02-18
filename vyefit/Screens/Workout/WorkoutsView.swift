@@ -9,13 +9,11 @@ import SwiftUI
 
 struct WorkoutsView: View {
     @Environment(WorkoutStore.self) private var workoutStore
-    @Environment(RunStore.self) private var runStore
     @State private var showCreateSheet = false
     @State private var selectedTemplate: WorkoutTemplate?
     @State private var editingWorkout: UserWorkout?
-    @State private var showActiveSessionAlert = false
-    @State private var workoutToConfirmStart: UserWorkout?
     @State private var collapsedWorkoutIDs: Set<UUID> = []
+    @State private var showTracker = false
 
     var body: some View {
         NavigationStack {
@@ -55,11 +53,8 @@ struct WorkoutsView: View {
 							        }
                                     },
                                     onStart: {
-                                        if workoutStore.activeSession != nil || runStore.activeSession != nil {
-                                            showActiveSessionAlert = true
-                                        } else {
-                                            workoutToConfirmStart = workout
-                                        }
+                                        workoutStore.startSession(for: workout)
+                                        showTracker = true
                                     }
                                 )
                             }
@@ -117,34 +112,15 @@ struct WorkoutsView: View {
             .sheet(item: $editingWorkout) { workout in
                 CreateWorkoutView(editing: workout)
             }
-            .alert("Session in Progress", isPresented: $showActiveSessionAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                if runStore.activeSession != nil {
-                    Text("Please finish your current run before starting a new workout.")
-                } else {
-                    Text("Please finish your current workout before starting a new one.")
-                }
-            }
-            .alert(
-                "Start Workout?",
-                isPresented: Binding(
-                    get: { workoutToConfirmStart != nil },
-                    set: { isPresented in
-                        if !isPresented {
-                            workoutToConfirmStart = nil
+            .navigationDestination(isPresented: $showTracker) {
+                if let session = workoutStore.activeSession {
+                    ActiveWorkoutView(
+                        session: session,
+                        onClose: {
+                            workoutStore.endActiveSession()
                         }
-                    }
-                ),
-                presenting: workoutToConfirmStart
-            ) { workout in
-                Button("Cancel", role: .cancel) { }
-                Button("Start") {
-                    workoutStore.startSession(for: workout)
-                    workoutToConfirmStart = nil
+                    )
                 }
-            } message: { workout in
-                Text("Start \(workout.name)?")
             }
         }
     }
@@ -227,22 +203,15 @@ struct UserWorkoutCard: View {
                     }
                 }
 
-                Button {
-                    onStart()
-                } label: {
-                    Text("Start")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Theme.cream)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Theme.terracotta)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
             }
         }
         .padding(18)
         .background(Theme.cream)
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .onTapGesture {
+            onStart()
+        }
     }
 }
 
