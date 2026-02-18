@@ -2,7 +2,7 @@
 //  ActiveWorkoutView.swift
 //  vyefit
 //
-//  Exercise records tracker with history and editable record entry.
+//  Exercise records tracker with history and editable record input.
 //
 
 import SwiftUI
@@ -71,7 +71,6 @@ struct ActiveWorkoutView: View {
             ExerciseHistoryView(
                 exercise: session.activeExercises[selection.id].exercise,
                 currentSessionRecords: session.activeExercises[selection.id].sets,
-                unit: preferredUnit,
                 refreshToken: historyRefreshToken,
                 onAddRecord: {
                     recordEditorContext = RecordEditorContext(exerciseIndex: selection.id)
@@ -99,24 +98,28 @@ struct ActiveWorkoutView: View {
                 title: context.existingRecord == nil ? "Add Record" : "Edit Record",
                 initialRecord: context.existingRecord,
                 initialUnit: preferredUnit
-            ) { reps, weightKg in
+            ) { reps, weightKg, weightLb, recordedUnit in
                 if let existing = context.existingRecord {
                     session.updateRecord(
                         exerciseIndex: context.exerciseIndex,
                         recordID: existing.id,
                         reps: reps,
-                        weight: weightKg
+                        weightKg: weightKg,
+                        weightLb: weightLb,
+                        recordedUnit: recordedUnit
                     )
                 } else {
                     session.addRecord(
                         to: context.exerciseIndex,
                         reps: reps,
-                        weight: weightKg
+                        weightKg: weightKg,
+                        weightLb: weightLb,
+                        recordedUnit: recordedUnit
                     )
                 }
                 historyRefreshToken += 1
             }
-            .presentationDetents([.height(430)])
+            .presentationDetents([.height(390)])
             .presentationDragIndicator(.visible)
         }
         .alert("Delete Record?", isPresented: Binding(
@@ -252,9 +255,7 @@ private struct ExerciseRecordsCard: View {
     }
 
     private func formatWeight(_ value: Double) -> String {
-        if value == floor(value) {
-            return String(Int(value))
-        }
+        if value == floor(value) { return String(Int(value)) }
         return String(format: "%.1f", value)
     }
 }
@@ -262,7 +263,6 @@ private struct ExerciseRecordsCard: View {
 private struct ExerciseHistoryView: View {
     let exercise: CatalogExercise
     let currentSessionRecords: [WorkoutSet]
-    let unit: TrackerWeightUnit
     let refreshToken: Int
     let onAddRecord: () -> Void
     let onEditRecord: (WorkoutSet) -> Void
@@ -309,10 +309,8 @@ private struct ExerciseHistoryView: View {
                                         .font(.system(size: 15, weight: .semibold))
                                         .foregroundStyle(Theme.sage)
 
-                                    Text("\(formatWeight(unit.toDisplay(record.weight ?? 0))) \(unit.symbol)")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundStyle(Theme.terracotta)
-                                        .frame(width: 110, alignment: .trailing)
+                                    unitText(record: record)
+                                        .frame(width: 120, alignment: .trailing)
 
                                     Button {
                                         onEditRecord(record)
@@ -368,17 +366,38 @@ private struct ExerciseHistoryView: View {
             .background(Theme.background.opacity(0.95))
         }
         .onAppear(perform: loadData)
-        .onChange(of: currentSessionRecords.count) { _, _ in
-            loadData()
+        .onChange(of: currentSessionRecords.count) { _, _ in loadData() }
+        .onChange(of: refreshToken) { _, _ in loadData() }
+    }
+
+    @ViewBuilder
+    private func unitText(record: WorkoutSet) -> some View {
+        let kg = record.weight ?? 0
+        let lb = record.weightLb ?? (kg * 2.2046226218)
+        let recorded = record.recordedUnit ?? "kilograms"
+        let kgPrimary = recorded == "kilograms"
+
+        HStack(spacing: 6) {
+            Text("\(formatWeight(kg))kg")
+                .foregroundStyle(kgPrimary ? Theme.terracotta : Theme.stone)
+            Text("/")
+                .foregroundStyle(Theme.stone.opacity(0.7))
+            Text("\(formatWeight(lb))lb")
+                .foregroundStyle(kgPrimary ? Theme.stone : Theme.terracotta)
         }
-        .onChange(of: refreshToken) { _, _ in
-            loadData()
-        }
+        .font(.system(size: 13, weight: .semibold))
     }
 
     private func loadData() {
         allRecords = ExerciseRecordStore.shared.records(for: exercise.name).map {
-            WorkoutSet(id: $0.id, reps: $0.reps, weight: $0.weightKg, recordedAt: $0.recordedAt)
+            WorkoutSet(
+                id: $0.id,
+                reps: $0.reps,
+                weight: $0.weightKg,
+                weightLb: $0.weightLb,
+                recordedUnit: $0.recordedUnit,
+                recordedAt: $0.recordedAt
+            )
         }
     }
 
@@ -389,9 +408,7 @@ private struct ExerciseHistoryView: View {
     }
 
     private func formatWeight(_ value: Double) -> String {
-        if value == floor(value) {
-            return String(Int(value))
-        }
+        if value == floor(value) { return String(Int(value)) }
         return String(format: "%.1f", value)
     }
 }
@@ -402,7 +419,7 @@ private struct RecordEditorSheet: View {
     let title: String
     let initialRecord: WorkoutSet?
     let initialUnit: TrackerWeightUnit
-    let onSave: (Int, Double) -> Void
+    let onSave: (Int, Double, Double, String) -> Void
 
     @State private var selectedUnit: TrackerWeightUnit = .kilograms
     @State private var repsText: String = ""
@@ -426,11 +443,12 @@ private struct RecordEditorSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 14) {
-                HStack(spacing: 18) {
-                    metricHeader(
-                        value: parsedReps.map(String.init) ?? "0",
+                HStack(spacing: 0) {
+                    valueEditor(
+                        value: $repsText,
                         unit: "rep",
                         color: Theme.sage,
+                        focus: .reps,
                         minusAction: {
                             let current = parsedReps ?? 0
                             repsText = "\(max(current - 1, 0))"
@@ -441,14 +459,14 @@ private struct RecordEditorSheet: View {
                         }
                     )
 
-                    Rectangle()
-                        .fill(Theme.sand)
-                        .frame(width: 1, height: 58)
+                    Divider()
+                        .frame(height: 66)
 
-                    metricHeader(
-                        value: formatWeight(parsedWeight ?? 0),
+                    valueEditor(
+                        value: $weightText,
                         unit: selectedUnit.symbol,
                         color: Theme.terracotta,
+                        focus: .weight,
                         minusAction: {
                             let step = selectedUnit == .kilograms ? 2.5 : 5.0
                             let current = parsedWeight ?? 0
@@ -461,21 +479,10 @@ private struct RecordEditorSheet: View {
                         }
                     )
                 }
-                .padding(12)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 6)
                 .background(Theme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                HStack(spacing: 10) {
-                    TextField("Reps", text: $repsText)
-                        .keyboardType(.numberPad)
-                        .focused($focusedField, equals: .reps)
-                        .textFieldStyle(.roundedBorder)
-
-                    TextField("Weight (\(selectedUnit.symbol))", text: $weightText)
-                        .keyboardType(.decimalPad)
-                        .focused($focusedField, equals: .weight)
-                        .textFieldStyle(.roundedBorder)
-                }
 
                 Picker("Unit", selection: $selectedUnit) {
                     ForEach(TrackerWeightUnit.allCases) { unit in
@@ -485,8 +492,11 @@ private struct RecordEditorSheet: View {
                 .pickerStyle(.segmented)
 
                 Button {
-                    guard let reps = parsedReps, let weightValue = parsedWeight else { return }
-                    onSave(reps, selectedUnit.toKilograms(weightValue))
+                    guard let reps = parsedReps, let value = parsedWeight else { return }
+                    let kg = selectedUnit.toKilograms(value)
+                    let lb = kg * 2.2046226218
+                    let recordedUnit = selectedUnit == .kilograms ? "kilograms" : "pounds"
+                    onSave(reps, kg, lb, recordedUnit)
                     dismiss()
                 } label: {
                     Text("Save Record")
@@ -527,10 +537,11 @@ private struct RecordEditorSheet: View {
     }
 
     @ViewBuilder
-    private func metricHeader(
-        value: String,
+    private func valueEditor(
+        value: Binding<String>,
         unit: String,
         color: Color,
+        focus: FocusedField,
         minusAction: @escaping () -> Void,
         plusAction: @escaping () -> Void
     ) -> some View {
@@ -545,21 +556,24 @@ private struct RecordEditorSheet: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
             }
-            Text(value)
+            TextField("0", text: value)
+                .keyboardType(focus == .reps ? .numberPad : .decimalPad)
+                .focused($focusedField, equals: focus)
                 .font(.system(size: 30, weight: .bold, design: .rounded))
                 .monospacedDigit()
-                .frame(minWidth: 70, alignment: .trailing)
                 .foregroundStyle(color)
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 84)
+                .textFieldStyle(.plain)
             Text(unit)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func formatWeight(_ value: Double) -> String {
-        if value == floor(value) {
-            return String(Int(value))
-        }
+        if value == floor(value) { return String(Int(value)) }
         return String(format: "%.1f", value)
     }
 }

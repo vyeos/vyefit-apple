@@ -11,13 +11,24 @@ import Combine
 struct WorkoutSet: Identifiable, Equatable {
     let id: UUID
     var reps: Int?
-    var weight: Double?
+    var weight: Double? // Stored as kilograms for compatibility.
+    var weightLb: Double?
+    var recordedUnit: String?
     var recordedAt: Date = Date()
     
-    init(id: UUID = UUID(), reps: Int? = nil, weight: Double? = nil, recordedAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        reps: Int? = nil,
+        weight: Double? = nil,
+        weightLb: Double? = nil,
+        recordedUnit: String? = nil,
+        recordedAt: Date = Date()
+    ) {
         self.id = id
         self.reps = reps
         self.weight = weight
+        self.weightLb = weightLb
+        self.recordedUnit = recordedUnit
         self.recordedAt = recordedAt
     }
 }
@@ -111,22 +122,52 @@ class WorkoutSession {
         activeExercises[exerciseIndex].sets.append(WorkoutSet())
     }
     
-    func addRecord(to exerciseIndex: Int, reps: Int, weight: Double) {
+    func addRecord(
+        to exerciseIndex: Int,
+        reps: Int,
+        weightKg: Double,
+        weightLb: Double,
+        recordedUnit: String
+    ) {
         let record = ExerciseRecordStore.shared.addRecord(
             exerciseName: activeExercises[exerciseIndex].exercise.name,
             reps: reps,
-            weightKg: weight
+            weightKg: weightKg,
+            weightLb: weightLb,
+            recordedUnit: recordedUnit
         )
         activeExercises[exerciseIndex].sets.append(
-            WorkoutSet(id: record.id, reps: record.reps, weight: record.weightKg, recordedAt: record.recordedAt)
+            WorkoutSet(
+                id: record.id,
+                reps: record.reps,
+                weight: record.weightKg,
+                weightLb: record.weightLb,
+                recordedUnit: record.recordedUnit,
+                recordedAt: record.recordedAt
+            )
         )
     }
     
-    func updateRecord(exerciseIndex: Int, recordID: UUID, reps: Int, weight: Double) {
+    func updateRecord(
+        exerciseIndex: Int,
+        recordID: UUID,
+        reps: Int,
+        weightKg: Double,
+        weightLb: Double,
+        recordedUnit: String
+    ) {
         guard let idx = activeExercises[exerciseIndex].sets.firstIndex(where: { $0.id == recordID }) else { return }
         activeExercises[exerciseIndex].sets[idx].reps = reps
-        activeExercises[exerciseIndex].sets[idx].weight = weight
-        ExerciseRecordStore.shared.updateRecord(id: recordID, reps: reps, weightKg: weight)
+        activeExercises[exerciseIndex].sets[idx].weight = weightKg
+        activeExercises[exerciseIndex].sets[idx].weightLb = weightLb
+        activeExercises[exerciseIndex].sets[idx].recordedUnit = recordedUnit
+        ExerciseRecordStore.shared.updateRecord(
+            id: recordID,
+            reps: reps,
+            weightKg: weightKg,
+            weightLb: weightLb,
+            recordedUnit: recordedUnit
+        )
     }
     
     func removeRecord(exerciseIndex: Int, recordID: UUID) {
@@ -158,7 +199,44 @@ struct ExerciseRecord: Identifiable, Codable, Equatable {
     let exerciseName: String
     var reps: Int
     var weightKg: Double
+    var weightLb: Double
+    var recordedUnit: String
     var recordedAt: Date
+
+    private enum CodingKeys: String, CodingKey {
+        case id, exerciseName, reps, weightKg, weightLb, recordedUnit, recordedAt
+    }
+
+    init(
+        id: UUID,
+        exerciseName: String,
+        reps: Int,
+        weightKg: Double,
+        weightLb: Double,
+        recordedUnit: String,
+        recordedAt: Date
+    ) {
+        self.id = id
+        self.exerciseName = exerciseName
+        self.reps = reps
+        self.weightKg = weightKg
+        self.weightLb = weightLb
+        self.recordedUnit = recordedUnit
+        self.recordedAt = recordedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        exerciseName = try container.decode(String.self, forKey: .exerciseName)
+        reps = try container.decode(Int.self, forKey: .reps)
+        weightKg = try container.decode(Double.self, forKey: .weightKg)
+        recordedAt = try container.decode(Date.self, forKey: .recordedAt)
+
+        // Backward compatibility for records saved before lbs/unit were stored.
+        weightLb = try container.decodeIfPresent(Double.self, forKey: .weightLb) ?? (weightKg * 2.2046226218)
+        recordedUnit = try container.decodeIfPresent(String.self, forKey: .recordedUnit) ?? "kilograms"
+    }
 }
 
 final class ExerciseRecordStore {
@@ -178,12 +256,21 @@ final class ExerciseRecordStore {
     }
     
     @discardableResult
-    func addRecord(exerciseName: String, reps: Int, weightKg: Double, at date: Date = Date()) -> ExerciseRecord {
+    func addRecord(
+        exerciseName: String,
+        reps: Int,
+        weightKg: Double,
+        weightLb: Double,
+        recordedUnit: String,
+        at date: Date = Date()
+    ) -> ExerciseRecord {
         let record = ExerciseRecord(
             id: UUID(),
             exerciseName: exerciseName,
             reps: reps,
             weightKg: weightKg,
+            weightLb: weightLb,
+            recordedUnit: recordedUnit,
             recordedAt: date
         )
         records.append(record)
@@ -191,10 +278,12 @@ final class ExerciseRecordStore {
         return record
     }
     
-    func updateRecord(id: UUID, reps: Int, weightKg: Double) {
+    func updateRecord(id: UUID, reps: Int, weightKg: Double, weightLb: Double, recordedUnit: String) {
         guard let index = records.firstIndex(where: { $0.id == id }) else { return }
         records[index].reps = reps
         records[index].weightKg = weightKg
+        records[index].weightLb = weightLb
+        records[index].recordedUnit = recordedUnit
         save()
     }
     
