@@ -254,13 +254,15 @@ struct WorkoutSessionRowDashboard: View {
                         .lineLimit(1)
                     
                     HStack(spacing: 6) {
-                        Text("\(session.exerciseCount) exercises")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Theme.textSecondary)
-                        
-                        Text("•")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.stone)
+                        if session.exerciseCount > 0 {
+                            Text("\(session.exerciseCount) exercises")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.textSecondary)
+                            
+                            Text("•")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.stone)
+                        }
                         
                         Text(session.date, format: .dateTime.weekday(.abbreviated))
                             .font(.system(size: 13, weight: .medium))

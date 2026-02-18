@@ -14,6 +14,8 @@ struct WorkoutsView: View {
     @State private var selectedTemplate: WorkoutTemplate?
     @State private var editingWorkout: UserWorkout?
     @State private var showActiveSessionAlert = false
+    @State private var workoutToConfirmStart: UserWorkout?
+    @State private var collapsedWorkoutIDs: Set<UUID> = []
 
     var body: some View {
         NavigationStack {
@@ -31,6 +33,16 @@ struct WorkoutsView: View {
                             ForEach(workoutStore.workouts) { workout in
                                 UserWorkoutCard(
                                     workout: workout,
+                                    isCollapsed: Binding(
+                                        get: { collapsedWorkoutIDs.contains(workout.id) },
+                                        set: { isCollapsed in
+                                            if isCollapsed {
+                                                collapsedWorkoutIDs.insert(workout.id)
+                                            } else {
+                                                collapsedWorkoutIDs.remove(workout.id)
+                                            }
+                                        }
+                                    ),
                                     onEdit: {
                                         editingWorkout = workout
                                     },
@@ -38,6 +50,7 @@ struct WorkoutsView: View {
 							        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
 							        	withAnimation(.easeInOut(duration: 0.25)) {
 							        		workoutStore.remove(id: workout.id)
+                                            collapsedWorkoutIDs.remove(workout.id)
 							        	}
 							        }
                                     },
@@ -45,7 +58,7 @@ struct WorkoutsView: View {
                                         if workoutStore.activeSession != nil || runStore.activeSession != nil {
                                             showActiveSessionAlert = true
                                         } else {
-                                            workoutStore.startSession(for: workout)
+                                            workoutToConfirmStart = workout
                                         }
                                     }
                                 )
@@ -113,6 +126,26 @@ struct WorkoutsView: View {
                     Text("Please finish your current workout before starting a new one.")
                 }
             }
+            .alert(
+                "Start Workout?",
+                isPresented: Binding(
+                    get: { workoutToConfirmStart != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            workoutToConfirmStart = nil
+                        }
+                    }
+                ),
+                presenting: workoutToConfirmStart
+            ) { workout in
+                Button("Cancel", role: .cancel) { }
+                Button("Start") {
+                    workoutStore.startSession(for: workout)
+                    workoutToConfirmStart = nil
+                }
+            } message: { workout in
+                Text("Start \(workout.name)?")
+            }
         }
     }
 }
@@ -121,6 +154,7 @@ struct WorkoutsView: View {
 
 struct UserWorkoutCard: View {
     let workout: UserWorkout
+    @Binding var isCollapsed: Bool
     var onEdit: () -> Void
     var onDelete: () -> Void
     var onStart: () -> Void
@@ -141,6 +175,18 @@ struct UserWorkoutCard: View {
 
                 Spacer()
 
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isCollapsed.toggle()
+                    }
+                } label: {
+                    Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.stone)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+
                 Menu {
                     Button {
                         onEdit()
@@ -160,36 +206,38 @@ struct UserWorkoutCard: View {
                 }
             }
 
-            Divider()
-                .background(Theme.sand)
+            if !isCollapsed {
+                Divider()
+                    .background(Theme.sand)
 
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(workout.exercises) { exercise in
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Theme.sage.opacity(0.5))
-                            .frame(width: 6, height: 6)
-                        Text(exercise.name)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.textSecondary)
-                        Spacer()
-                        Text(exercise.muscleGroup)
-                            .font(.system(size: 10))
-                            .foregroundStyle(Theme.stone)
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(workout.exercises) { exercise in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(Theme.sage.opacity(0.5))
+                                .frame(width: 6, height: 6)
+                            Text(exercise.name)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.textSecondary)
+                            Spacer()
+                            Text(exercise.muscleGroup)
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.stone)
+                        }
                     }
                 }
-            }
 
-            Button {
-                onStart()
-            } label: {
-                Text("Start")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Theme.cream)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.terracotta)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                Button {
+                    onStart()
+                } label: {
+                    Text("Start")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Theme.cream)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Theme.terracotta)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
             }
         }
         .padding(18)

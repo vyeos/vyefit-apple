@@ -18,6 +18,7 @@ struct RunConfigSheet: View {
     @State private var selectedTarget: RunTarget?
     @State private var showNewTargetSheet = false
     @State private var selectedZone: HeartRateZone?
+    @State private var showStartConfirmation = false
     
     // Interval State
     @State private var intervalWorkout = IntervalWorkout.defaultInterval
@@ -117,8 +118,7 @@ struct RunConfigSheet: View {
             }
             
             Button {
-                startRun()
-                dismiss()
+                showStartConfirmation = true
             } label: {
                 Text(runStore.activeSession != nil || workoutStore.activeSession != nil ? "Session in Progress" : "Start Run")
                     .font(.system(size: 17, weight: .semibold))
@@ -133,6 +133,15 @@ struct RunConfigSheet: View {
             .padding(.bottom, 20)
         }
         .background(Theme.background)
+        .alert("Start Run?", isPresented: $showStartConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Start") {
+                startRun()
+                dismiss()
+            }
+        } message: {
+            Text("Do you want to start this run now?")
+        }
     }
     
     private func startRun() {
