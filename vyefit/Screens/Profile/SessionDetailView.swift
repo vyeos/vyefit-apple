@@ -228,8 +228,8 @@ struct SessionDetailView: View {
                 .foregroundStyle(Theme.textPrimary)
 
             HStack(spacing: 16) {
-                StatItem(title: "Exercises", value: "\(session.exerciseCount)")
-                StatItem(title: "Template", value: session.workoutTemplateName ?? "Unknown")
+                SessionStatItem(title: "Exercises", value: "\(session.exerciseCount)")
+                SessionStatItem(title: "Template", value: session.workoutTemplateName ?? "Unknown")
             }
         }
         .padding(16)
@@ -275,7 +275,7 @@ struct StatCard: View {
     }
 }
 
-private struct StatItem: View {
+private struct SessionStatItem: View {
     let title: String
     let value: String
 
